@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>XEQM Hub</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>XEQM</h1>
+        <h2>AI Assistant</h2>
+
+        <p>
+            Explore the XEQM ecosystem with an intelligent assistant.
+        </p>
+
+        <div class="chat-box">
+<input id="question" type="text" placeholder="Ask anything about XEQM..." onkeydown="if(event.key === 'Enter') askQuestion()">
+<button onclick="askQuestion()">Ask</button>
+
+<div id="answer"></div>
+
+<script>
+let conversation = [];
+
+async function askQuestion() {
+    const question = document.getElementById("question").value.trim();
+    const answerBox = document.getElementById("answer");
+
+    if (question === "") {
+        return;
+    }
+
+    answerBox.innerText = "Thinking...";
+
+    try {
+        const response = await fetch("/ask", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                question: question,
+                conversation: conversation
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error("Server error");
+        }
+
+        const data = await response.json();
+
+        conversation.push({
+            role: "user",
+            content: question
+        });
+
+        conversation.push({
+            role: "assistant",
+            content: data.answer
+        });
+
+        answerBox.innerText = data.answer;
+        document.getElementById("question").value = "";
+
+    } catch (error) {
+        answerBox.innerText =
+            "Sorry, I couldn't answer that right now. Please try again.";
+    }
+}
+</script>
+        </div>
+
+    </div>
+
+</body>
+</html>
