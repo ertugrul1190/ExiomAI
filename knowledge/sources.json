@@ -1,0 +1,111 @@
+{
+  "knowledge_snapshot": "2026-08",
+  "project": "EXIOM / XEQM",
+  "source_priority": [
+    "official_core_releases",
+    "official_whitepaper",
+    "official_technical_documentation",
+    "official_live_explorer",
+    "official_explanatory_pages"
+  ],
+  "conflict_rule": "When official sources conflict, prefer newer production implementation or mandatory core release information, then newer technical documentation. Preserve the conflict in changelog.md rather than silently merging claims.",
+  "sources": [
+    {
+      "id": "xeqm_whitepaper_v11",
+      "name": "XEQMLabs Technical Whitepaper",
+      "publisher": "XEQMLabs",
+      "type": "official_whitepaper",
+      "status": "authoritative_draft",
+      "version": "Draft v11",
+      "date": "2026-07-26",
+      "url": "https://github.com/XEQMLabs/whitepaper",
+      "covers": [
+        "network architecture",
+        "mainnet status",
+        "XEQM supply",
+        "emissions",
+        "service nodes",
+        "staking",
+        "unbonding",
+        "governance",
+        "HF22",
+        "HF23",
+        "quorum diversity",
+        "network survivability",
+        "Lokinet",
+        "Developer API",
+        "Privacy Oracle",
+        "RFQ platform",
+        "migration"
+      ],
+      "notes": "Draft technical specification. Production core implementation and later mandatory releases take priority if they conflict."
+    },
+    {
+      "id": "xeqm_core_releases",
+      "name": "XEQM Core Official Releases",
+      "publisher": "XEQMLabs",
+      "type": "official_core_releases",
+      "status": "production_implementation",
+      "url": "https://github.com/XEQMLabs/xeqm-core/releases",
+      "covers": [
+        "current core releases",
+        "mandatory upgrades",
+        "hard-fork activation",
+        "consensus changes",
+        "HF21",
+        "reward batching"
+      ],
+      "notes": "Use release information for behavior actually activated in production. Do not assume the historically referenced v1.0.7 remains the latest release; latest-version questions require current verification."
+    },
+    {
+      "id": "xeqm_ai_instructions_20260718",
+      "name": "XEQMLabs AI Instructions",
+      "publisher": "XEQMLabs",
+      "type": "official_explanatory_page",
+      "status": "official_but_lower_priority_when_conflicting",
+      "date": "2026-07-18",
+      "url": "https://xeqmlabs.com/ai-instructions",
+      "covers": [
+        "project overview",
+        "privacy",
+        "service nodes",
+        "developer tiers",
+        "platform fees",
+        "migration",
+        "ecosystem terminology"
+      ],
+      "notes": "Useful official reference, but its fixed-supply wording conflicts with the newer July 26 whitepaper. Use the newer whitepaper for the supply model."
+    },
+    {
+      "id": "xeqm_explorer",
+      "name": "EXIOM Blockchain Explorer",
+      "publisher": "XEQMLabs",
+      "type": "official_live_explorer",
+      "status": "live_dynamic_source",
+      "url": "https://explorer.xeqmlabs.com/",
+      "covers": [
+        "blocks",
+        "transactions",
+        "network observations",
+        "service-node observations",
+        "dynamic blockchain information"
+      ],
+      "notes": "Dynamic explorer values must be fetched at runtime. Never treat a previously observed explorer value as permanently current."
+    },
+    {
+      "id": "xeqm_core_repository",
+      "name": "XEQM Core Repository",
+      "publisher": "XEQMLabs",
+      "type": "official_source_code",
+      "status": "implementation_reference",
+      "url": "https://github.com/XEQMLabs/xeqm-core",
+      "covers": [
+        "protocol implementation",
+        "consensus implementation",
+        "network code",
+        "release history"
+      ],
+      "notes": "Source code is an implementation reference. Exact behavior should be tied to the applicable release/version rather than inferred from arbitrary branches."
+    }
+  ]
+}

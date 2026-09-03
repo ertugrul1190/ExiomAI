@@ -8,21 +8,69 @@
 
 <body>
 
-    <div class="container">
+<div class="container">
 
-        <h1>XEQM</h1>
-        <h2>AI Assistant</h2>
+    <header class="topbar">
+        <div class="brand">
+            <span class="brand-mark">X</span>
+            <span>XEQM HUB</span>
+        </div>
 
-        <p>
-            Explore the XEQM ecosystem with an intelligent assistant.
-        </p>
+        <div class="status">
+            <span class="status-dot"></span>
+            XEQM AI ONLINE
+        </div>
+    </header>
 
-        <div class="chat-box">
-<input id="question" type="text" placeholder="Ask anything about XEQM..." onkeydown="if(event.key === 'Enter') askQuestion()">
-<button onclick="askQuestion()">Ask</button>
+    <main>
+        <section class="intro">
+            <div class="badge">XEQM ECOSYSTEM ASSISTANT</div>
 
-<div id="answer"></div>
+            <h1>Understand XEQM.<br>Simply.</h1>
 
+            <p>
+                Ask questions, understand the technology and explore
+                the XEQM ecosystem without the technical headache.
+            </p>
+        </section>
+
+        <section class="assistant-card">
+
+            <div class="assistant-header">
+                <div>
+                    <strong>XEQM AI</strong>
+                    <span>Beginner-friendly ecosystem guide</span>
+                </div>
+            </div>
+
+            <div id="answer" class="answer-area">
+                <div class="welcome-message">
+                    <strong>Welcome to XEQM AI.</strong>
+                    <br><br>
+                    Ask me anything about XEQM, Exiom, service nodes,
+                    privacy or the ecosystem.
+                </div>
+            </div>
+
+            <div class="suggestions">
+                <button onclick="askSuggestion('What is XEQM?')">What is XEQM?</button>
+                <button onclick="askSuggestion('Explain service nodes simply')">Service Nodes</button>
+                <button onclick="askSuggestion('Why does XEQM focus on privacy?')">Privacy</button>
+            </div>
+
+            <div class="chat-box">
+                <input
+                    id="question"
+                    type="text"
+                    placeholder="Ask anything about XEQM..."
+                    onkeydown="if(event.key === 'Enter') askQuestion()"
+                >
+
+                <button class="send-button" onclick="askQuestion()">Ask</button>
+            </div>
+
+        </section>
+    </main>
 <script>
 let conversation = [];
 
@@ -34,7 +82,19 @@ async function askQuestion() {
         return;
     }
 
-    answerBox.innerText = "Thinking...";
+    answerBox.innerHTML += `
+        <div class="user-message">
+            <strong>You</strong>
+            <div>${escapeHTML(question)}</div>
+        </div>
+
+        <div class="ai-message thinking-message">
+            <strong>XEQM AI</strong>
+            <div>Thinking...</div>
+        </div>
+    `;
+
+    answerBox.scrollTop = answerBox.scrollHeight;
 
     try {
         const response = await fetch("/ask", {
@@ -64,7 +124,19 @@ async function askQuestion() {
             content: data.answer
         });
 
-        answerBox.innerText = data.answer;
+        const thinkingMessage = answerBox.querySelector(".thinking-message");
+
+        thinkingMessage.innerHTML = `
+            <strong>XEQM AI</strong>
+            <div>${formatAnswer(data.answer)}</div>
+        `;
+
+        thinkingMessage.classList.remove("thinking-message");
+
+        answerBox.scrollTop = answerBox.scrollHeight;
+
+
+
         document.getElementById("question").value = "";
 
     } catch (error) {
@@ -72,6 +144,21 @@ async function askQuestion() {
             "Sorry, I couldn't answer that right now. Please try again.";
     }
 }
+function escapeHTML(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+}
+function formatAnswer(text) {
+    return text
+        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\n/g, "<br>");
+}
+function askSuggestion(question) {
+    document.getElementById("question").value = question;
+    askQuestion();
+}
+
 </script>
         </div>
 
