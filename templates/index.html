@@ -2,6 +2,9 @@
 <html>
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>XEQM Hub</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -11,6 +14,7 @@
 <div class="container">
 
     <header class="topbar">
+
         <div class="brand">
             <span class="brand-mark">X</span>
             <span>XEQM HUB</span>
@@ -20,149 +24,525 @@
             <span class="status-dot"></span>
             XEQM AI ONLINE
         </div>
+
     </header>
 
     <main>
-        <section class="intro">
-            <div class="badge">XEQM ECOSYSTEM ASSISTANT</div>
 
-            <h1>Understand XEQM.<br>Simply.</h1>
+        <section class="intro">
+
+            <div class="badge">
+                XEQM ECOSYSTEM ASSISTANT
+            </div>
+
+            <h1>
+                Understand XEQM.<br>
+                Simply.
+            </h1>
 
             <p>
                 Ask questions, understand the technology and explore
                 the XEQM ecosystem without the technical headache.
             </p>
+
         </section>
 
         <section class="assistant-card">
 
             <div class="assistant-header">
+
                 <div>
                     <strong>XEQM AI</strong>
                     <span>Beginner-friendly ecosystem guide</span>
                 </div>
+
             </div>
 
             <div id="answer" class="answer-area">
+
                 <div class="welcome-message">
+
                     <strong>Welcome to XEQM AI.</strong>
+
                     <br><br>
-                    Ask me anything about XEQM, Exiom, service nodes,
+
+                    Ask me anything about XEQM, EXIOM, service nodes,
                     privacy or the ecosystem.
+
                 </div>
+
             </div>
 
             <div class="suggestions">
-                <button onclick="askSuggestion('What is XEQM?')">What is XEQM?</button>
-                <button onclick="askSuggestion('Explain service nodes simply')">Service Nodes</button>
-                <button onclick="askSuggestion('Why does XEQM focus on privacy?')">Privacy</button>
+
+                <button onclick="askSuggestion('What is XEQM?')">
+                    What is XEQM?
+                </button>
+
+                <button onclick="askSuggestion('Explain service nodes simply')">
+                    Service Nodes
+                </button>
+
+                <button onclick="askSuggestion('Why does XEQM focus on privacy?')">
+                    Privacy
+                </button>
+
             </div>
 
             <div class="chat-box">
+
                 <input
                     id="question"
                     type="text"
                     placeholder="Ask anything about XEQM..."
-                    onkeydown="if(event.key === 'Enter') askQuestion()"
+                    autocomplete="off"
                 >
 
-                <button class="send-button" onclick="askQuestion()">Ask</button>
+                <button
+                    id="sendButton"
+                    class="send-button"
+                    onclick="askQuestion()"
+                >
+                    Ask
+                </button>
+
             </div>
 
         </section>
+
     </main>
+
+</div>
+
+
 <script>
+
 let conversation = [];
+let requestInProgress = false;
+
+const questionInput =
+    document.getElementById("question");
+
+const answerBox =
+    document.getElementById("answer");
+
+const sendButton =
+    document.getElementById("sendButton");
+
+
+/* -------------------------------------------------------
+   ENTER TO SEND
+------------------------------------------------------- */
+
+questionInput.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (
+            event.key === "Enter"
+            && !event.shiftKey
+        ) {
+
+            event.preventDefault();
+            askQuestion();
+
+        }
+    }
+);
+
+
+/* -------------------------------------------------------
+   ASK QUESTION
+------------------------------------------------------- */
 
 async function askQuestion() {
-    const question = document.getElementById("question").value.trim();
-    const answerBox = document.getElementById("answer");
 
-    if (question === "") {
+    const question =
+        questionInput.value.trim();
+
+    if (
+        question === ""
+        || requestInProgress
+    ) {
         return;
     }
 
-    answerBox.innerHTML += `
-        <div class="user-message">
-            <strong>You</strong>
-            <div>${escapeHTML(question)}</div>
-        </div>
+    requestInProgress = true;
 
-        <div class="ai-message thinking-message">
-            <strong>XEQM AI</strong>
-            <div>Thinking...</div>
+    sendButton.disabled = true;
+    questionInput.disabled = true;
+
+    questionInput.value = "";
+
+
+    /* USER MESSAGE */
+
+    const userMessage =
+        document.createElement("div");
+
+    userMessage.className =
+        "user-message";
+
+    userMessage.innerHTML = `
+        <strong>You</strong>
+        <div>${escapeHTML(question)}</div>
+    `;
+
+    answerBox.appendChild(
+        userMessage
+    );
+
+
+    /* THINKING MESSAGE */
+
+    const aiMessage =
+        document.createElement("div");
+
+    aiMessage.className =
+        "ai-message thinking-message";
+
+    aiMessage.innerHTML = `
+        <strong>XEQM AI</strong>
+
+        <div class="thinking-text">
+            Thinking
         </div>
     `;
 
-    answerBox.scrollTop = answerBox.scrollHeight;
+    answerBox.appendChild(
+        aiMessage
+    );
+
+    scrollToBottom();
+
 
     try {
-        const response = await fetch("/ask", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                question: question,
-                conversation: conversation
-            })
-        });
 
-        if (!response.ok) {
-            throw new Error("Server error");
+        const response =
+            await fetch(
+                "/ask",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        question: question,
+                        conversation: conversation
+                    })
+                }
+            );
+
+
+        let data = {};
+
+        try {
+
+            data =
+                await response.json();
+
+        } catch {
+
+            data = {};
+
         }
 
-        const data = await response.json();
+
+        if (!response.ok) {
+
+            const serverMessage =
+                data.answer
+                || "EXIOM AI couldn't complete that request.";
+
+            const error =
+                new Error(serverMessage);
+
+            error.errorType =
+                data.error_type
+                || "unknown";
+
+            throw error;
+
+        }
+
+
+        const answer =
+            String(
+                data.answer
+                || "I couldn't generate a response."
+            );
+
 
         conversation.push({
             role: "user",
             content: question
         });
 
+
         conversation.push({
             role: "assistant",
-            content: data.answer
+            content: answer
         });
 
-        const thinkingMessage = answerBox.querySelector(".thinking-message");
 
-        thinkingMessage.innerHTML = `
+        if (conversation.length > 20) {
+
+            conversation =
+                conversation.slice(-20);
+
+        }
+
+
+        /* SOURCE DISPLAY */
+
+        const sourceHTML =
+            data.source === "Official EXIOM Explorer"
+                ? `
+                    <div class="response-source">
+                        <span>Source</span>
+                        <a
+                            href="https://explorer.xeqmlabs.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            Official EXIOM Explorer ↗
+                        </a>
+                    </div>
+                `
+                : data.source
+                    ? `
+                        <div class="response-source">
+                            <span>Source</span>
+                            ${escapeHTML(data.source)}
+                        </div>
+                    `
+                    : "";
+
+
+        /* FINAL AI MESSAGE */
+
+        aiMessage.innerHTML = `
             <strong>XEQM AI</strong>
-            <div>${formatAnswer(data.answer)}</div>
+
+            <div class="message-content">
+                ${formatAnswer(answer)}
+            </div>
+
+            ${sourceHTML}
         `;
 
-        thinkingMessage.classList.remove("thinking-message");
 
-        answerBox.scrollTop = answerBox.scrollHeight;
+        aiMessage.classList.remove(
+            "thinking-message"
+        );
 
+        scrollToBottom();
 
-
-        document.getElementById("question").value = "";
 
     } catch (error) {
-        answerBox.innerText =
-            "Sorry, I couldn't answer that right now. Please try again.";
+
+        console.error(
+            "EXIOM AI request failed:",
+            error
+        );
+
+
+        let message =
+            error.message
+            || "EXIOM AI couldn't answer that right now. Please try again.";
+
+
+        if (!error.errorType) {
+
+            message =
+                "Couldn't connect to EXIOM AI. "
+                + "Check your connection and try again.";
+
+        }
+
+
+        aiMessage.innerHTML = `
+            <strong>XEQM AI</strong>
+
+            <div class="message-content error-message">
+                ${escapeHTML(message)}
+            </div>
+        `;
+
+
+        aiMessage.classList.remove(
+            "thinking-message"
+        );
+
+        scrollToBottom();
+
+
+    } finally {
+
+        requestInProgress = false;
+
+        sendButton.disabled = false;
+        questionInput.disabled = false;
+
+        questionInput.focus();
+
     }
+
 }
+
+
+/* -------------------------------------------------------
+   SAFE HTML
+------------------------------------------------------- */
+
 function escapeHTML(text) {
-    const div = document.createElement("div");
-    div.textContent = text;
+
+    const div =
+        document.createElement("div");
+
+    div.textContent =
+        String(text);
+
     return div.innerHTML;
+
 }
+
+
+/* -------------------------------------------------------
+   ANSWER FORMATTING
+------------------------------------------------------- */
+
 function formatAnswer(text) {
-    return text
-        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-        .replace(/\n/g, "<br>");
+
+    let formatted =
+        escapeHTML(text);
+
+
+    /* CLICKABLE URLs */
+
+    formatted =
+        formatted.replace(
+            /(https?:\/\/[^\s<]+)/g,
+            '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+        );
+
+
+    /* BOLD */
+
+    formatted =
+        formatted.replace(
+            /\*\*(.*?)\*\*/g,
+            "<strong>$1</strong>"
+        );
+
+
+    /* INLINE CODE */
+
+    formatted =
+        formatted.replace(
+            /`([^`\n]+)`/g,
+            "<code>$1</code>"
+        );
+
+
+    /* BULLET LISTS */
+
+    const lines =
+        formatted.split("\n");
+
+    let output = "";
+    let insideList = false;
+
+
+    for (const line of lines) {
+
+        const trimmed =
+            line.trim();
+
+
+        if (trimmed.startsWith("- ")) {
+
+            if (!insideList) {
+
+                output += "<ul>";
+                insideList = true;
+
+            }
+
+            output +=
+                `<li>${trimmed.substring(2)}</li>`;
+
+        } else {
+
+            if (insideList) {
+
+                output += "</ul>";
+                insideList = false;
+
+            }
+
+
+            if (trimmed === "") {
+
+                output += "<br>";
+
+            } else {
+
+                output +=
+                    `<div class="answer-line">${line}</div>`;
+
+            }
+
+        }
+
+    }
+
+
+    if (insideList) {
+
+        output += "</ul>";
+
+    }
+
+
+    return output;
+
 }
+
+
+/* -------------------------------------------------------
+   SCROLL
+------------------------------------------------------- */
+
+function scrollToBottom() {
+
+    answerBox.scrollTop =
+        answerBox.scrollHeight;
+
+}
+
+
+/* -------------------------------------------------------
+   SUGGESTED QUESTIONS
+------------------------------------------------------- */
+
 function askSuggestion(question) {
-    document.getElementById("question").value = question;
+
+    if (requestInProgress) {
+        return;
+    }
+
+    questionInput.value =
+        question;
+
     askQuestion();
+
 }
 
 </script>
-        </div>
-
-    </div>
 
 </body>
 </html>

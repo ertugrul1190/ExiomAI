@@ -138,6 +138,119 @@ main {
     color: white;
 }
 
+
+/* -------------------------------------------------------
+   MESSAGES
+------------------------------------------------------- */
+
+.user-message,
+.ai-message {
+    max-width: 82%;
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    border-radius: 14px;
+}
+
+.user-message {
+    margin-left: auto;
+    background: rgba(255,255,255,0.1);
+}
+
+.ai-message {
+    margin-right: auto;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+}
+
+.user-message strong,
+.ai-message > strong {
+    display: block;
+    margin-bottom: 7px;
+    font-size: 11px;
+    letter-spacing: 0.7px;
+    color: #8f9bad;
+}
+
+.message-content {
+    overflow-wrap: anywhere;
+}
+
+.message-content ul {
+    margin: 8px 0;
+    padding-left: 22px;
+}
+
+.message-content li {
+    margin: 4px 0;
+}
+
+.message-content a {
+    color: #a98cff;
+    text-decoration: underline;
+    overflow-wrap: anywhere;
+}
+
+.message-content code {
+    padding: 2px 5px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.08);
+    font-family: monospace;
+}
+
+.answer-line {
+    min-height: 1px;
+}
+
+.error-message {
+    color: #ffb8b8;
+}
+
+
+/* -------------------------------------------------------
+   THINKING STATE
+------------------------------------------------------- */
+
+.thinking-message {
+    opacity: 0.78;
+}
+
+.thinking-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.thinking-text::after {
+    content: "";
+    width: 18px;
+    display: inline-block;
+    animation: thinkingDots 1.2s infinite;
+}
+
+@keyframes thinkingDots {
+    0% {
+        content: "";
+    }
+
+    25% {
+        content: ".";
+    }
+
+    50% {
+        content: "..";
+    }
+
+    75%,
+    100% {
+        content: "...";
+    }
+}
+
+
+/* -------------------------------------------------------
+   SUGGESTIONS
+------------------------------------------------------- */
+
 .suggestions {
     padding: 0 20px 15px;
     display: flex;
@@ -158,6 +271,11 @@ main {
     background: rgba(255,255,255,0.09);
     color: white;
 }
+
+
+/* -------------------------------------------------------
+   CHAT INPUT
+------------------------------------------------------- */
 
 .chat-box {
     display: flex;
@@ -182,6 +300,10 @@ main {
     border-color: rgba(255,255,255,0.3);
 }
 
+.chat-box input:disabled {
+    opacity: 0.7;
+}
+
 .send-button {
     padding: 0 24px;
     border: 0;
@@ -192,11 +314,22 @@ main {
     cursor: pointer;
 }
 
-.send-button:hover {
+.send-button:hover:not(:disabled) {
     opacity: 0.88;
 }
 
+.send-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+
+/* -------------------------------------------------------
+   MOBILE
+------------------------------------------------------- */
+
 @media (max-width: 600px) {
+
     .topbar {
         height: 65px;
     }
@@ -222,6 +355,11 @@ main {
         padding: 20px;
     }
 
+    .user-message,
+    .ai-message {
+        max-width: 92%;
+    }
+
     .chat-box {
         padding: 13px;
     }
@@ -230,34 +368,32 @@ main {
         padding: 0 17px;
     }
 }
-.user-message,
-.ai-message {
-    max-width: 82%;
-    margin-bottom: 18px;
-    padding: 14px 16px;
-    border-radius: 14px;
-}
 
-.user-message {
-    margin-left: auto;
-    background: rgba(255,255,255,0.1);
-}
+/* -------------------------------------------------------
+   RESPONSE SOURCE
+------------------------------------------------------- */
 
-.ai-message {
-    margin-right: auto;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.07);
-}
+.response-source {
+    margin-top: 12px;
+    padding-top: 9px;
+    border-top: 1px solid rgba(255,255,255,0.07);
 
-.user-message strong,
-.ai-message strong {
-    display: block;
-    margin-bottom: 7px;
     font-size: 11px;
-    letter-spacing: 0.7px;
-    color: #8f9bad;
+    color: #8490a1;
 }
 
-.thinking-message {
-    opacity: 0.65;
+.response-source span {
+    margin-right: 5px;
+    font-weight: bold;
+    color: #aeb8c7;
+}
+
+
+.response-source a {
+    color: #a98cff;
+    text-decoration: none;
+}
+
+.response-source a:hover {
+    text-decoration: underline;
 }

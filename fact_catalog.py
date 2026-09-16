@@ -1,134 +1,117 @@
-import re
+# ---------------------------------------------------------
+# EXPLORER FACT HELPERS
+# ---------------------------------------------------------
+#
+# Semantic interpretation is now handled by the AI router.
+#
+# This file no longer tries to understand English using
+# keywords, synonyms, scoring, or explanation detection.
+#
+# Its job is only to safely select Explorer facts AFTER the
+# semantic router has decided which facts are needed.
+# ---------------------------------------------------------
 
 
-FACT_CATALOG = {
-    "active_nodes": {
-        "concepts": [
-            "active node",
-            "active nodes",
-            "service node",
-            "service nodes",
-            "node count",
-            "nodes online",
-            "online nodes"
-        ],
-        "question_signals": [
-            "how many",
-            "number",
-            "count",
-            "current",
-            "currently",
-            "right now",
-            "now"
-        ]
-    },
+def get_selected_facts(
+    fact_keys,
+    fact_registry=None
+):
+    """
+    Return only the Explorer facts explicitly selected by
+    the semantic AI router.
+    """
 
-    "total_supply": {
-        "concepts": [
-            "total supply",
-            "xeqm supply",
-            "supply of xeqm"
-        ],
-        "question_signals": [
-            "what",
-            "how much",
-            "current",
-            "currently",
-            "right now",
-            "now"
-        ]
-    },
+    if not fact_registry:
+        return {}
 
-    "block_height": {
-        "concepts": [
-            "block height",
-            "current block",
-            "latest block",
-            "block number"
-        ],
-        "question_signals": [
-            "what",
-            "which",
-            "current",
-            "latest",
-            "right now",
-            "now"
-        ]
-    },
+    if not isinstance(fact_keys, list):
+        return {}
 
-    "service_node_reward": {
-        "concepts": [
-            "service node reward",
-            "node reward",
-            "block reward",
-            "reward per block",
-            "reward for a block"
-        ],
-        "question_signals": [
-            "what",
-            "how much",
-            "current",
-            "currently",
-            "right now",
-            "now"
-        ]
-    }
-}
+    selected = {}
+
+    for fact_key in fact_keys:
+
+        if fact_key not in fact_registry:
+            continue
+
+        selected[fact_key] = fact_registry[fact_key]
+
+    return selected
 
 
-EXPLANATION_SIGNALS = [
-    "why",
-    "explain",
-    "what does that mean",
-    "what does this mean",
-    "how does",
-    "reason",
-    "significance",
-    "important",
-    "is that good",
-    "is that bad",
-    "compare",
-    "difference"
-]
+def get_fact(
+    fact_key,
+    fact_registry=None
+):
+    """
+    Return one Explorer fact by its exact registry key.
+    """
 
-
-def normalize(text):
-    text = text.lower()
-    text = re.sub(r"[^a-z0-9\s]", " ", text)
-    return re.sub(r"\s+", " ", text).strip()
-
-
-def needs_explanation(question):
-    text = normalize(question)
-
-    return any(
-        signal in text
-        for signal in EXPLANATION_SIGNALS
-    )
-
-
-def find_requested_fact(question):
-    text = normalize(question)
-
-    best_fact = None
-    best_score = 0
-
-    for fact_name, config in FACT_CATALOG.items():
-        score = 0
-
-        for concept in config["concepts"]:
-            if concept in text:
-                score += 5
-
-        for signal in config["question_signals"]:
-            if signal in text:
-                score += 1
-
-        if score > best_score:
-            best_score = score
-            best_fact = fact_name
-
-    if best_score < 5:
+    if not fact_registry:
         return None
 
-    return best_fact
+    return fact_registry.get(fact_key)
+
+
+def format_fact_answer(fact):
+    """
+    Format one simple Explorer fact for a direct response.
+    """
+
+    if not fact:
+        return None
+
+    label = fact.get(
+        "label",
+        "Explorer value"
+    )
+
+    value = fact.get(
+        "value",
+        ""
+    )
+
+    unit = fact.get(
+        "unit",
+        ""
+    )
+
+    if not value:
+        return None
+
+    if unit:
+        value_text = f"{value} {unit}"
+    else:
+        value_text = str(value)
+
+    return f"{label}: {value_text}."
+
+
+def answer_selected_direct_fact(
+    fact_keys,
+    fact_registry=None
+):
+    """
+    Give a $0 local response ONLY when the AI semantic router
+    explicitly decided that the question is a direct live
+    fact request and selected exactly one Explorer fact.
+
+    If multiple facts are needed, app.py should let EXIOM AI
+    compose the answer naturally.
+    """
+
+    selected = get_selected_facts(
+        fact_keys,
+        fact_registry
+    )
+
+    if len(selected) != 1:
+        return None
+
+    fact = next(
+        iter(selected.values())
+    )
+
+    return format_fact_answer(
+        fact
+    )
