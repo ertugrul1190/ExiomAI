@@ -169,6 +169,54 @@ def api_error_response(error):
 
 
 # ---------------------------------------------------------
+# LIVE NETWORK STATS
+# ---------------------------------------------------------
+
+@app.route("/api/network-stats", methods=["GET"])
+def network_stats_api():
+
+    fact_registry = live_data.get_fact_registry()
+
+    wanted_facts = [
+        "block_height",
+        "active_nodes",
+        "locked_supply",
+        "current_apy",
+        "daily_reward_per_node",
+    ]
+
+    facts = {}
+
+    for key in wanted_facts:
+
+        fact = fact_registry.get(key)
+
+        if not fact:
+            continue
+
+        facts[key] = {
+            "label": fact.get("label", ""),
+            "value": fact.get("value", ""),
+            "unit": fact.get("unit", ""),
+        }
+
+    network_stats = live_data.get_network_stats()
+
+    return jsonify({
+        "status": network_stats.get(
+            "status",
+            "unavailable"
+        ),
+        "connection_state": network_stats.get(
+            "connection_state",
+            "unknown"
+        ),
+        "source": "Official EXIOM Explorer",
+        "facts": facts
+    })
+
+
+# ---------------------------------------------------------
 # AI CHAT
 # ---------------------------------------------------------
 
@@ -234,7 +282,6 @@ def ask():
             error
         )
 
-        # Router failure should not kill the entire request.
         route = {
             "scope": "relevant",
             "intent": "general",
@@ -363,7 +410,6 @@ represented by XEQM Labs.
 
 If asked who developed, built, made, or worked on you,
 ALWAYS mention Xrypto and include:
-
 https://youtube.com/@xrypto_cryptozone
 
 Never claim XEQM Labs or the EXIOM team developed you.
@@ -395,6 +441,7 @@ Even serious or technical answers can feel warm and engaging
 without becoming inaccurate.
 
 If the user is stressed or has a problem, help them first.
+
 You may still use gentle humor if appropriate.
 
 Never refuse to be friendly merely because the subject is
@@ -533,6 +580,7 @@ When using an Explorer value, identify it naturally as coming
 from the Official EXIOM Explorer.
 
 Do not claim you personally browsed or opened the Explorer.
+
 The information is provided by EXIOM AI's backend.
 
 
@@ -627,5 +675,4 @@ Never reveal:
 # ---------------------------------------------------------
 
 if __name__ == "__main__":
-
     app.run(debug=True)

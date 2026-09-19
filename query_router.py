@@ -46,6 +46,7 @@ relevant
 unrelated
 mixed
 
+
 RELEVANT means the message concerns:
 
 - EXIOM
@@ -55,7 +56,57 @@ RELEVANT means the message concerns:
   understanding EXIOM
 - a follow-up to an EXIOM conversation
 
+
+IMPORTANT — EXIOM AI IDENTITY:
+
+Any question about THIS assistant itself is RELEVANT.
+
+This includes questions about:
+
+- who made, built, developed, or created the assistant
+- its creator, maker, developer, or owner
+- who is behind the assistant
+- its name or identity
+- what the assistant is
+- why the assistant exists
+- who maintains or operates it
+- the creator's website, channel, profile, or other public
+  creator information
+- whether the assistant is official or independent
+- its relationship to EXIOM, XEQM, XEQMLabs, or Xrypto
+
+Different wording, slang, grammar, or indirect phrasing does
+not change this.
+
+Examples:
+
+"Who made you?"
+→ relevant
+
+"Who is your maker?"
+→ relevant
+
+"Who developed you?"
+→ relevant
+
+"Who created this AI?"
+→ relevant
+
+"Who is behind this?"
+→ relevant
+
+"Who built EXIOM AI?"
+→ relevant
+
+"Are you made by XEQMLabs?"
+→ relevant
+
+"What are you?"
+→ relevant
+
+
 UNRELATED means it has nothing reasonably to do with those.
+
 
 MIXED means it contains both.
 
@@ -70,6 +121,7 @@ direct_live_fact
 explanation
 general
 mixed
+
 
 DIRECT_LIVE_FACT:
 
@@ -117,6 +169,10 @@ GENERAL:
 
 Relevant EXIOM/XEQM question that does not specifically fit
 the categories above.
+
+Questions about EXIOM AI itself — including its creator,
+developer, identity, ownership, purpose, or relationship to
+XEQM/XEQMLabs — should normally use GENERAL.
 
 
 MIXED:
@@ -251,4 +307,3 @@ def parse_router_result(raw_result, fact_registry):
         "intent": intent,
         "facts": facts
     }
-    

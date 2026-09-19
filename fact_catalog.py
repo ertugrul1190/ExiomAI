@@ -2,13 +2,11 @@
 # EXPLORER FACT HELPERS
 # ---------------------------------------------------------
 #
-# Semantic interpretation is now handled by the AI router.
+# Semantic interpretation is handled by the AI router.
 #
-# This file no longer tries to understand English using
-# keywords, synonyms, scoring, or explanation detection.
-#
-# Its job is only to safely select Explorer facts AFTER the
-# semantic router has decided which facts are needed.
+# This file does not interpret user language.
+# It safely selects and formats Explorer facts AFTER the
+# semantic router decides which facts are required.
 # ---------------------------------------------------------
 
 
@@ -17,7 +15,7 @@ def get_selected_facts(
     fact_registry=None
 ):
     """
-    Return only the Explorer facts explicitly selected by
+    Return only Explorer facts explicitly selected by
     the semantic AI router.
     """
 
@@ -53,18 +51,13 @@ def get_fact(
     return fact_registry.get(fact_key)
 
 
-def format_fact_answer(fact):
+def format_fact_value(fact):
     """
-    Format one simple Explorer fact for a direct response.
+    Format the value of one Explorer fact.
     """
 
     if not fact:
         return None
-
-    label = fact.get(
-        "label",
-        "Explorer value"
-    )
 
     value = fact.get(
         "value",
@@ -76,15 +69,74 @@ def format_fact_answer(fact):
         ""
     )
 
-    if not value:
+    if value is None or value == "":
         return None
 
     if unit:
-        value_text = f"{value} {unit}"
-    else:
-        value_text = str(value)
+        return f"{value} {unit}"
+
+    return str(value)
+
+
+def format_fact_answer(fact):
+    """
+    Format one Explorer fact for a direct response.
+    """
+
+    if not fact:
+        return None
+
+    label = fact.get(
+        "label",
+        "Explorer value"
+    )
+
+    value_text = format_fact_value(
+        fact
+    )
+
+    if not value_text:
+        return None
 
     return f"{label}: {value_text}."
+
+
+def format_multiple_fact_answer(selected):
+    """
+    Format multiple Explorer facts as a compact
+    live-network snapshot.
+    """
+
+    if not selected:
+        return None
+
+    lines = []
+
+    for fact in selected.values():
+
+        label = fact.get(
+            "label",
+            "Explorer value"
+        )
+
+        value_text = format_fact_value(
+            fact
+        )
+
+        if not value_text:
+            continue
+
+        lines.append(
+            f"- **{label}:** {value_text}"
+        )
+
+    if not lines:
+        return None
+
+    return (
+        "**Current EXIOM network snapshot:**\n\n"
+        + "\n".join(lines)
+    )
 
 
 def answer_selected_direct_fact(
@@ -92,12 +144,14 @@ def answer_selected_direct_fact(
     fact_registry=None
 ):
     """
-    Give a $0 local response ONLY when the AI semantic router
-    explicitly decided that the question is a direct live
-    fact request and selected exactly one Explorer fact.
+    Give a local response when the semantic router has
+    selected verified Explorer facts.
 
-    If multiple facts are needed, app.py should let EXIOM AI
-    compose the answer naturally.
+    One selected fact:
+    return a simple direct answer.
+
+    Multiple selected facts:
+    return a compact live-network snapshot.
     """
 
     selected = get_selected_facts(
@@ -105,13 +159,19 @@ def answer_selected_direct_fact(
         fact_registry
     )
 
-    if len(selected) != 1:
+    if not selected:
         return None
 
-    fact = next(
-        iter(selected.values())
-    )
+    if len(selected) == 1:
 
-    return format_fact_answer(
-        fact
+        fact = next(
+            iter(selected.values())
+        )
+
+        return format_fact_answer(
+            fact
+        )
+
+    return format_multiple_fact_answer(
+        selected
     )

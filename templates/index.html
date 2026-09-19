@@ -4,7 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>XEQM Hub</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -27,13 +26,12 @@
 
     </header>
 
+
     <main>
 
         <section class="intro">
 
-            <div class="badge">
-                XEQM ECOSYSTEM ASSISTANT
-            </div>
+            <div class="badge">XEQM ECOSYSTEM ASSISTANT</div>
 
             <h1>
                 Understand XEQM.<br>
@@ -47,6 +45,43 @@
 
         </section>
 
+
+        <!-- LIVE EXIOM NETWORK -->
+
+        <section class="live-network-bar">
+
+            <div class="live-network-label">
+                <span class="live-data-dot"></span>
+                <span>LIVE NETWORK</span>
+            </div>
+
+            <div class="live-stat">
+
+                <span class="live-stat-label">
+                    BLOCK HEIGHT
+                </span>
+
+                <strong
+                    id="liveBlockHeight"
+                    class="live-stat-value"
+                >
+                    Loading...
+                </strong>
+
+            </div>
+
+            <div
+                id="liveNetworkState"
+                class="live-network-state"
+            >
+                Connecting to Explorer...
+            </div>
+
+        </section>
+
+
+        <!-- AI ASSISTANT -->
+
         <section class="assistant-card">
 
             <div class="assistant-header">
@@ -58,9 +93,13 @@
 
             </div>
 
+
             <div id="answer" class="answer-area">
 
-                <div class="welcome-message">
+                <div
+                    id="welcomeMessage"
+                    class="welcome-message"
+                >
 
                     <strong>Welcome to XEQM AI.</strong>
 
@@ -73,21 +112,113 @@
 
             </div>
 
-            <div class="suggestions">
 
-                <button onclick="askSuggestion('What is XEQM?')">
-                    What is XEQM?
+            <!-- SUGGESTIONS -->
+
+            <div
+                id="suggestions"
+                class="suggestions"
+            >
+
+                <button
+                    class="suggestion-card xeqm-card"
+                    onclick="askSuggestion('Explain XEQM to me simply. What is it, what does it do, and why does it exist?')"
+                >
+
+                    <span class="suggestion-icon">✦</span>
+
+                    <span class="suggestion-content">
+
+                        <strong>
+                            Explain XEQM Simply
+                        </strong>
+
+                        <small>
+                            What it is, what it does & why it exists
+                        </small>
+
+                    </span>
+
+                    <span class="suggestion-arrow">→</span>
+
                 </button>
 
-                <button onclick="askSuggestion('Explain service nodes simply')">
-                    Service Nodes
+
+                <button
+                    class="suggestion-card node-card"
+                    onclick="askSuggestion('Explain how EXIOM service nodes work, including staking and the role they play in the network.')"
+                >
+
+                    <span class="suggestion-icon">◈</span>
+
+                    <span class="suggestion-content">
+
+                        <strong>
+                            Understand Service Nodes
+                        </strong>
+
+                        <small>
+                            Staking, rewards & network role
+                        </small>
+
+                    </span>
+
+                    <span class="suggestion-arrow">→</span>
+
                 </button>
 
-                <button onclick="askSuggestion('Why does XEQM focus on privacy?')">
-                    Privacy
+
+                <button
+                    class="suggestion-card network-card"
+                    onclick="askSuggestion('Give me a current EXIOM network snapshot using live Explorer data. Include active service nodes, block height, locked supply, current APY, and daily reward per node.')"
+                >
+
+                    <span class="suggestion-icon">▥</span>
+
+                    <span class="suggestion-content">
+
+                        <strong>
+                            View Live Network Stats
+                        </strong>
+
+                        <small>
+                            Current nodes, blocks, supply & APY
+                        </small>
+
+                    </span>
+
+                    <span class="suggestion-arrow">→</span>
+
+                </button>
+
+
+                <button
+                    class="suggestion-card privacy-card"
+                    onclick="askSuggestion('Explain how privacy works in the EXIOM ecosystem and why it matters.')"
+                >
+
+                    <span class="suggestion-icon">◇</span>
+
+                    <span class="suggestion-content">
+
+                        <strong>
+                            Explore EXIOM Privacy
+                        </strong>
+
+                        <small>
+                            Privacy technology & why it matters
+                        </small>
+
+                    </span>
+
+                    <span class="suggestion-arrow">→</span>
+
                 </button>
 
             </div>
+
+
+            <!-- CHAT -->
 
             <div class="chat-box">
 
@@ -119,6 +250,8 @@
 
 let conversation = [];
 let requestInProgress = false;
+let chatStarted = false;
+
 
 const questionInput =
     document.getElementById("question");
@@ -128,6 +261,100 @@ const answerBox =
 
 const sendButton =
     document.getElementById("sendButton");
+
+const welcomeMessage =
+    document.getElementById("welcomeMessage");
+
+const suggestions =
+    document.getElementById("suggestions");
+
+const liveBlockHeight =
+    document.getElementById("liveBlockHeight");
+
+const liveNetworkState =
+    document.getElementById("liveNetworkState");
+
+
+/* -------------------------------------------------------
+   LIVE NETWORK
+------------------------------------------------------- */
+
+async function loadLiveNetworkStats() {
+
+    try {
+
+        const response =
+            await fetch("/api/network-stats");
+
+        if (!response.ok) {
+            throw new Error(
+                "Explorer data unavailable"
+            );
+        }
+
+        const data =
+            await response.json();
+
+
+        const blockHeight =
+            data.facts?.block_height?.value;
+
+
+        if (
+            blockHeight !== undefined &&
+            blockHeight !== null &&
+            blockHeight !== ""
+        ) {
+
+            const numericHeight =
+                Number(blockHeight);
+
+            liveBlockHeight.textContent =
+                Number.isFinite(numericHeight)
+                    ? numericHeight.toLocaleString()
+                    : String(blockHeight);
+
+        } else {
+
+            liveBlockHeight.textContent =
+                "Unavailable";
+
+        }
+
+
+        if (
+            data.connection_state === "connected"
+        ) {
+
+            liveNetworkState.textContent =
+                "Official EXIOM Explorer";
+
+        } else {
+
+            liveNetworkState.textContent =
+                "Explorer unavailable";
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Live network component failed:",
+            error
+        );
+
+        liveBlockHeight.textContent =
+            "Unavailable";
+
+        liveNetworkState.textContent =
+            "Explorer unavailable";
+
+    }
+
+}
+
+
+loadLiveNetworkStats();
 
 
 /* -------------------------------------------------------
@@ -139,16 +366,41 @@ questionInput.addEventListener(
     function(event) {
 
         if (
-            event.key === "Enter"
-            && !event.shiftKey
+            event.key === "Enter" &&
+            !event.shiftKey
         ) {
 
             event.preventDefault();
+
             askQuestion();
 
         }
+
     }
 );
+
+
+/* -------------------------------------------------------
+   START CONVERSATION
+------------------------------------------------------- */
+
+function startConversation() {
+
+    if (chatStarted) {
+        return;
+    }
+
+    chatStarted = true;
+
+    if (welcomeMessage) {
+        welcomeMessage.remove();
+    }
+
+    if (suggestions) {
+        suggestions.style.display = "none";
+    }
+
+}
 
 
 /* -------------------------------------------------------
@@ -160,12 +412,17 @@ async function askQuestion() {
     const question =
         questionInput.value.trim();
 
+
     if (
-        question === ""
-        || requestInProgress
+        question === "" ||
+        requestInProgress
     ) {
         return;
     }
+
+
+    startConversation();
+
 
     requestInProgress = true;
 
@@ -174,8 +431,6 @@ async function askQuestion() {
 
     questionInput.value = "";
 
-
-    /* USER MESSAGE */
 
     const userMessage =
         document.createElement("div");
@@ -192,8 +447,6 @@ async function askQuestion() {
         userMessage
     );
 
-
-    /* THINKING MESSAGE */
 
     const aiMessage =
         document.createElement("div");
@@ -213,31 +466,32 @@ async function askQuestion() {
         aiMessage
     );
 
+
     scrollToBottom();
 
 
     try {
 
         const response =
-            await fetch(
-                "/ask",
-                {
-                    method: "POST",
+            await fetch("/ask", {
 
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
+                method: "POST",
 
-                    body: JSON.stringify({
-                        question: question,
-                        conversation: conversation
-                    })
-                }
-            );
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body: JSON.stringify({
+                    question: question,
+                    conversation: conversation
+                })
+
+            });
 
 
         let data = {};
+
 
         try {
 
@@ -254,15 +508,20 @@ async function askQuestion() {
         if (!response.ok) {
 
             const serverMessage =
-                data.answer
-                || "EXIOM AI couldn't complete that request.";
+                data.answer ||
+                "EXIOM AI couldn't complete that request.";
+
 
             const error =
-                new Error(serverMessage);
+                new Error(
+                    serverMessage
+                );
+
 
             error.errorType =
-                data.error_type
-                || "unknown";
+                data.error_type ||
+                "unknown";
+
 
             throw error;
 
@@ -271,8 +530,8 @@ async function askQuestion() {
 
         const answer =
             String(
-                data.answer
-                || "I couldn't generate a response."
+                data.answer ||
+                "I couldn't generate a response."
             );
 
 
@@ -288,7 +547,9 @@ async function askQuestion() {
         });
 
 
-        if (conversation.length > 20) {
+        if (
+            conversation.length > 20
+        ) {
 
             conversation =
                 conversation.slice(-20);
@@ -296,13 +557,17 @@ async function askQuestion() {
         }
 
 
-        /* SOURCE DISPLAY */
-
         const sourceHTML =
-            data.source === "Official EXIOM Explorer"
+
+            data.source ===
+            "Official EXIOM Explorer"
+
                 ? `
+
                     <div class="response-source">
+
                         <span>Source</span>
+
                         <a
                             href="https://explorer.xeqmlabs.com/"
                             target="_blank"
@@ -310,34 +575,74 @@ async function askQuestion() {
                         >
                             Official EXIOM Explorer ↗
                         </a>
+
                     </div>
+
                 `
+
                 : data.source
+
                     ? `
+
                         <div class="response-source">
+
                             <span>Source</span>
-                            ${escapeHTML(data.source)}
+
+                            ${escapeHTML(
+                                data.source
+                            )}
+
                         </div>
+
                     `
+
                     : "";
 
 
-        /* FINAL AI MESSAGE */
+        const liveBadgeHTML =
+
+            data.route === "live"
+
+                ? `
+
+                    <div class="live-data-badge">
+
+                        <span
+                            class="live-data-dot"
+                        ></span>
+
+                        LIVE EXPLORER DATA
+
+                    </div>
+
+                `
+
+                : "";
+
 
         aiMessage.innerHTML = `
+
             <strong>XEQM AI</strong>
 
+            ${liveBadgeHTML}
+
             <div class="message-content">
-                ${formatAnswer(answer)}
+
+                ${formatAnswer(
+                    answer
+                )}
+
             </div>
 
             ${sourceHTML}
+
         `;
 
 
         aiMessage.classList.remove(
             "thinking-message"
         );
+
 
         scrollToBottom();
 
@@ -351,31 +656,40 @@ async function askQuestion() {
 
 
         let message =
-            error.message
-            || "EXIOM AI couldn't answer that right now. Please try again.";
+            error.message ||
+            "EXIOM AI couldn't answer that right now. Please try again.";
 
 
         if (!error.errorType) {
 
             message =
-                "Couldn't connect to EXIOM AI. "
-                + "Check your connection and try again.";
+                "Couldn't connect to EXIOM AI. " +
+                "Check your connection and try again.";
 
         }
 
 
         aiMessage.innerHTML = `
+
             <strong>XEQM AI</strong>
 
-            <div class="message-content error-message">
-                ${escapeHTML(message)}
+            <div
+                class="message-content error-message"
+            >
+
+                ${escapeHTML(
+                    message
+                )}
+
             </div>
+
         `;
 
 
         aiMessage.classList.remove(
             "thinking-message"
         );
+
 
         scrollToBottom();
 
@@ -395,7 +709,7 @@ async function askQuestion() {
 
 
 /* -------------------------------------------------------
-   SAFE HTML
+   ESCAPE HTML
 ------------------------------------------------------- */
 
 function escapeHTML(text) {
@@ -415,98 +729,222 @@ function escapeHTML(text) {
    ANSWER FORMATTING
 ------------------------------------------------------- */
 
-function formatAnswer(text) {
+function formatInline(text) {
 
     let formatted =
         escapeHTML(text);
 
 
-    /* CLICKABLE URLs */
-
     formatted =
         formatted.replace(
+
             /(https?:\/\/[^\s<]+)/g,
+
             '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+
         );
 
 
-    /* BOLD */
-
     formatted =
         formatted.replace(
+
             /\*\*(.*?)\*\*/g,
+
             "<strong>$1</strong>"
+
         );
 
-
-    /* INLINE CODE */
 
     formatted =
         formatted.replace(
+
             /`([^`\n]+)`/g,
+
             "<code>$1</code>"
+
         );
 
 
-    /* BULLET LISTS */
+    return formatted;
+
+}
+
+
+function formatAnswer(text) {
 
     const lines =
-        formatted.split("\n");
+        String(text).split("\n");
 
     let output = "";
-    let insideList = false;
+    let listType = null;
 
 
-    for (const line of lines) {
+    function closeList() {
 
-        const trimmed =
-            line.trim();
+        if (listType === "ul") {
+            output += "</ul>";
+        }
+
+        if (listType === "ol") {
+            output += "</ol>";
+        }
+
+        listType = null;
+
+    }
 
 
-        if (trimmed.startsWith("- ")) {
+    for (
+        const rawLine of lines
+    ) {
 
-            if (!insideList) {
+        const line =
+            rawLine.trim();
 
-                output += "<ul>";
-                insideList = true;
 
-            }
+        if (line === "") {
+
+            closeList();
 
             output +=
-                `<li>${trimmed.substring(2)}</li>`;
+                '<div class="answer-space"></div>';
 
-        } else {
-
-            if (insideList) {
-
-                output += "</ul>";
-                insideList = false;
-
-            }
-
-
-            if (trimmed === "") {
-
-                output += "<br>";
-
-            } else {
-
-                output +=
-                    `<div class="answer-line">${line}</div>`;
-
-            }
+            continue;
 
         }
 
+
+        if (
+            /^###\s+/.test(line)
+        ) {
+
+            closeList();
+
+            output +=
+                `<h4>${formatInline(
+                    line.replace(
+                        /^###\s+/,
+                        ""
+                    )
+                )}</h4>`;
+
+            continue;
+
+        }
+
+
+        if (
+            /^##\s+/.test(line)
+        ) {
+
+            closeList();
+
+            output +=
+                `<h3>${formatInline(
+                    line.replace(
+                        /^##\s+/,
+                        ""
+                    )
+                )}</h3>`;
+
+            continue;
+
+        }
+
+
+        if (
+            /^#\s+/.test(line)
+        ) {
+
+            closeList();
+
+            output +=
+                `<h2>${formatInline(
+                    line.replace(
+                        /^#\s+/,
+                        ""
+                    )
+                )}</h2>`;
+
+            continue;
+
+        }
+
+
+        if (
+            /^[-*]\s+/.test(line)
+        ) {
+
+            if (
+                listType !== "ul"
+            ) {
+
+                closeList();
+
+                output += "<ul>";
+
+                listType = "ul";
+
+            }
+
+
+            output +=
+                `<li>${formatInline(
+                    line.replace(
+                        /^[-*]\s+/,
+                        ""
+                    )
+                )}</li>`;
+
+            continue;
+
+        }
+
+
+        if (
+            /^\d+[.)]\s+/.test(
+                line
+            )
+        ) {
+
+            if (
+                listType !== "ol"
+            ) {
+
+                closeList();
+
+                output += "<ol>";
+
+                listType = "ol";
+
+            }
+
+
+            output +=
+                `<li>${formatInline(
+                    line.replace(
+                        /^\d+[.)]\s+/,
+                        ""
+                    )
+                )}</li>`;
+
+            continue;
+
+        }
+
+
+        closeList();
+
+
+        output +=
+            `<p>${formatInline(
+                line
+            )}</p>`;
+
     }
 
 
-    if (insideList) {
-
-        output += "</ul>";
-
-    }
-
+    closeList();
 
     return output;
 
@@ -519,24 +957,43 @@ function formatAnswer(text) {
 
 function scrollToBottom() {
 
-    answerBox.scrollTop =
-        answerBox.scrollHeight;
+    requestAnimationFrame(
+        () => {
+
+            answerBox.scrollTo({
+
+                top:
+                    answerBox.scrollHeight,
+
+                behavior:
+                    "smooth"
+
+            });
+
+        }
+    );
 
 }
 
 
 /* -------------------------------------------------------
-   SUGGESTED QUESTIONS
+   SUGGESTIONS
 ------------------------------------------------------- */
 
-function askSuggestion(question) {
+function askSuggestion(
+    question
+) {
 
-    if (requestInProgress) {
+    if (
+        requestInProgress
+    ) {
         return;
     }
 
+
     questionInput.value =
         question;
+
 
     askQuestion();
 
@@ -545,4 +1002,5 @@ function askSuggestion(question) {
 </script>
 
 </body>
+
 </html>
