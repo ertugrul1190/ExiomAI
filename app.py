@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, render_template, request, jsonify
 
 from ai_provider import AIProvider
@@ -24,7 +26,25 @@ from openai import (
     APIStatusError,
 )
 
-import json
+from hmac import compare_digest
+
+import fast_path
+
+from token_budget import (
+    trim_conversation,
+    compact_json,
+)
+
+from cache import (
+    TTLCache,
+    router_cache_key,
+    answer_cache_key,
+)
+
+from usage_control import (
+    CostMeter,
+    UsageController,
+)
 
 
 # ---------------------------------------------------------
@@ -63,11 +83,69 @@ app = Flask(__name__)
 
 
 # ---------------------------------------------------------
-# AI + LIVE DATA
+# AI + LIVE DATA + COST CONTROL
 # ---------------------------------------------------------
 
-ai_provider = AIProvider()
+cost_meter = CostMeter()
+
+usage_controller = UsageController()
+
+ai_provider = AIProvider(
+    cost_meter=cost_meter
+)
+
 live_data = LiveData()
+
+
+# Router decisions depend on the question and on which facts
+# exist, so they stay valid far longer than an answer does.
+router_cache = TTLCache(
+    ttl_seconds=900,
+    max_entries=512
+)
+
+
+# Answers are only reused when the question, the routing, the
+# Explorer values and the verified knowledge are all
+# identical, so a short life is enough to absorb repeats.
+answer_cache = TTLCache(
+    ttl_seconds=300,
+    max_entries=256
+)
+
+
+# ---------------------------------------------------------
+# CONVERSATION BUDGET
+# ---------------------------------------------------------
+#
+# Conversation history is resent on every single request, so
+# it is the easiest place to quietly waste tokens.
+#
+# These limits keep several full turns of real context while
+# removing the long tail nobody reads.
+# ---------------------------------------------------------
+
+# Proxies in front of this service. One is correct for the
+# usual single platform load balancer; 0 disables trusting
+# the forwarded header entirely.
+try:
+    TRUSTED_PROXY_HOPS = max(
+        0,
+        int(os.getenv("EXIOM_TRUSTED_PROXY_HOPS", "1"))
+    )
+
+except ValueError:
+    TRUSTED_PROXY_HOPS = 1
+
+
+# Cost counters are operational detail, so the endpoint stays
+# off until a token is configured.
+USAGE_TOKEN = os.getenv("EXIOM_USAGE_TOKEN", "")
+
+
+MAX_CONVERSATION_MESSAGES = 8
+MAX_CHARS_PER_MESSAGE = 1200
+MAX_CONVERSATION_CHARS = 6000
 
 
 # ---------------------------------------------------------
@@ -85,31 +163,94 @@ def home():
 
 def clean_conversation(conversation):
 
-    if not isinstance(conversation, list):
-        return []
+    return trim_conversation(
+        conversation,
+        max_messages=MAX_CONVERSATION_MESSAGES,
+        max_chars_per_message=MAX_CHARS_PER_MESSAGE,
+        total_char_budget=MAX_CONVERSATION_CHARS
+    )
 
-    cleaned = []
 
-    for message in conversation[-10:]:
+# ---------------------------------------------------------
+# CLIENT IDENTITY
+# ---------------------------------------------------------
 
-        if not isinstance(message, dict):
-            continue
+def client_identifier():
+    """
+    Identify the caller for usage control only.
 
-        role = message.get("role")
-        content = message.get("content")
+    X-Forwarded-For is client-controlled, so the LEFTMOST
+    entry can be forged to defeat every limit. Only the entry
+    appended by our own proxy can be trusted, which is the
+    one TRUSTED_PROXY_HOPS from the right.
 
-        if (
-            role in {"user", "assistant"}
-            and isinstance(content, str)
-            and content.strip()
-        ):
+    Set EXIOM_TRUSTED_PROXY_HOPS to the number of proxies in
+    front of this service (0 when there are none).
 
-            cleaned.append({
-                "role": role,
-                "content": content[:3000]
-            })
+    Nothing here is stored beyond in-memory counters.
+    """
 
-    return cleaned
+    if TRUSTED_PROXY_HOPS > 0:
+
+        forwarded = [
+            part.strip()
+            for part in request.headers.get(
+                "X-Forwarded-For",
+                ""
+            ).split(",")
+            if part.strip()
+        ]
+
+        if len(forwarded) >= TRUSTED_PROXY_HOPS:
+            return forwarded[-TRUSTED_PROXY_HOPS]
+
+    return request.remote_addr or "unknown"
+
+
+def charge_last_call(client_id):
+    """
+    Charge the most recent AI call to the caller's budget.
+    """
+
+    usage = ai_provider.last_usage
+
+    if not usage:
+        return
+
+    usage_controller.record_tokens(
+        client_id,
+        usage.get("input_tokens", 0)
+        + usage.get("output_tokens", 0)
+    )
+
+
+def budget_exceeded_response(decision):
+
+    if decision.reason.startswith("global"):
+
+        message = (
+            "EXIOM AI has hit its daily capacity 😅 "
+            "Please try again a little later."
+        )
+
+    else:
+
+        message = (
+            "You're asking faster than I can keep up 😅 "
+            "Please give me a moment and try again."
+        )
+
+    response = jsonify({
+        "answer": message,
+        "error_type": "usage_limit",
+        "reason": decision.reason
+    })
+
+    response.headers["Retry-After"] = str(
+        max(1, decision.retry_after)
+    )
+
+    return response, 429
 
 
 # ---------------------------------------------------------
@@ -217,186 +358,67 @@ def network_stats_api():
 
 
 # ---------------------------------------------------------
-# AI CHAT
+# COST OBSERVABILITY
 # ---------------------------------------------------------
 
-@app.route("/ask", methods=["POST"])
-def ask():
+@app.route("/api/usage", methods=["GET"])
+def usage_api():
+    """
+    Aggregate cost and cache counters for this process.
 
-    data = request.get_json(silent=True)
+    Counters only — no question text is recorded anywhere.
 
-    if not data:
+    Disabled unless EXIOM_USAGE_TOKEN is configured, and then
+    only for a caller presenting it.
+    """
 
-        return jsonify({
-            "answer": "I couldn't read that request.",
-            "error_type": "invalid_request"
-        }), 400
-
-    question = str(
-        data.get("question", "")
-    ).strip()
-
-    if not question:
+    if not USAGE_TOKEN:
 
         return jsonify({
-            "answer": "Please enter a question.",
-            "error_type": "empty_question"
-        }), 400
+            "error_type": "not_enabled"
+        }), 404
 
-    if len(question) > 1000:
-
-        return jsonify({
-            "answer":
-                "Please keep your question under 1,000 characters.",
-            "error_type": "question_too_long"
-        }), 400
-
-    conversation = clean_conversation(
-        data.get("conversation", [])
+    supplied = request.headers.get(
+        "X-Usage-Token",
+        ""
     )
 
+    if not compare_digest(supplied, USAGE_TOKEN):
 
-    # -----------------------------------------------------
-    # CURRENT EXPLORER REGISTRY
-    # -----------------------------------------------------
+        return jsonify({
+            "error_type": "unauthorized"
+        }), 401
 
-    fact_registry = live_data.get_fact_registry()
-
-
-    # -----------------------------------------------------
-    # ONE SEMANTIC AI ROUTER
-    # -----------------------------------------------------
-
-    try:
-
-        route = ai_provider.route_question(
-            question=question,
-            conversation=conversation,
-            fact_registry=fact_registry
-        )
-
-    except Exception as error:
-
-        print(
-            "EXIOM semantic router error:",
-            error
-        )
-
-        route = {
-            "scope": "relevant",
-            "intent": "general",
-            "facts": []
+    return jsonify({
+        "cost": cost_meter.snapshot(),
+        "usage_control": usage_controller.snapshot(),
+        "caches": {
+            "router": router_cache.stats(),
+            "answer": answer_cache.stats()
         }
+    })
 
 
-    scope = route.get(
-        "scope",
-        "relevant"
-    )
+# ---------------------------------------------------------
+# STATIC SYSTEM PROMPT
+# ---------------------------------------------------------
+#
+# Built ONCE at import, and sent as the first part of every
+# system prompt.
+#
+# Two reasons, both of them money:
+#
+# 1. The provider can reuse a cached prompt prefix, which is
+#    billed at a fraction of the normal input rate. That is
+#    only possible when the identical text comes FIRST.
+#
+# 2. It is not rebuilt per request.
+#
+# Everything that changes per request lives in the dynamic
+# section that follows, never here.
+# ---------------------------------------------------------
 
-    intent = route.get(
-        "intent",
-        "general"
-    )
-
-    selected_fact_keys = route.get(
-        "facts",
-        []
-    )
-
-
-    # -----------------------------------------------------
-    # CLEARLY UNRELATED
-    # -----------------------------------------------------
-
-    if scope == "unrelated":
-
-        try:
-
-            result = ai_provider.generate_off_topic(
-                conversation=conversation,
-                question=question
-            )
-
-            return jsonify({
-                "answer": result["answer"],
-                "route": "off_topic"
-            })
-
-        except Exception as error:
-
-            return api_error_response(
-                error
-            )
-
-
-    # -----------------------------------------------------
-    # DIRECT LIVE FACT
-    # -----------------------------------------------------
-
-    if (
-        scope == "relevant"
-        and intent == "direct_live_fact"
-    ):
-
-        direct_answer = answer_selected_direct_fact(
-            selected_fact_keys,
-            fact_registry
-        )
-
-        if direct_answer:
-
-            return jsonify({
-                "answer": direct_answer,
-                "source": "Official EXIOM Explorer",
-                "route": "live"
-            })
-
-
-    # -----------------------------------------------------
-    # SELECTED LIVE FACTS
-    # -----------------------------------------------------
-
-    selected_live_facts = get_selected_facts(
-        selected_fact_keys,
-        fact_registry
-    )
-
-    network_stats = live_data.get_network_stats()
-
-    live_context = {
-        "status": network_stats.get(
-            "status",
-            "unavailable"
-        ),
-
-        "connection_state": network_stats.get(
-            "connection_state",
-            "unknown"
-        ),
-
-        "source": "Official EXIOM Explorer",
-
-        "facts": selected_live_facts,
-    }
-
-
-    # -----------------------------------------------------
-    # VERIFIED KNOWLEDGE
-    # -----------------------------------------------------
-
-    relevant_knowledge = retrieve_knowledge(
-        question,
-        knowledge_sections,
-        limit=6
-    )
-
-
-    # -----------------------------------------------------
-    # SYSTEM PROMPT
-    # -----------------------------------------------------
-
-    system_prompt = f"""
+STATIC_SYSTEM_PROMPT = f"""
 You are EXIOM AI, an independent third-party assistant
 developed for the EXIOM/XEQM community.
 
@@ -449,23 +471,11 @@ serious.
 
 
 ============================================================
-SEMANTIC ROUTER DECISION
+HOW TO READ THE ROUTER DECISION
 ============================================================
 
-SCOPE:
-
-{scope}
-
-INTENT:
-
-{intent}
-
-SELECTED EXPLORER FACT KEYS:
-
-{json.dumps(selected_fact_keys, indent=2)}
-
-The semantic router has already interpreted what the user
-means.
+A semantic router has already interpreted what the user
+means. Its decision is supplied below.
 
 Do not reinterpret a concept question as a request for a
 similarly named statistic.
@@ -556,15 +566,12 @@ idea without already knowing cryptocurrency terminology.
 
 
 ============================================================
-EXPLORER DATA
+HOW TO USE EXPLORER DATA
 ============================================================
 
-EXPLORER CONTEXT:
-
-{json.dumps(live_context, indent=2)}
-
-The Explorer facts above were specifically selected by the
-semantic router because they may be useful for this question.
+The Explorer facts supplied below were specifically selected
+by the semantic router because they may be useful for this
+question.
 
 Use them when relevant.
 
@@ -573,7 +580,7 @@ that changes.
 
 Never invent a live Explorer value.
 
-If a requested changing value is not supplied above, do not
+If a requested changing value is not supplied below, do not
 pretend an older stored value is current.
 
 When using an Explorer value, identify it naturally as coming
@@ -585,16 +592,8 @@ The information is provided by EXIOM AI's backend.
 
 
 ============================================================
-VERIFIED EXIOM KNOWLEDGE
+HOW TO USE VERIFIED KNOWLEDGE
 ============================================================
-
-RELEVANT VERIFIED KNOWLEDGE:
-
-{relevant_knowledge}
-
-KNOWLEDGE VERSION / CONFLICT NOTES:
-
-{knowledge_changelog}
 
 Use supplied verified knowledge for EXIOM-specific claims.
 
@@ -602,6 +601,9 @@ Never invent an EXIOM-specific fact.
 
 Never turn a general crypto assumption into an EXIOM-specific
 fact.
+
+A section marked [section truncated] was shortened for
+length. Use what is present and never invent the rest.
 
 Clearly distinguish:
 
@@ -621,6 +623,13 @@ Do not guarantee:
 - node earnings
 - yields
 - financial returns
+
+
+============================================================
+KNOWLEDGE VERSION / CONFLICT NOTES
+============================================================
+
+{knowledge_changelog}
 
 
 ============================================================
@@ -645,9 +654,408 @@ Never reveal:
 """
 
 
+def build_system_prompt(
+    scope,
+    intent,
+    selected_fact_keys,
+    live_context,
+    relevant_knowledge
+):
+    """
+    Attach the per-request material to the static prompt.
+
+    Everything below changes from request to request, so it
+    must come AFTER the cacheable static section.
+    """
+
+    return f"""{STATIC_SYSTEM_PROMPT}
+
+============================================================
+THIS REQUEST
+============================================================
+
+SCOPE: {scope}
+INTENT: {intent}
+
+SELECTED EXPLORER FACT KEYS:
+{compact_json(selected_fact_keys)}
+
+EXPLORER CONTEXT:
+{compact_json(live_context)}
+
+
+RELEVANT VERIFIED KNOWLEDGE:
+
+{relevant_knowledge}
+"""
+
+
+def slim_facts_for_prompt(selected_facts):
+    """
+    Send only the fields the answer actually needs.
+
+    The registry carries bookkeeping fields that cost tokens
+    and tell the model nothing useful.
+    """
+
+    slim = {}
+
+    for key, fact in (selected_facts or {}).items():
+
+        slim[key] = {
+            "label": fact.get("label", ""),
+            "value": fact.get("value", ""),
+            "unit": fact.get("unit", ""),
+        }
+
+    return slim
+
+
+# ---------------------------------------------------------
+# AI CHAT
+# ---------------------------------------------------------
+
+@app.route("/ask", methods=["POST"])
+def ask():
+
+    data = request.get_json(silent=True)
+
+    if not data:
+
+        return jsonify({
+            "answer": "I couldn't read that request.",
+            "error_type": "invalid_request"
+        }), 400
+
+    question = str(
+        data.get("question", "")
+    ).strip()
+
+    if not question:
+
+        return jsonify({
+            "answer": "Please enter a question.",
+            "error_type": "empty_question"
+        }), 400
+
+    if len(question) > 1000:
+
+        return jsonify({
+            "answer":
+                "Please keep your question under 1,000 characters.",
+            "error_type": "question_too_long"
+        }), 400
+
+    conversation = clean_conversation(
+        data.get("conversation", [])
+    )
+
+    client_id = client_identifier()
+
+    normalized_question = fast_path.normalize_question(
+        question
+    )
+
+
+    # -----------------------------------------------------
+    # CURRENT EXPLORER REGISTRY
+    # -----------------------------------------------------
+
+    fact_registry = live_data.get_fact_registry()
+
+
+    # -----------------------------------------------------
+    # DETERMINISTIC FAST PATH
+    # -----------------------------------------------------
+    #
+    # Greetings, thanks, EXIOM AI identity questions and
+    # explicit requests for one verified Explorer value are
+    # answered here, with no AI call at all.
+    #
+    # Anything even slightly ambiguous falls through to the
+    # semantic AI router exactly as before.
+    # -----------------------------------------------------
+
+    fast_result = fast_path.classify(
+        question,
+        fact_registry
+    )
+
+    if fast_result:
+
+        if fast_result["route"] == "live":
+
+            direct_answer = answer_selected_direct_fact(
+                fast_result["facts"],
+                fact_registry
+            )
+
+            if direct_answer:
+
+                cost_meter.record_free_response(
+                    "live_deterministic"
+                )
+
+                return jsonify({
+                    "answer": direct_answer,
+                    "source": "Official EXIOM Explorer",
+                    "route": "live"
+                })
+
+        else:
+
+            cost_meter.record_free_response(
+                fast_result["route"]
+            )
+
+            return jsonify({
+                "answer": fast_result["answer"],
+                "route": fast_result["route"]
+            })
+
+
+    # -----------------------------------------------------
+    # USAGE CONTROL
+    # -----------------------------------------------------
+    #
+    # Only paid work is metered. Free deterministic answers
+    # above never consume anyone's budget.
+    # -----------------------------------------------------
+
+    decision = usage_controller.check(client_id)
+
+    if not decision.allowed:
+
+        print(
+            "EXIOM usage limit:",
+            decision.reason
+        )
+
+        return budget_exceeded_response(decision)
+
+
+    # -----------------------------------------------------
+    # ONE SEMANTIC AI ROUTER
+    # -----------------------------------------------------
+    #
+    # A routing decision depends on the question and on which
+    # facts exist, so an identical stateless question can
+    # safely reuse the previous decision.
+    # -----------------------------------------------------
+
+    stateless = not conversation
+
+    route_key = (
+        router_cache_key(
+            normalized_question,
+            fact_registry.keys()
+        )
+        if stateless else None
+    )
+
+    route = router_cache.get(route_key) if route_key else None
+
+    if route is None:
+
+        try:
+
+            route = ai_provider.route_question(
+                question=question,
+                conversation=conversation,
+                fact_registry=fact_registry
+            )
+
+            charge_last_call(client_id)
+
+            if route_key:
+                router_cache.set(route_key, route)
+
+        except Exception as error:
+
+            print(
+                "EXIOM semantic router error:",
+                error
+            )
+
+            route = {
+                "scope": "relevant",
+                "intent": "general",
+                "facts": []
+            }
+
+
+    scope = route.get(
+        "scope",
+        "relevant"
+    )
+
+    intent = route.get(
+        "intent",
+        "general"
+    )
+
+    selected_fact_keys = route.get(
+        "facts",
+        []
+    )
+
+
+    # -----------------------------------------------------
+    # CLEARLY UNRELATED
+    # -----------------------------------------------------
+    #
+    # Off-topic banter is deliberately never cached: it is
+    # required to stay varied.
+    # -----------------------------------------------------
+
+    if scope == "unrelated":
+
+        try:
+
+            result = ai_provider.generate_off_topic(
+                conversation=conversation,
+                question=question
+            )
+
+            charge_last_call(client_id)
+
+            return jsonify({
+                "answer": result["answer"],
+                "route": "off_topic"
+            })
+
+        except Exception as error:
+
+            return api_error_response(
+                error
+            )
+
+
+    # -----------------------------------------------------
+    # DIRECT LIVE FACT
+    # -----------------------------------------------------
+
+    if (
+        scope == "relevant"
+        and intent == "direct_live_fact"
+    ):
+
+        direct_answer = answer_selected_direct_fact(
+            selected_fact_keys,
+            fact_registry
+        )
+
+        if direct_answer:
+
+            cost_meter.record_free_response(
+                "live"
+            )
+
+            return jsonify({
+                "answer": direct_answer,
+                "source": "Official EXIOM Explorer",
+                "route": "live"
+            })
+
+
+    # -----------------------------------------------------
+    # SELECTED LIVE FACTS
+    # -----------------------------------------------------
+
+    selected_live_facts = slim_facts_for_prompt(
+        get_selected_facts(
+            selected_fact_keys,
+            fact_registry
+        )
+    )
+
+    network_stats = live_data.get_network_stats()
+
+    live_context = {
+        "status": network_stats.get(
+            "status",
+            "unavailable"
+        ),
+
+        "connection_state": network_stats.get(
+            "connection_state",
+            "unknown"
+        ),
+
+        "source": "Official EXIOM Explorer",
+
+        "facts": selected_live_facts,
+    }
+
+
+    # -----------------------------------------------------
+    # VERIFIED KNOWLEDGE
+    # -----------------------------------------------------
+
+    relevant_knowledge = retrieve_knowledge(
+        question,
+        knowledge_sections,
+        limit=6
+    )
+
+
+    # -----------------------------------------------------
+    # SAFE ANSWER REUSE
+    # -----------------------------------------------------
+    #
+    # An answer may only be reused when every input that
+    # shaped it is identical: the question, the routing, the
+    # Explorer values used, and the knowledge supplied.
+    #
+    # Conversation-dependent answers are never reused.
+    # -----------------------------------------------------
+
+    reuse_key = (
+        answer_cache_key(
+            normalized_question,
+            scope,
+            intent,
+            {
+                key: fact.get("value", "")
+                for key, fact in selected_live_facts.items()
+            },
+            relevant_knowledge,
+            explorer_state="{}/{}".format(
+                live_context["status"],
+                live_context["connection_state"]
+            )
+        )
+        if stateless else None
+    )
+
+    if reuse_key:
+
+        cached_answer = answer_cache.get(reuse_key)
+
+        if cached_answer:
+
+            cost_meter.record_free_response(
+                "answer_cache"
+            )
+
+            return jsonify({
+                "answer": cached_answer,
+                "route": intent,
+                "scope": scope
+            })
+
+
     # -----------------------------------------------------
     # MAIN AI RESPONSE
     # -----------------------------------------------------
+
+    system_prompt = build_system_prompt(
+        scope,
+        intent,
+        selected_fact_keys,
+        live_context,
+        relevant_knowledge
+    )
 
     try:
 
@@ -657,8 +1065,15 @@ Never reveal:
             question=question
         )
 
+        charge_last_call(client_id)
+
+        answer = result["answer"]
+
+        if reuse_key and answer and answer.strip():
+            answer_cache.set(reuse_key, answer)
+
         return jsonify({
-            "answer": result["answer"],
+            "answer": answer,
             "route": intent,
             "scope": scope
         })

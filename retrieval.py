@@ -262,7 +262,50 @@ def score_section(question, section):
     return score
 
 
-def retrieve_knowledge(question, sections, limit=8):
+def _truncate_section(content, max_chars):
+    """
+    Shorten one section at a paragraph or line boundary.
+
+    Knowledge is supplied to the AI as evidence, so a clean
+    cut matters more than squeezing in a few extra words.
+    """
+
+    if len(content) <= max_chars:
+        return content
+
+    cut = content[:max_chars]
+
+    boundary = max(
+        cut.rfind("\n\n"),
+        cut.rfind("\n")
+    )
+
+    if boundary > max_chars * 0.5:
+        cut = cut[:boundary]
+
+    return cut.rstrip() + "\n\n[section truncated]"
+
+
+def retrieve_knowledge(
+    question,
+    sections,
+    limit=6,
+    char_budget=7000,
+    max_section_chars=2200,
+    min_score_ratio=0.2
+):
+    """
+    Select the verified knowledge worth paying to send.
+
+    Three limits apply, strongest first:
+
+    1. relevance   — a section far weaker than the best match
+                     adds tokens without adding evidence
+    2. section size — one enormous section cannot consume the
+                     whole budget
+    3. total size  — the combined context stays predictable
+    """
+
     scored = []
 
     for section in sections:
@@ -276,23 +319,50 @@ def retrieve_knowledge(question, sections, limit=8):
         reverse=True
     )
 
-    selected = [
-        section
-        for score, section in scored[:limit]
-    ]
+    scored = scored[:limit]
 
-    if not selected:
-        selected = sections[:4]
+    if scored:
+
+        best_score = scored[0][0]
+
+        threshold = best_score * min_score_ratio
+
+        selected = [
+            section
+            for score, section in scored
+            if score >= threshold
+        ]
+
+    else:
+        # No keyword overlap at all. The ranking cannot help
+        # here, so a small general slice is used: enough to
+        # ground an answer, without paying for a large random
+        # slice of the knowledge base.
+        selected = sections[:3]
 
     formatted_sections = []
+    used = 0
 
     for section in selected:
+
+        remaining = char_budget - used
+
+        if remaining <= 400:
+            break
+
+        content = _truncate_section(
+            section["content"],
+            min(max_section_chars, remaining)
+        )
+
+        used += len(content)
+
         formatted_sections.append(
             f"""
 SOURCE FILE: {section['source_file']}
 SECTION: {section['title']}
 
-{section['content']}
+{content}
 """.strip()
         )
 
