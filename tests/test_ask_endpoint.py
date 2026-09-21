@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 import app as application
@@ -59,6 +61,10 @@ class FakeProvider:
         self.route_error = None
         self.generate_error = None
 
+        # Raised part-way through a stream, after some text
+        # has already reached the caller.
+        self.stream_error_after = None
+
         self.last_usage = {"input_tokens": 100, "output_tokens": 20}
 
     @property
@@ -96,6 +102,32 @@ class FakeProvider:
 
         return {"answer": "banter"}
 
+    def stream_generate(self, system_prompt, conversation, question):
+        self.generate_calls.append(
+            {
+                "system_prompt": system_prompt,
+                "conversation": conversation,
+                "question": question,
+            }
+        )
+
+        if self.generate_error:
+            raise self.generate_error
+
+        for index, chunk in enumerate(
+            ["answer ", "to ", question]
+        ):
+            if self.stream_error_after == index:
+                raise RuntimeError("stream broke")
+
+            yield chunk
+
+    def stream_generate_off_topic(self, conversation, question):
+        self.off_topic_calls.append(question)
+
+        for chunk in ["ban", "ter"]:
+            yield chunk
+
 
 @pytest.fixture
 def provider(monkeypatch):
@@ -130,6 +162,43 @@ def ask(client, question, conversation=None):
             "question": question,
             "conversation": conversation or []
         }
+    )
+
+
+def ask_stream(client, question, conversation=None):
+    response = client.post(
+        "/ask/stream",
+        json={
+            "question": question,
+            "conversation": conversation or []
+        }
+    )
+
+    # A real client reads the stream to the end. Metering and
+    # answer reuse both happen after the last chunk, so an
+    # unread body would skip them.
+    response.get_data()
+
+    return response
+
+
+def frames(response):
+    """
+    Decode an SSE body into the objects it carried.
+    """
+
+    return [
+        json.loads(line[len("data: "):])
+        for line in response.get_data(as_text=True).splitlines()
+        if line.startswith("data: ")
+    ]
+
+
+def streamed_answer(response):
+    return "".join(
+        frame["text"]
+        for frame in frames(response)
+        if frame["type"] == "delta"
     )
 
 
@@ -535,3 +604,172 @@ def test_separate_clients_behind_the_proxy_are_independent(
         json={"question": "what is staking too?"},
         headers={"X-Forwarded-For": "8.8.8.8"}
     ).status_code == 200
+
+
+# ---------------------------------------------------------
+# STREAMING TRANSPORT
+# ---------------------------------------------------------
+
+def test_streamed_answer_arrives_as_deltas(client, provider):
+    response = ask_stream(client, "what is staking?")
+
+    assert response.status_code == 200
+    assert response.mimetype == "text/event-stream"
+
+    assert streamed_answer(response) == "answer to what is staking?"
+
+    assert [frame["type"] for frame in frames(response)] == [
+        "delta",
+        "delta",
+        "delta",
+        "done",
+    ]
+
+
+def test_streamed_answer_matches_the_json_answer(client, provider):
+    streamed = ask_stream(client, "what is staking?")
+
+    application.router_cache.clear()
+    application.answer_cache.clear()
+
+    plain = ask(client, "what is staking?")
+
+    assert streamed_answer(streamed) == plain.json["answer"]
+
+
+def test_done_frame_carries_the_routing_decision(client, provider):
+    response = ask_stream(client, "what is staking?")
+
+    done = frames(response)[-1]
+
+    assert done["route"] == "explanation"
+    assert done["scope"] == "relevant"
+
+
+def test_a_free_answer_is_sent_whole_rather_than_chunked(client, provider):
+    response = ask_stream(client, "hello")
+
+    assert response.status_code == 200
+    assert provider.calls == 0
+
+    assert [frame["type"] for frame in frames(response)] == ["message"]
+
+
+def test_a_cached_answer_is_sent_whole_rather_than_chunked(client, provider):
+    ask_stream(client, "what is staking?")
+
+    response = ask_stream(client, "what is staking?")
+
+    assert [frame["type"] for frame in frames(response)] == ["message"]
+    assert frames(response)[0]["answer"] == "answer to what is staking?"
+
+    # The second question never reached the provider.
+    assert len(provider.generate_calls) == 1
+
+
+def test_off_topic_banter_streams(client, provider):
+    provider.route_result = {
+        "scope": "unrelated",
+        "intent": "general",
+        "facts": []
+    }
+
+    response = ask_stream(client, "tell me a joke")
+
+    assert streamed_answer(response) == "banter"
+
+
+# ---------------------------------------------------------
+# STREAMING COST AND REUSE
+# ---------------------------------------------------------
+
+def test_a_streamed_answer_is_cached_once_it_completes(client, provider):
+    ask_stream(client, "what is staking?")
+
+    cached = ask(client, "what is staking?")
+
+    assert cached.json["answer"] == "answer to what is staking?"
+    assert len(provider.generate_calls) == 1
+
+
+def test_a_broken_stream_is_never_cached(client, provider):
+    provider.stream_error_after = 1
+
+    ask_stream(client, "what is staking?")
+
+    provider.stream_error_after = None
+
+    response = ask_stream(client, "what is staking?")
+
+    assert streamed_answer(response) == "answer to what is staking?"
+
+
+def test_streamed_tokens_are_charged_to_the_caller(client, provider):
+    ask_stream(client, "what is staking?")
+
+    # Both the routing call and the answering call are charged.
+    assert application.usage_controller.snapshot()[
+        "global_tokens_today"
+    ] == 240
+
+
+# ---------------------------------------------------------
+# STREAMING FAILURE HANDLING
+# ---------------------------------------------------------
+
+def test_validation_is_refused_as_json_not_as_a_stream(client, provider):
+    response = ask_stream(client, "")
+
+    assert response.status_code == 400
+    assert response.mimetype == "application/json"
+    assert response.json["error_type"] == "empty_question"
+
+
+def test_usage_limit_is_refused_before_the_stream_opens(
+    client,
+    provider,
+    monkeypatch
+):
+    monkeypatch.setattr(
+        application,
+        "usage_controller",
+        usage_control.UsageController(requests_per_minute=1)
+    )
+
+    assert ask_stream(client, "what is staking?").status_code == 200
+
+    response = ask_stream(client, "what is proof of stake?")
+
+    assert response.status_code == 429
+    assert response.mimetype == "application/json"
+    assert response.json["error_type"] == "usage_limit"
+    assert int(response.headers["Retry-After"]) > 0
+
+
+def test_a_failure_before_the_first_token_keeps_its_status_code(
+    client,
+    provider
+):
+    provider.generate_error = RuntimeError("boom")
+
+    response = ask_stream(client, "what is staking?")
+
+    assert response.status_code == 500
+    assert response.mimetype == "application/json"
+    assert response.json["error_type"] == "unknown"
+
+
+def test_a_failure_after_the_first_token_arrives_in_band(client, provider):
+    provider.stream_error_after = 1
+
+    response = ask_stream(client, "what is staking?")
+
+    # The 200 was already committed when the break happened.
+    assert response.status_code == 200
+    assert response.mimetype == "text/event-stream"
+
+    sent = frames(response)
+
+    assert streamed_answer(response) == "answer "
+    assert sent[-1]["type"] == "error"
+    assert sent[-1]["answer"]

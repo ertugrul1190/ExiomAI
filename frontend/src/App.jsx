@@ -5,6 +5,8 @@ import './App.css'
 
 gsap.registerPlugin(ScrollTrigger)
 
+const STREAMING_KEY = 'exiom.streaming'
+
 function App() {
   const page = useRef()
   const button = useRef()
@@ -14,6 +16,25 @@ function App() {
   const [question, setQuestion] = useState('')
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
+
+  // Text of the answer currently arriving, before it joins
+  // the conversation as a finished message.
+  const [live, setLive] = useState('')
+
+  const [streaming, setStreaming] = useState(
+    () => window.localStorage.getItem(STREAMING_KEY) !== 'off'
+  )
+
+  const toggleStreaming = () => {
+    const next = !streaming
+
+    setStreaming(next)
+
+    window.localStorage.setItem(
+      STREAMING_KEY,
+      next ? 'on' : 'off'
+    )
+  }
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
@@ -140,6 +161,91 @@ function App() {
     })
   }
 
+  const askOnce = async (body) => {
+    const response = await fetch('/ask', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.answer || 'Request failed')
+    }
+
+    return data.answer
+  }
+
+  const askStreaming = async (body) => {
+    const response = await fetch('/ask/stream', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+
+    // Anything refused before the stream opened is still an
+    // ordinary JSON error, so it keeps its status code.
+    if (!response.ok || !response.body) {
+      const data = await response.json().catch(() => ({}))
+
+      throw new Error(data.answer || 'Request failed')
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+
+    let buffer = ''
+    let answer = ''
+
+    const handle = (frame) => {
+      if (frame.type === 'delta') {
+        answer += frame.text
+      } else if (frame.type === 'message') {
+        answer = frame.answer
+      } else if (frame.type === 'error') {
+        answer = answer
+          ? `${answer}\n\n${frame.answer}`
+          : frame.answer
+      }
+
+      setLive(answer)
+    }
+
+    for (;;) {
+      const { done, value } = await reader.read()
+
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+
+      // A frame is only complete once its blank line arrives;
+      // whatever follows the last one stays buffered.
+      const frames = buffer.split('\n\n')
+      buffer = frames.pop()
+
+      for (const frame of frames) {
+        const line = frame
+          .split('\n')
+          .find((part) => part.startsWith('data: '))
+
+        if (!line) continue
+
+        try {
+          handle(JSON.parse(line.slice(6)))
+        } catch (error) {
+          console.error('Bad stream frame', error)
+        }
+      }
+    }
+
+    return answer
+  }
+
   const sendQuestion = async () => {
     const cleanQuestion = question.trim()
 
@@ -155,31 +261,26 @@ function App() {
     setMessages([...previousMessages, userMessage])
     setQuestion('')
     setLoading(true)
+    setLive('')
+
+    const body = {
+      question: cleanQuestion,
+      conversation: previousMessages.slice(-10),
+    }
 
     try {
-      const response = await fetch('/ask', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const answer = streaming
+        ? await askStreaming(body)
+        : await askOnce(body)
+
+      setMessages([
+        ...previousMessages,
+        userMessage,
+        {
+          role: 'assistant',
+          content: answer,
         },
-        body: JSON.stringify({
-          question: cleanQuestion,
-          conversation: previousMessages.slice(-10),
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.answer || 'Request failed')
-      }
-
-      const aiMessage = {
-        role: 'assistant',
-        content: data.answer,
-      }
-
-      setMessages([...previousMessages, userMessage, aiMessage])
+      ])
     } catch (error) {
       setMessages([
         ...previousMessages,
@@ -193,6 +294,7 @@ function App() {
       console.error(error)
     } finally {
       setLoading(false)
+      setLive('')
     }
   }
 
@@ -283,9 +385,30 @@ function App() {
                 </div>
               </div>
 
-              <button className="close-chat" onClick={closeChat}>
-                ×
-              </button>
+              <div className="chat-actions">
+                <label
+                  className={`stream-toggle ${loading ? 'is-locked' : ''}`}
+                  title="Streaming responses"
+                >
+                  <input
+                    type="checkbox"
+                    checked={streaming}
+                    onChange={toggleStreaming}
+                    disabled={loading}
+                    aria-label="Streaming responses"
+                  />
+
+                  <span className="stream-track">
+                    <span className="stream-thumb" />
+                  </span>
+
+                  <span className="stream-name">STREAMING</span>
+                </label>
+
+                <button className="close-chat" onClick={closeChat}>
+                  ×
+                </button>
+              </div>
             </div>
 
             <div className="messages">
@@ -310,7 +433,15 @@ function App() {
                 </div>
               ))}
 
-              {loading && (
+              {live && (
+                <div className="message assistant">
+                  <span>EXIOM</span>
+
+                  <p className="is-streaming">{live}</p>
+                </div>
+              )}
+
+              {loading && !live && (
                 <div className="message assistant">
                   <span>EXIOM</span>
 

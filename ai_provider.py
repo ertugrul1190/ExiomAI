@@ -566,3 +566,223 @@ class AIProvider:
             "provider": "openai",
             "model": self.primary_model
         }
+
+
+    # -----------------------------------------------------
+    # SAFE OPENAI STREAM
+    # -----------------------------------------------------
+
+    def _stream_response(
+        self,
+        messages,
+        route="unknown",
+        max_output_tokens=None,
+        reasoning_effort=None
+    ):
+
+        """
+        Streaming twin of _create_response.
+
+        Yields text deltas as they arrive, then meters the
+        completed response exactly like a normal call.
+
+        Retries follow the same rules as _create_response
+        with one addition: once a delta has been handed to
+        the caller the answer is already partly on screen,
+        so retrying would duplicate text. After the first
+        delta every failure is final.
+        """
+
+        last_error = None
+
+        # A stale reading must never be charged to a later
+        # request that failed or was served from cache.
+        self._thread_state.usage = None
+
+        for attempt in range(self.max_attempts):
+
+            request = self._build_request(
+                messages,
+                max_output_tokens,
+                reasoning_effort,
+                json_output=False
+            )
+
+            # Nothing has reached the caller yet, so this
+            # attempt is still safe to abandon.
+            started = False
+
+            try:
+
+                with self.client.responses.stream(
+                    **request
+                ) as stream:
+
+                    for event in stream:
+
+                        if getattr(
+                            event,
+                            "type",
+                            ""
+                        ) != "response.output_text.delta":
+                            continue
+
+                        delta = getattr(event, "delta", "")
+
+                        if delta:
+                            started = True
+                            yield delta
+
+                    final = stream.get_final_response()
+
+                self._thread_state.usage = self.cost_meter.record_usage(
+                    self.primary_model,
+                    getattr(final, "usage", None),
+                    route
+                )
+
+                return
+
+            except RateLimitError as error:
+
+                last_error = error
+
+                print(
+                    "OpenAI rate limit:",
+                    error
+                )
+
+
+            except APITimeoutError as error:
+
+                last_error = error
+
+                print(
+                    "OpenAI timeout:",
+                    error
+                )
+
+
+            except APIConnectionError as error:
+
+                last_error = error
+
+                print(
+                    "OpenAI connection error:",
+                    error
+                )
+
+
+            except APIStatusError as error:
+
+                last_error = error
+
+                print(
+                    "OpenAI API status error:",
+                    error.status_code
+                )
+
+                if 400 <= error.status_code < 500:
+
+                    # A rejected cost control is recoverable:
+                    # disable it and send the plain request.
+                    if (
+                        not started
+                        and self._drop_unsupported_option(
+                            error,
+                            request
+                        )
+                    ):
+                        continue
+
+                    # Other client errors are permanent.
+                    raise
+
+
+            # Text already on screen can never be replayed.
+            if started:
+                raise last_error
+
+
+            # Only wait if another attempt remains.
+            if attempt < self.max_attempts - 1:
+
+                time.sleep(1.0)
+
+
+        # Both attempts failed.
+        raise last_error
+
+
+    # -----------------------------------------------------
+    # STREAMED EXIOM AI RESPONSE
+    # -----------------------------------------------------
+
+    def stream_generate(
+        self,
+        system_prompt,
+        conversation,
+        question
+    ):
+
+        """
+        Streaming twin of generate().
+        """
+
+        messages = [
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            *conversation,
+            {
+                "role": "user",
+                "content": question
+            }
+        ]
+
+        return self._stream_response(
+            messages,
+            route="answer",
+            max_output_tokens=MAIN_MAX_OUTPUT_TOKENS,
+            reasoning_effort=MAIN_REASONING_EFFORT
+        )
+
+
+    # -----------------------------------------------------
+    # STREAMED OFF-TOPIC PERSONALITY
+    # -----------------------------------------------------
+
+    def stream_generate_off_topic(
+        self,
+        conversation,
+        question
+    ):
+
+        """
+        Streaming twin of generate_off_topic().
+        """
+
+        messages = [
+            {
+                "role": "system",
+                "content": OFF_TOPIC_PROMPT
+            },
+            *trim_conversation(
+                conversation,
+                max_messages=2,
+                max_chars_per_message=400,
+                total_char_budget=800
+            ),
+            {
+                "role": "user",
+                "content": question
+            }
+        ]
+
+        return self._stream_response(
+            messages,
+            route="off_topic",
+            max_output_tokens=OFF_TOPIC_MAX_OUTPUT_TOKENS,
+            reasoning_effort=OFF_TOPIC_REASONING_EFFORT
+        )

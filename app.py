@@ -1,6 +1,15 @@
 import os
+import json
+import itertools
 
-from flask import Flask, render_template, request, jsonify
+from flask import (
+    Flask,
+    render_template,
+    request,
+    jsonify,
+    Response,
+    stream_with_context,
+)
 
 from ai_provider import AIProvider
 from live_data import LiveData
@@ -224,40 +233,55 @@ def charge_last_call(client_id):
     )
 
 
-def budget_exceeded_response(decision):
+def budget_exceeded_payload(decision):
+
+    """
+    Describe a refused request without choosing a transport.
+
+    Returns (payload, status, headers) so the JSON route and
+    the streaming route can each deliver it their own way.
+    """
 
     if decision.reason.startswith("global"):
 
         message = (
-            "EXIOM AI has hit its daily capacity 😅 "
+            "EXIOM AI has hit its daily capacity \U0001F605 "
             "Please try again a little later."
         )
 
     else:
 
         message = (
-            "You're asking faster than I can keep up 😅 "
+            "You're asking faster than I can keep up \U0001F605 "
             "Please give me a moment and try again."
         )
 
-    response = jsonify({
+    payload = {
         "answer": message,
         "error_type": "usage_limit",
         "reason": decision.reason
-    })
+    }
 
-    response.headers["Retry-After"] = str(
-        max(1, decision.retry_after)
-    )
+    headers = {
+        "Retry-After": str(
+            max(1, decision.retry_after)
+        )
+    }
 
-    return response, 429
+    return payload, 429, headers
 
 
 # ---------------------------------------------------------
 # FRIENDLY API ERROR
 # ---------------------------------------------------------
 
-def api_error_response(error):
+def api_error_payload(error):
+
+    """
+    Describe a provider failure without choosing a transport.
+
+    Returns (payload, status, headers).
+    """
 
     print(
         "EXIOM AI provider error:",
@@ -267,46 +291,60 @@ def api_error_response(error):
 
     if isinstance(error, RateLimitError):
 
-        return jsonify({
+        return {
             "answer":
                 "EXIOM AI is getting a little too much attention "
-                "right now 😅 Please try again shortly.",
+                "right now \U0001F605 Please try again shortly.",
             "error_type": "rate_limit"
-        }), 429
+        }, 429, {}
 
     if isinstance(error, APITimeoutError):
 
-        return jsonify({
+        return {
             "answer":
                 "That request took too long to finish. "
                 "Please try again.",
             "error_type": "timeout"
-        }), 504
+        }, 504, {}
 
     if isinstance(error, APIConnectionError):
 
-        return jsonify({
+        return {
             "answer":
                 "EXIOM AI couldn't reach the AI service right now. "
                 "Please try again shortly.",
             "error_type": "connection"
-        }), 503
+        }, 503, {}
 
     if isinstance(error, APIStatusError):
 
-        return jsonify({
+        return {
             "answer":
                 "The AI service returned an error. "
                 "Please try again shortly.",
             "error_type": "provider"
-        }), 502
+        }, 502, {}
 
-    return jsonify({
+    return {
         "answer":
             "EXIOM AI hit an unexpected problem. "
             "Please try again.",
         "error_type": "unknown"
-    }), 500
+    }, 500, {}
+
+
+def json_error(payload, status, headers):
+
+    """
+    Deliver an error payload as an ordinary JSON response.
+    """
+
+    response = jsonify(payload)
+
+    for name, value in headers.items():
+        response.headers[name] = value
+
+    return response, status
 
 
 # ---------------------------------------------------------
@@ -715,17 +753,23 @@ def slim_facts_for_prompt(selected_facts):
 # AI CHAT
 # ---------------------------------------------------------
 
-@app.route("/ask", methods=["POST"])
-def ask():
+def read_ask_request(data):
 
-    data = request.get_json(silent=True)
+    """
+    Validate an incoming chat request.
+
+    Returns (question, conversation, error) where error is
+    None or an (payload, status, headers) triple. Every
+    rejection here happens before a stream could be opened,
+    so both transports refuse identically.
+    """
 
     if not data:
 
-        return jsonify({
+        return None, None, ({
             "answer": "I couldn't read that request.",
             "error_type": "invalid_request"
-        }), 400
+        }, 400, {})
 
     question = str(
         data.get("question", "")
@@ -733,24 +777,104 @@ def ask():
 
     if not question:
 
-        return jsonify({
+        return None, None, ({
             "answer": "Please enter a question.",
             "error_type": "empty_question"
-        }), 400
+        }, 400, {})
 
     if len(question) > 1000:
 
-        return jsonify({
+        return None, None, ({
             "answer":
                 "Please keep your question under 1,000 characters.",
             "error_type": "question_too_long"
-        }), 400
+        }, 400, {})
 
     conversation = clean_conversation(
         data.get("conversation", [])
     )
 
-    client_id = client_identifier()
+    return question, conversation, None
+
+
+# ---------------------------------------------------------
+# STREAMED ANSWER
+# ---------------------------------------------------------
+
+def stream_answer(chunks, client_id, meta, reuse_key=None):
+
+    """
+    Drain a provider stream into pipeline events.
+
+    Metering and answer reuse both happen only after the
+    stream completes, because neither the token usage nor
+    the finished text exists before then.
+    """
+
+    parts = []
+
+    try:
+
+        for chunk in chunks:
+            parts.append(chunk)
+            yield "delta", chunk
+
+    except Exception as error:
+
+        payload, status, headers = api_error_payload(error)
+
+        # Nothing reached the caller yet, so this can still
+        # be refused properly.
+        if not parts:
+            yield "error", (payload, status, headers)
+
+        # Text is already on screen. The status line is long
+        # gone, so the failure has to travel in-band.
+        else:
+            yield "fail", payload["answer"]
+
+        return
+
+    charge_last_call(client_id)
+
+    answer = "".join(parts)
+
+    if reuse_key and answer.strip():
+        answer_cache.set(reuse_key, answer)
+
+    yield "done", meta
+
+
+# ---------------------------------------------------------
+# THE ANSWERING PIPELINE
+# ---------------------------------------------------------
+
+def answer_pipeline(
+    question,
+    conversation,
+    client_id,
+    streaming=False
+):
+
+    """
+    The one EXIOM answering pipeline, shared by both
+    transports.
+
+    Yields:
+      ("whole", payload)  a complete answer; terminal
+      ("error", triple)   refused before any text existed;
+                          terminal
+      ("delta", text)     one chunk of a streamed answer
+      ("done", meta)      terminal, after one or more deltas
+      ("fail", message)   the stream broke after text had
+                          already been sent
+
+    Only the two generative routes can stream, and only when
+    `streaming` is set. Every deterministic, cached or
+    Explorer-derived answer is yielded whole: those cost
+    nothing and are already instant, so chunking them would
+    add latency and buy nothing.
+    """
 
     normalized_question = fast_path.normalize_question(
         question
@@ -796,11 +920,13 @@ def ask():
                     "live_deterministic"
                 )
 
-                return jsonify({
+                yield "whole", {
                     "answer": direct_answer,
                     "source": "Official EXIOM Explorer",
                     "route": "live"
-                })
+                }
+
+                return
 
         else:
 
@@ -808,10 +934,12 @@ def ask():
                 fast_result["route"]
             )
 
-            return jsonify({
+            yield "whole", {
                 "answer": fast_result["answer"],
                 "route": fast_result["route"]
-            })
+            }
+
+            return
 
 
     # -----------------------------------------------------
@@ -831,7 +959,9 @@ def ask():
             decision.reason
         )
 
-        return budget_exceeded_response(decision)
+        yield "error", budget_exceeded_payload(decision)
+
+        return
 
 
     # -----------------------------------------------------
@@ -910,6 +1040,19 @@ def ask():
 
     if scope == "unrelated":
 
+        if streaming:
+
+            yield from stream_answer(
+                ai_provider.stream_generate_off_topic(
+                    conversation=conversation,
+                    question=question
+                ),
+                client_id,
+                {"route": "off_topic"}
+            )
+
+            return
+
         try:
 
             result = ai_provider.generate_off_topic(
@@ -919,16 +1062,16 @@ def ask():
 
             charge_last_call(client_id)
 
-            return jsonify({
+            yield "whole", {
                 "answer": result["answer"],
                 "route": "off_topic"
-            })
+            }
 
         except Exception as error:
 
-            return api_error_response(
-                error
-            )
+            yield "error", api_error_payload(error)
+
+        return
 
 
     # -----------------------------------------------------
@@ -951,11 +1094,13 @@ def ask():
                 "live"
             )
 
-            return jsonify({
+            yield "whole", {
                 "answer": direct_answer,
                 "source": "Official EXIOM Explorer",
                 "route": "live"
-            })
+            }
+
+            return
 
 
     # -----------------------------------------------------
@@ -1038,11 +1183,13 @@ def ask():
                 "answer_cache"
             )
 
-            return jsonify({
+            yield "whole", {
                 "answer": cached_answer,
                 "route": intent,
                 "scope": scope
-            })
+            }
+
+            return
 
 
     # -----------------------------------------------------
@@ -1056,6 +1203,24 @@ def ask():
         live_context,
         relevant_knowledge
     )
+
+    if streaming:
+
+        yield from stream_answer(
+            ai_provider.stream_generate(
+                system_prompt=system_prompt,
+                conversation=conversation,
+                question=question
+            ),
+            client_id,
+            {
+                "route": intent,
+                "scope": scope
+            },
+            reuse_key=reuse_key
+        )
+
+        return
 
     try:
 
@@ -1072,17 +1237,183 @@ def ask():
         if reuse_key and answer and answer.strip():
             answer_cache.set(reuse_key, answer)
 
-        return jsonify({
+        yield "whole", {
             "answer": answer,
             "route": intent,
             "scope": scope
-        })
+        }
 
     except Exception as error:
 
-        return api_error_response(
-            error
-        )
+        yield "error", api_error_payload(error)
+
+
+# ---------------------------------------------------------
+# JSON TRANSPORT
+# ---------------------------------------------------------
+
+@app.route("/ask", methods=["POST"])
+def ask():
+
+    """
+    The whole answer in one JSON response.
+    """
+
+    question, conversation, error = read_ask_request(
+        request.get_json(silent=True)
+    )
+
+    if error:
+        return json_error(*error)
+
+    client_id = client_identifier()
+
+    parts = []
+    meta = {}
+
+    for kind, value in answer_pipeline(
+        question,
+        conversation,
+        client_id,
+        streaming=False
+    ):
+
+        if kind == "whole":
+            return jsonify(value)
+
+        if kind == "error":
+            return json_error(*value)
+
+        if kind == "delta":
+            parts.append(value)
+
+        elif kind == "done":
+            meta = value
+
+        elif kind == "fail":
+
+            return jsonify({
+                "answer": value,
+                "error_type": "provider"
+            }), 502
+
+    return jsonify({
+        "answer": "".join(parts),
+        **meta
+    })
+
+
+# ---------------------------------------------------------
+# STREAMING TRANSPORT
+# ---------------------------------------------------------
+
+def sse_frame(payload):
+
+    return "data: " + json.dumps(
+        payload,
+        ensure_ascii=False
+    ) + "\n\n"
+
+
+@app.route("/ask/stream", methods=["POST"])
+def ask_stream():
+
+    """
+    The same answer as Server-Sent Events.
+
+    Wire protocol, one JSON object per frame:
+
+      {"type":"delta","text":"..."}   append to the answer
+      {"type":"done", ...}            end of a streamed answer
+      {"type":"message", ...}         a whole answer at once
+      {"type":"error","answer":"..."} the stream broke
+
+    "message" exists because most routes here are instant and
+    free -- a cached answer or an Explorer value has nothing
+    to stream.
+    """
+
+    question, conversation, error = read_ask_request(
+        request.get_json(silent=True)
+    )
+
+    if error:
+        return json_error(*error)
+
+    client_id = client_identifier()
+
+    events = answer_pipeline(
+        question,
+        conversation,
+        client_id,
+        streaming=True
+    )
+
+    # Pull the first event while an ordinary response can
+    # still be built. Every refusal -- the usage limit, a
+    # provider failure before the first token -- surfaces
+    # here, so it keeps its real status code instead of being
+    # buried inside a 200 that already claimed success.
+    try:
+        first = next(events)
+
+    except StopIteration:
+        first = ("whole", {"answer": "", "route": "unknown"})
+
+    if first[0] == "error":
+        return json_error(*first[1])
+
+    def body():
+
+        for kind, value in itertools.chain([first], events):
+
+            if kind == "delta":
+                yield sse_frame({
+                    "type": "delta",
+                    "text": value
+                })
+
+            elif kind == "whole":
+                yield sse_frame({
+                    "type": "message",
+                    **value
+                })
+
+            elif kind == "done":
+                yield sse_frame({
+                    "type": "done",
+                    **value
+                })
+
+            elif kind == "fail":
+                yield sse_frame({
+                    "type": "error",
+                    "answer": value
+                })
+
+            elif kind == "error":
+
+                # Only reachable if a refusal ever follows an
+                # earlier event; the status line is already
+                # sent, so it travels in-band.
+                payload, _status, _headers = value
+
+                yield sse_frame({
+                    "type": "error",
+                    **payload
+                })
+
+    response = Response(
+        stream_with_context(body()),
+        mimetype="text/event-stream"
+    )
+
+    # Buffering anywhere in front of this service would
+    # collect the whole stream and defeat the point of it.
+    response.headers["Cache-Control"] = "no-cache, no-transform"
+    response.headers["X-Accel-Buffering"] = "no"
+
+    return response
 
 
 # ---------------------------------------------------------
