@@ -116,12 +116,12 @@ main {
     gap: 14px;
 }
 
-.assistant-header strong {
+.assistant-identity strong {
     display: block;
     font-size: 15px;
 }
 
-.assistant-header span {
+.assistant-identity span {
     display: block;
     margin-top: 4px;
     font-size: 12px;
@@ -942,6 +942,10 @@ main {
 .stream-track {
     position: relative;
 
+    display: block;
+    margin: 0;
+    flex-shrink: 0;
+
     width: 34px;
     height: 19px;
 
@@ -958,6 +962,9 @@ main {
 
 .stream-thumb {
     position: absolute;
+
+    display: block;
+    margin: 0;
     top: 2px;
     left: 2px;
 
@@ -989,6 +996,9 @@ main {
 }
 
 .stream-name {
+    display: block;
+    margin: 0;
+
     color: rgba(255,255,255,0.38);
     font-size: 9px;
     letter-spacing: .2em;
