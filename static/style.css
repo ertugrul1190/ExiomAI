@@ -109,6 +109,11 @@ main {
 .assistant-header {
     padding: 18px 22px;
     border-bottom: 1px solid rgba(255,255,255,0.08);
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
 }
 
 .assistant-header strong {
@@ -908,5 +913,150 @@ main {
     .message-content li,
     .live-data-dot {
         animation: none;
+    }
+}
+
+
+/* ========================================================
+   STREAMING TOGGLE
+   ======================================================== */
+
+.stream-toggle {
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    cursor: pointer;
+    user-select: none;
+}
+
+.stream-toggle input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.stream-track {
+    position: relative;
+
+    width: 34px;
+    height: 19px;
+
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.12);
+
+    background: rgba(255,255,255,0.05);
+
+    transition:
+        background .28s ease,
+        border-color .28s ease,
+        box-shadow .28s ease;
+}
+
+.stream-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+
+    width: 13px;
+    height: 13px;
+
+    border-radius: 50%;
+    background: rgba(255,255,255,0.5);
+
+    transition:
+        transform .28s cubic-bezier(.4, 0, .2, 1),
+        background .28s ease;
+}
+
+.stream-toggle input:checked + .stream-track {
+    background: rgba(69,190,255,.22);
+    border-color: rgba(69,190,255,.55);
+}
+
+.stream-toggle input:checked + .stream-track .stream-thumb {
+    transform: translateX(15px);
+
+    background: rgb(69,190,255);
+    box-shadow: 0 0 9px rgba(69,190,255,.85);
+}
+
+.stream-toggle input:focus-visible + .stream-track {
+    box-shadow: 0 0 0 3px rgba(69,190,255,.3);
+}
+
+.stream-name {
+    color: rgba(255,255,255,0.38);
+    font-size: 9px;
+    letter-spacing: .2em;
+
+    transition: color .28s ease;
+}
+
+.stream-toggle input:checked ~ .stream-name {
+    color: rgba(255,255,255,0.72);
+}
+
+/* A request in flight has already committed to a
+   transport. */
+.stream-toggle.is-locked {
+    cursor: default;
+    opacity: .45;
+}
+
+
+/* ========================================================
+   IN-FLIGHT ANSWER
+   ======================================================== */
+
+.message-content.is-streaming > :last-child::after {
+    content: "";
+
+    display: inline-block;
+    vertical-align: text-bottom;
+
+    width: 2px;
+    height: 1em;
+    margin-left: 3px;
+
+    background: rgb(69,190,255);
+
+    animation: streamCaret 1s steps(2, start) infinite;
+}
+
+@keyframes streamCaret {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+}
+
+
+/* The switch stays reachable on a narrow screen; only its
+   written label gives up the space. */
+
+@media (max-width: 650px) {
+
+    .stream-name {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .message-content.is-streaming > :last-child::after {
+        animation: none;
+    }
+
+    .stream-track,
+    .stream-thumb,
+    .stream-name {
+        transition: none;
     }
 }

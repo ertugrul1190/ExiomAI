@@ -91,6 +91,27 @@
                     <span>Beginner-friendly ecosystem guide</span>
                 </div>
 
+                <label
+                    id="streamToggle"
+                    class="stream-toggle"
+                    title="Streaming responses"
+                >
+
+                    <input
+                        id="streamSwitch"
+                        type="checkbox"
+                        aria-label="Streaming responses"
+                        checked
+                    >
+
+                    <span class="stream-track">
+                        <span class="stream-thumb"></span>
+                    </span>
+
+                    <span class="stream-name">STREAMING</span>
+
+                </label>
+
             </div>
 
 
@@ -274,6 +295,62 @@ const liveBlockHeight =
 const liveNetworkState =
     document.getElementById("liveNetworkState");
 
+const streamToggle =
+    document.getElementById("streamToggle");
+
+const streamSwitch =
+    document.getElementById("streamSwitch");
+
+
+/* -------------------------------------------------------
+   STREAMING PREFERENCE
+
+   Remembered across visits. Streaming is the default: it
+   is the same answer either way, it just starts sooner.
+------------------------------------------------------- */
+
+const STREAMING_KEY = "exiom.streaming";
+
+
+let streamingEnabled =
+    window.localStorage.getItem(
+        STREAMING_KEY
+    ) !== "off";
+
+
+streamSwitch.checked = streamingEnabled;
+
+
+streamSwitch.addEventListener(
+    "change",
+    function() {
+
+        streamingEnabled =
+            streamSwitch.checked;
+
+        window.localStorage.setItem(
+            STREAMING_KEY,
+            streamingEnabled ? "on" : "off"
+        );
+
+    }
+);
+
+
+/* A request in flight has already committed to a
+   transport, so the switch cannot change under it. */
+
+function lockStreamToggle(locked) {
+
+    streamSwitch.disabled = locked;
+
+    streamToggle.classList.toggle(
+        "is-locked",
+        locked
+    );
+
+}
+
 
 /* -------------------------------------------------------
    LIVE NETWORK
@@ -404,6 +481,378 @@ function startConversation() {
 
 
 /* -------------------------------------------------------
+   SERVER ERRORS
+------------------------------------------------------- */
+
+async function readJSON(response) {
+
+    try {
+
+        return await response.json();
+
+    } catch {
+
+        return {};
+
+    }
+
+}
+
+
+function serverError(data) {
+
+    const error =
+        new Error(
+            data.answer ||
+            "EXIOM AI couldn't complete that request."
+        );
+
+
+    error.errorType =
+        data.error_type ||
+        "unknown";
+
+
+    return error;
+
+}
+
+
+/* -------------------------------------------------------
+   TRANSPORTS
+
+   Both return the same payload shape, so an answer is
+   rendered identically however it arrived.
+------------------------------------------------------- */
+
+async function askOnce(body) {
+
+    const response =
+        await fetch("/ask", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type":
+                    "application/json"
+            },
+
+            body: JSON.stringify(body)
+
+        });
+
+
+    const data =
+        await readJSON(response);
+
+
+    if (!response.ok) {
+
+        throw serverError(data);
+
+    }
+
+
+    return data;
+
+}
+
+
+async function askStreaming(body, aiMessage) {
+
+    const response =
+        await fetch("/ask/stream", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type":
+                    "application/json"
+            },
+
+            body: JSON.stringify(body)
+
+        });
+
+
+    /* Anything refused before the stream opened is still an
+       ordinary JSON error, so it keeps its status code. */
+
+    if (
+        !response.ok ||
+        !response.body
+    ) {
+
+        throw serverError(
+            await readJSON(response)
+        );
+
+    }
+
+
+    const reader =
+        response.body.getReader();
+
+    const decoder =
+        new TextDecoder();
+
+
+    let buffer = "";
+    let answer = "";
+    let payload = { route: "unknown" };
+
+
+    function handleFrame(frame) {
+
+        if (frame.type === "delta") {
+
+            answer += frame.text;
+
+            renderStreamingAnswer(
+                aiMessage,
+                answer
+            );
+
+        } else if (frame.type === "message") {
+
+            /* A cached, deterministic or Explorer answer:
+               whole and instant, nothing to stream. */
+
+            answer =
+                String(frame.answer || "");
+
+            payload = frame;
+
+        } else if (frame.type === "done") {
+
+            payload = frame;
+
+        } else if (frame.type === "error") {
+
+            /* The stream broke after text was already on
+               screen, so the failure arrives in-band. */
+
+            answer =
+                answer
+                    ? answer + "\n\n" + frame.answer
+                    : String(frame.answer || "");
+
+        }
+
+    }
+
+
+    for (;;) {
+
+        const { done, value } =
+            await reader.read();
+
+
+        if (done) {
+            break;
+        }
+
+
+        buffer +=
+            decoder.decode(
+                value,
+                { stream: true }
+            );
+
+
+        /* A frame is complete only once its blank line
+           arrives; whatever follows the last one stays
+           buffered. */
+
+        const frames =
+            buffer.split("\n\n");
+
+        buffer = frames.pop();
+
+
+        for (const frame of frames) {
+
+            const line =
+                frame
+                    .split("\n")
+                    .find(
+                        part =>
+                            part.startsWith("data: ")
+                    );
+
+
+            if (!line) {
+                continue;
+            }
+
+
+            try {
+
+                handleFrame(
+                    JSON.parse(
+                        line.slice(6)
+                    )
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "Bad stream frame:",
+                    error
+                );
+
+            }
+
+        }
+
+    }
+
+
+    return Object.assign(
+        {},
+        payload,
+        { answer: answer }
+    );
+
+}
+
+
+/* -------------------------------------------------------
+   RENDERING
+------------------------------------------------------- */
+
+function renderStreamingAnswer(aiMessage, text) {
+
+    /* Only follow the text if the reader is already at the
+       bottom; otherwise they are reading back and should
+       not be yanked forward. */
+
+    const stick = nearBottom();
+
+
+    aiMessage.classList.remove(
+        "thinking-message"
+    );
+
+
+    aiMessage.innerHTML = `
+
+        <strong>XEQM AI</strong>
+
+        <div class="message-content is-streaming">
+
+            ${formatAnswer(text)}
+
+        </div>
+
+    `;
+
+
+    if (stick) {
+
+        answerBox.scrollTop =
+            answerBox.scrollHeight;
+
+    }
+
+}
+
+
+function renderAnswer(aiMessage, data, answer) {
+
+    const sourceHTML =
+
+        data.source ===
+        "Official EXIOM Explorer"
+
+            ? `
+
+                <div class="response-source">
+
+                    <span>Source</span>
+
+                    <a
+                        href="https://explorer.xeqmlabs.com/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Official EXIOM Explorer ↗
+                    </a>
+
+                </div>
+
+            `
+
+            : data.source
+
+                ? `
+
+                    <div class="response-source">
+
+                        <span>Source</span>
+
+                        ${escapeHTML(
+                            data.source
+                        )}
+
+                    </div>
+
+                `
+
+                : "";
+
+
+    const liveBadgeHTML =
+
+        data.route === "live"
+
+            ? `
+
+                <div class="live-data-badge">
+
+                    <span
+                        class="live-data-dot"
+                    ></span>
+
+                    LIVE EXPLORER DATA
+
+                </div>
+
+            `
+
+            : "";
+
+
+    aiMessage.innerHTML = `
+
+        <strong>XEQM AI</strong>
+
+        ${liveBadgeHTML}
+
+        <div class="message-content">
+
+            ${formatAnswer(
+                answer
+            )}
+
+        </div>
+
+        ${sourceHTML}
+
+    `;
+
+
+    aiMessage.classList.remove(
+        "thinking-message"
+    );
+
+
+    scrollToBottom();
+
+}
+
+
+/* -------------------------------------------------------
    ASK QUESTION
 ------------------------------------------------------- */
 
@@ -428,6 +877,8 @@ async function askQuestion() {
 
     sendButton.disabled = true;
     questionInput.disabled = true;
+
+    lockStreamToggle(true);
 
     questionInput.value = "";
 
@@ -470,62 +921,21 @@ async function askQuestion() {
     scrollToBottom();
 
 
+    const body = {
+        question: question,
+        conversation: conversation
+    };
+
+
     try {
 
-        const response =
-            await fetch("/ask", {
-
-                method: "POST",
-
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-
-                body: JSON.stringify({
-                    question: question,
-                    conversation: conversation
-                })
-
-            });
-
-
-        let data = {};
-
-
-        try {
-
-            data =
-                await response.json();
-
-        } catch {
-
-            data = {};
-
-        }
-
-
-        if (!response.ok) {
-
-            const serverMessage =
-                data.answer ||
-                "EXIOM AI couldn't complete that request.";
-
-
-            const error =
-                new Error(
-                    serverMessage
-                );
-
-
-            error.errorType =
-                data.error_type ||
-                "unknown";
-
-
-            throw error;
-
-        }
+        const data =
+            streamingEnabled
+                ? await askStreaming(
+                    body,
+                    aiMessage
+                )
+                : await askOnce(body);
 
 
         const answer =
@@ -557,94 +967,11 @@ async function askQuestion() {
         }
 
 
-        const sourceHTML =
-
-            data.source ===
-            "Official EXIOM Explorer"
-
-                ? `
-
-                    <div class="response-source">
-
-                        <span>Source</span>
-
-                        <a
-                            href="https://explorer.xeqmlabs.com/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            Official EXIOM Explorer ↗
-                        </a>
-
-                    </div>
-
-                `
-
-                : data.source
-
-                    ? `
-
-                        <div class="response-source">
-
-                            <span>Source</span>
-
-                            ${escapeHTML(
-                                data.source
-                            )}
-
-                        </div>
-
-                    `
-
-                    : "";
-
-
-        const liveBadgeHTML =
-
-            data.route === "live"
-
-                ? `
-
-                    <div class="live-data-badge">
-
-                        <span
-                            class="live-data-dot"
-                        ></span>
-
-                        LIVE EXPLORER DATA
-
-                    </div>
-
-                `
-
-                : "";
-
-
-        aiMessage.innerHTML = `
-
-            <strong>XEQM AI</strong>
-
-            ${liveBadgeHTML}
-
-            <div class="message-content">
-
-                ${formatAnswer(
-                    answer
-                )}
-
-            </div>
-
-            ${sourceHTML}
-
-        `;
-
-
-        aiMessage.classList.remove(
-            "thinking-message"
+        renderAnswer(
+            aiMessage,
+            data,
+            answer
         );
-
-
-        scrollToBottom();
 
 
     } catch (error) {
@@ -700,6 +1027,8 @@ async function askQuestion() {
 
         sendButton.disabled = false;
         questionInput.disabled = false;
+
+        lockStreamToggle(false);
 
         questionInput.focus();
 
@@ -954,6 +1283,17 @@ function formatAnswer(text) {
 /* -------------------------------------------------------
    SCROLL
 ------------------------------------------------------- */
+
+function nearBottom() {
+
+    return (
+        answerBox.scrollHeight -
+        answerBox.scrollTop -
+        answerBox.clientHeight
+    ) < 120;
+
+}
+
 
 function scrollToBottom() {
 
