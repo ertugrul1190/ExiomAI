@@ -1,5 +1,6 @@
 import html
 import re
+import threading
 import time
 import requests
 
@@ -8,6 +9,39 @@ class LiveData:
     def __init__(self):
         self.cache = {}
         self.cache_seconds = 30
+
+        # A failed fetch is remembered briefly so a down
+        # Explorer costs one timeout, not one per question.
+        # Kept short so recovery is noticed quickly.
+        self.failure_cache_seconds = 10
+
+        # Shortly before a good reading expires, one request
+        # starts a background fetch and every caller keeps the
+        # still-valid reading. Under steady traffic nobody
+        # waits for the Explorer, and nothing older than
+        # cache_seconds is ever served.
+        self.refresh_ahead_seconds = 10
+
+        # When a refresh-ahead fails, the next one waits as
+        # long as a failure is remembered, so a down Explorer
+        # is not retried on every request.
+        self._early_refresh_failed_at = None
+
+        # (connect, read). The fetch sits on the request path
+        # of every question, so it must fail fast.
+        self.timeout = (3.05, 6)
+
+        self._now = time.time
+
+        # One fetch at a time. Requests that miss the cache
+        # together wait for that fetch instead of each
+        # starting their own (and the Session is only ever
+        # used by one thread at a time).
+        self._fetch_lock = threading.Lock()
+
+        # Keep-alive: reuses the TCP + TLS connection between
+        # fetches instead of renegotiating every 30 seconds.
+        self.session = requests.Session()
 
         self.explorer_url = "https://explorer.xeqmlabs.com/"
 
@@ -240,15 +274,16 @@ class LiveData:
         if not item:
             return None
 
-        if time.time() - item["time"] > self.cache_seconds:
+        if self._now() - item["time"] > item["ttl"]:
             return None
 
         return item["data"]
 
 
-    def _save_cache(self, key, data):
+    def _save_cache(self, key, data, ttl=None):
         self.cache[key] = {
-            "time": time.time(),
+            "time": self._now(),
+            "ttl": self.cache_seconds if ttl is None else ttl,
             "data": data
         }
 
@@ -308,10 +343,10 @@ class LiveData:
 
 
     def _get_from_explorer(self):
-        response = requests.get(
+        response = self.session.get(
             self.explorer_url,
             headers=self.headers,
-            timeout=8
+            timeout=self.timeout
         )
 
         response.raise_for_status()
@@ -350,11 +385,11 @@ class LiveData:
         }
 
 
-    def get_network_stats(self):
-        cached = self._get_cached("network_stats")
-
-        if cached:
-            return cached
+    def _refresh_locked(self):
+        """
+        Fetch and cache a reading. The caller holds
+        _fetch_lock.
+        """
 
         try:
             data = self._get_from_explorer()
@@ -364,19 +399,102 @@ class LiveData:
                 data
             )
 
-            return data
-
         except requests.RequestException:
-            return {
+
+            # A refresh-ahead that failed leaves the current
+            # reading in place: it is still inside its window.
+            still_valid = self._get_cached("network_stats")
+
+            if still_valid:
+                self._early_refresh_failed_at = self._now()
+                return still_valid
+
+            # Never an expired reading: Explorer values are
+            # presented as current, so an old one must not be
+            # served as if it still were.
+            data = {
                 "status": "unavailable",
                 "connection_state": "unknown",
                 "source": "Official EXIOM Explorer",
                 "source_url": self.explorer_url,
                 "facts": {},
                 "message": (
-                    "EXIOM Explorer data is temporarily unavailable."
+                    "EXIOM Explorer data is temporarily "
+                    "unavailable."
                 ),
             }
+
+            self._save_cache(
+                "network_stats",
+                data,
+                ttl=self.failure_cache_seconds
+            )
+
+        return data
+
+
+    def _refresh_in_background(self):
+
+        # Someone is already fetching; nothing to add.
+        if not self._fetch_lock.acquire(blocking=False):
+            return
+
+        def run():
+            try:
+                self._refresh_locked()
+            finally:
+                self._fetch_lock.release()
+
+        try:
+            threading.Thread(target=run, daemon=True).start()
+
+        except RuntimeError:
+            # No new threads (interpreter shutting down). The
+            # next request after expiry fetches normally.
+            self._fetch_lock.release()
+
+
+    def _needs_refresh_ahead(self):
+        item = self.cache.get("network_stats")
+
+        failed_at = self._early_refresh_failed_at
+
+        if (
+            failed_at is not None
+            and self._now() - failed_at < self.failure_cache_seconds
+        ):
+            return False
+
+        return (
+            item is not None
+            and item["data"].get("status") == "available"
+            and (
+                self._now() - item["time"]
+                > self.cache_seconds - self.refresh_ahead_seconds
+            )
+        )
+
+
+    def get_network_stats(self):
+        cached = self._get_cached("network_stats")
+
+        if cached:
+
+            if self._needs_refresh_ahead():
+                self._refresh_in_background()
+
+            return cached
+
+        with self._fetch_lock:
+
+            # Another request may have refreshed the cache
+            # while this one waited for the lock.
+            cached = self._get_cached("network_stats")
+
+            if cached:
+                return cached
+
+            return self._refresh_locked()
 
 
     def get_fact_registry(self):

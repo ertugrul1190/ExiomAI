@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import retrieval
 
 
@@ -75,7 +77,9 @@ def test_no_sections_returns_empty_context():
 
 
 def test_real_knowledge_base_stays_affordable():
-    documents = retrieval.load_knowledge_directory("knowledge")
+    documents = retrieval.load_knowledge_directory(
+        str(Path(__file__).parent.parent / "knowledge")
+    )
     sections = retrieval.build_knowledge_sections(documents)
 
     for question in [
@@ -86,3 +90,35 @@ def test_real_knowledge_base_stays_affordable():
         knowledge = retrieval.retrieve_knowledge(question, sections)
 
         assert len(knowledge) <= 7000
+
+
+def test_the_startup_index_never_changes_what_is_retrieved():
+    """
+    Sections are indexed once at startup for speed. The
+    index must be a pure cache: identical results to scoring
+    the raw text.
+    """
+
+    documents = retrieval.load_knowledge_directory(
+        str(Path(__file__).parent.parent / "knowledge")
+    )
+
+    indexed = retrieval.build_knowledge_sections(documents)
+
+    assert indexed
+
+    raw = [
+        {key: value for key, value in section.items() if key != "_index"}
+        for section in indexed
+    ]
+
+    for question in (
+        "what is staking",
+        "how do service node rewards work",
+        "can I withdraw while unbonding",
+        "lokinet onion routing",
+        "hello there",
+        "zzzz",
+    ):
+        assert retrieval.retrieve_knowledge(question, indexed) == \
+            retrieval.retrieve_knowledge(question, raw)

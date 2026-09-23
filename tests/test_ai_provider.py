@@ -330,3 +330,197 @@ def test_failed_calls_are_not_metered(monkeypatch):
         provider.generate("system", [], "question")
 
     assert provider.cost_meter.snapshot()["provider_calls"] == 0
+
+
+# ---------------------------------------------------------
+# TIMEOUTS AND RETRIES
+# ---------------------------------------------------------
+
+class FakeStreamEvent:
+
+    def __init__(self, delta):
+        self.type = "response.output_text.delta"
+        self.delta = delta
+
+
+class FakeStream:
+
+    def __init__(self, deltas, error_after=None):
+        self.deltas = deltas
+        self.error_after = error_after
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def __iter__(self):
+        for index, delta in enumerate(self.deltas):
+            if self.error_after == index:
+                raise APITimeoutError(
+                    request=httpx.Request("POST", "https://x")
+                )
+            yield FakeStreamEvent(delta)
+
+    def get_final_response(self):
+        return FakeResponse("".join(self.deltas))
+
+
+def attach_stream(provider, outcomes):
+    """
+    Give the fake client a stream() that plays outcomes in
+    order: an exception is raised on open, a FakeStream is
+    iterated.
+    """
+
+    outcomes = list(outcomes)
+
+    def stream(**request):
+        provider.client.responses.requests.append(request)
+
+        outcome = outcomes.pop(0)
+
+        if isinstance(outcome, Exception):
+            raise outcome
+
+        return outcome
+
+    provider.client.responses.stream = stream
+
+
+def record_sleeps(monkeypatch):
+    sleeps = []
+    monkeypatch.setattr(ai_provider.time, "sleep", sleeps.append)
+    return sleeps
+
+
+def test_router_fails_faster_than_the_answer(monkeypatch):
+    provider = build_provider(
+        [FakeResponse("{}"), FakeResponse("answer")],
+        monkeypatch
+    )
+
+    provider.route_question("hello", [], REGISTRY)
+    provider.generate("system", [], "question")
+
+    router, answer = provider.client.responses.requests
+
+    assert router["timeout"].read < answer["timeout"].read
+    assert router["timeout"].connect == ai_provider.CONNECT_TIMEOUT
+
+
+def test_server_errors_are_retried(monkeypatch):
+    provider = build_provider(
+        [status_error(503, "busy"), FakeResponse("answer")],
+        monkeypatch
+    )
+
+    assert provider.generate("system", [], "question")["answer"] == "answer"
+    assert len(provider.client.responses.requests) == 2
+
+
+def test_an_exhausted_quota_fails_immediately(monkeypatch):
+    request = httpx.Request("POST", "https://api.openai.com/v1/responses")
+
+    error = RateLimitError(
+        "quota",
+        response=httpx.Response(429, request=request),
+        body={"code": "insufficient_quota"}
+    )
+
+    provider = build_provider([error], monkeypatch)
+
+    with pytest.raises(RateLimitError):
+        provider.generate("system", [], "question")
+
+    assert len(provider.client.responses.requests) == 1
+
+
+def test_retry_after_sets_the_wait(monkeypatch):
+    request = httpx.Request("POST", "https://api.openai.com/v1/responses")
+
+    error = RateLimitError(
+        "slow down",
+        response=httpx.Response(
+            429,
+            request=request,
+            headers={"retry-after": "2"}
+        ),
+        body=None
+    )
+
+    provider = build_provider([error, FakeResponse("answer")], monkeypatch)
+    sleeps = record_sleeps(monkeypatch)
+
+    provider.generate("system", [], "question")
+
+    assert sleeps == [2.0]
+
+
+def test_no_retry_is_started_that_cannot_finish(monkeypatch):
+    monkeypatch.setitem(
+        ai_provider.CALL_LIMITS,
+        "answer",
+        {"read": 1.0, "deadline": 1.0}
+    )
+
+    provider = build_provider(
+        [status_error(503, "busy"), FakeResponse("answer")],
+        monkeypatch
+    )
+
+    with pytest.raises(APIStatusError):
+        provider.generate("system", [], "question")
+
+    assert len(provider.client.responses.requests) == 1
+
+
+def test_dropping_options_does_not_use_up_retries(monkeypatch):
+    provider = build_provider(
+        [
+            status_error(400, "Unsupported parameter: 'reasoning.effort'"),
+            status_error(400, "Unsupported parameter: 'text.format'"),
+            FakeResponse('{"scope":"relevant","intent":"general","facts":[]}'),
+        ],
+        monkeypatch
+    )
+
+    route = provider.route_question("hello", [], REGISTRY)
+
+    assert route["scope"] == "relevant"
+    assert len(provider.client.responses.requests) == 3
+
+
+def test_stream_retries_before_any_text(monkeypatch):
+    provider = build_provider([], monkeypatch)
+
+    attach_stream(provider, [
+        status_error(503, "busy"),
+        FakeStream(["hel", "lo"]),
+    ])
+
+    chunks = list(provider.stream_generate("system", [], "question"))
+
+    assert chunks == ["hel", "lo"]
+    assert provider.last_usage["output_tokens"] == 20
+    assert provider.client.responses.requests[0]["timeout"].read == \
+        ai_provider.CALL_LIMITS["answer"]["read"]
+
+
+def test_stream_never_retries_once_text_was_sent(monkeypatch):
+    provider = build_provider([], monkeypatch)
+
+    attach_stream(provider, [
+        FakeStream(["hel", "lo"], error_after=1),
+        FakeStream(["hel", "lo"]),
+    ])
+
+    chunks = []
+
+    with pytest.raises(APITimeoutError):
+        for chunk in provider.stream_generate("system", [], "question"):
+            chunks.append(chunk)
+
+    assert chunks == ["hel"]
+    assert len(provider.client.responses.requests) == 1

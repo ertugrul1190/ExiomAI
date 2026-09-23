@@ -1,9 +1,12 @@
 import os
 import json
+import time
+import hashlib
 import itertools
 
 from flask import (
     Flask,
+    g,
     render_template,
     request,
     jsonify,
@@ -32,8 +35,10 @@ from openai import (
     RateLimitError,
     APITimeoutError,
     APIConnectionError,
-    APIStatusError,
+    APIError,
 )
+
+from reliability import env_float
 
 from hmac import compare_digest
 
@@ -89,6 +94,118 @@ knowledge_changelog = load_markdown_file(
 # ---------------------------------------------------------
 
 app = Flask(__name__)
+
+
+# ---------------------------------------------------------
+# RESPONSE TIME
+# ---------------------------------------------------------
+#
+# Every response carries a Server-Timing header (a W3C
+# standard browsers show in DevTools > Network > Timing) with
+# the server's own time in milliseconds. For a stream this is
+# the time until the stream opened -- routing included --
+# which is what the user waits through before text appears.
+#
+# Anything slower than EXIOM_SLOW_REQUEST_MS is logged, with
+# no question text.
+# ---------------------------------------------------------
+
+SLOW_REQUEST_MS = env_float("EXIOM_SLOW_REQUEST_MS", 5000.0)
+
+
+@app.before_request
+def start_timer():
+    g.request_started = time.perf_counter()
+
+
+@app.after_request
+def report_server_time(response):
+
+    started = g.get("request_started")
+
+    if started is None:
+        return response
+
+    elapsed_ms = (time.perf_counter() - started) * 1000
+
+    response.headers["Server-Timing"] = f"app;dur={elapsed_ms:.1f}"
+
+    if elapsed_ms >= SLOW_REQUEST_MS:
+
+        print(
+            "EXIOM slow request:",
+            request.method,
+            request.path,
+            response.status_code,
+            f"{elapsed_ms:.0f}ms"
+        )
+
+    return response
+
+
+# ---------------------------------------------------------
+# STATIC ASSETS
+# ---------------------------------------------------------
+#
+# The stylesheet URL carries a digest of the file itself, so
+# a browser may keep it for a year: any change produces a new
+# URL. A content digest rather than a modification time,
+# because some build systems reset every mtime to a constant.
+#
+# Only a versioned URL is cached long; a bare /static/ URL
+# keeps Flask's default revalidation.
+# ---------------------------------------------------------
+
+ASSET_MAX_AGE = 31536000
+
+# Written from several threads without a lock: the worst race
+# hashes the same file twice and stores the same value.
+_asset_versions = {}
+
+
+def asset_version(filename):
+
+    path = os.path.join(app.static_folder, filename)
+
+    try:
+        stat = os.stat(path)
+
+    except OSError:
+        return ""
+
+    memo_key = (path, stat.st_mtime_ns, stat.st_size)
+
+    version = _asset_versions.get(memo_key)
+
+    if version is None:
+
+        with open(path, "rb") as asset:
+            version = hashlib.sha256(asset.read()).hexdigest()[:12]
+
+        _asset_versions[memo_key] = version
+
+    return version
+
+
+@app.context_processor
+def inject_asset_version():
+    return {"asset_version": asset_version}
+
+
+@app.after_request
+def cache_versioned_assets(response):
+
+    if (
+        request.path.startswith(app.static_url_path + "/")
+        and request.args.get("v")
+        and response.status_code == 200
+    ):
+
+        response.headers["Cache-Control"] = (
+            f"public, max-age={ASSET_MAX_AGE}, immutable"
+        )
+
+    return response
 
 
 # ---------------------------------------------------------
@@ -316,7 +433,10 @@ def api_error_payload(error):
             "error_type": "connection"
         }, 503, {}
 
-    if isinstance(error, APIStatusError):
+    # APIError is the base of every class above; reaching it
+    # here means an error event inside a stream, which carries
+    # no HTTP status of its own. Order matters.
+    if isinstance(error, APIError):
 
         return {
             "answer":

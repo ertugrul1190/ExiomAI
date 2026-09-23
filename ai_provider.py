@@ -15,6 +15,14 @@ from query_router import (
     parse_router_result,
 )
 
+from reliability import (
+    MIN_ATTEMPT_SECONDS,
+    Deadline,
+    env_float,
+    env_int,
+    retry_delay,
+)
+
 from token_budget import trim_conversation
 from usage_control import CostMeter
 
@@ -62,6 +70,50 @@ OFF_TOPIC_MAX_OUTPUT_TOKENS = 200
 # follow-up such as "and the other one?".
 ROUTER_HISTORY_MESSAGES = 2
 ROUTER_HISTORY_CHARS = 240
+
+
+# ---------------------------------------------------------
+# TIMEOUTS
+# ---------------------------------------------------------
+#
+# "read" is the longest silence tolerated from the provider
+# in one attempt: the whole reply for a normal call, the gap
+# between events for a stream. "deadline" is the window in
+# which attempts may start: no retry begins that could not
+# finish inside it. A stream already delivering text is not
+# cut off; its output-token ceiling bounds it.
+#
+# The router fails fastest because a failed route is never
+# fatal: the pipeline falls back to a default route and still
+# answers.
+#
+# All of them are overridable without a code change.
+# ---------------------------------------------------------
+
+CONNECT_TIMEOUT = env_float("EXIOM_OPENAI_CONNECT_TIMEOUT", 5.0)
+
+CALL_LIMITS = {
+    "router": {
+        "read": env_float("EXIOM_ROUTER_TIMEOUT", 10.0),
+        "deadline": env_float("EXIOM_ROUTER_DEADLINE", 15.0),
+    },
+    "answer": {
+        "read": env_float("EXIOM_ANSWER_TIMEOUT", 45.0),
+        "deadline": env_float("EXIOM_ANSWER_DEADLINE", 60.0),
+    },
+    "off_topic": {
+        "read": env_float("EXIOM_OFF_TOPIC_TIMEOUT", 15.0),
+        "deadline": env_float("EXIOM_OFF_TOPIC_DEADLINE", 20.0),
+    },
+}
+
+# Attempts per call, the first one included.
+MAX_ATTEMPTS = env_int("EXIOM_OPENAI_MAX_ATTEMPTS", 2)
+
+
+# What follows a recoverable failure (see _recover).
+RESEND = "resend"
+RETRY = "retry"
 
 
 # Wording a provider uses when it rejects an option outright,
@@ -157,16 +209,19 @@ class AIProvider:
 
     def __init__(self, cost_meter=None):
 
+        # Every call passes its own timeout; this default only
+        # guards a call that somehow does not.
         self.client = OpenAI(
             api_key=os.getenv("OPENAI_API_KEY"),
-            timeout=25.0,
+            timeout=CALL_LIMITS["answer"]["read"],
             max_retries=0,
         )
 
         self.primary_model = "gpt-5-nano"
 
-        # We control retries ourselves so behavior is predictable.
-        self.max_attempts = 2
+        # We control retries ourselves (see reliability.py) so
+        # behavior is predictable and bounded.
+        self.max_attempts = MAX_ATTEMPTS
 
         self.cost_meter = cost_meter or CostMeter()
 
@@ -302,6 +357,60 @@ class AIProvider:
     # SAFE OPENAI REQUEST
     # -----------------------------------------------------
 
+    def _log_failure(self, error):
+
+        if isinstance(error, RateLimitError):
+            print("OpenAI rate limit:", error)
+
+        elif isinstance(error, APITimeoutError):
+            print("OpenAI timeout:", error)
+
+        elif isinstance(error, APIConnectionError):
+            print("OpenAI connection error:", error)
+
+        else:
+            print("OpenAI API status error:", error.status_code)
+
+
+    def _recover(self, error, request, attempt, deadline):
+        """
+        Decide what follows a failed attempt.
+
+        Returns RESEND to send again at once without using
+        up an attempt (a rejected cost control was dropped;
+        each can only be dropped once, so this is bounded),
+        or RETRY after waiting out the backoff. Raises the
+        error when it is final.
+        """
+
+        self._log_failure(error)
+
+        if (
+            isinstance(error, APIStatusError)
+            and 400 <= error.status_code < 500
+            and error.status_code != 429
+            and self._drop_unsupported_option(error, request)
+        ):
+
+            if deadline.remaining() <= MIN_ATTEMPT_SECONDS:
+                raise error
+
+            return RESEND
+
+        delay = retry_delay(error, attempt)
+
+        if (
+            delay is None
+            or attempt >= self.max_attempts - 1
+            or not deadline.allows(delay)
+        ):
+            raise error
+
+        time.sleep(delay)
+
+        return RETRY
+
+
     def _create_response(
         self,
         messages,
@@ -321,17 +430,20 @@ class AIProvider:
         - timeouts
         - unsupported cost-control options
 
-        One retry is allowed for temporary failures.
-        Every successful call is metered.
+        Retries follow reliability.py and never start after
+        the route's deadline. Every successful call is metered.
         """
 
-        last_error = None
+        limits = CALL_LIMITS.get(route, CALL_LIMITS["answer"])
+        deadline = Deadline(limits["deadline"])
+
+        attempt = 0
 
         # A stale reading must never be charged to a later
         # request that failed or was served from cache.
         self._thread_state.usage = None
 
-        for attempt in range(self.max_attempts):
+        while True:
 
             request = self._build_request(
                 messages,
@@ -343,7 +455,11 @@ class AIProvider:
             try:
 
                 response = self.client.responses.create(
-                    **request
+                    **request,
+                    timeout=deadline.attempt_timeout(
+                        CONNECT_TIMEOUT,
+                        limits["read"]
+                    )
                 )
 
                 self._thread_state.usage = self.cost_meter.record_usage(
@@ -354,64 +470,15 @@ class AIProvider:
 
                 return response
 
-            except RateLimitError as error:
+            except (APIStatusError, APIConnectionError) as error:
 
-                last_error = error
-
-                print(
-                    "OpenAI rate limit:",
-                    error
-                )
-
-
-            except APITimeoutError as error:
-
-                last_error = error
-
-                print(
-                    "OpenAI timeout:",
-                    error
-                )
-
-
-            except APIConnectionError as error:
-
-                last_error = error
-
-                print(
-                    "OpenAI connection error:",
-                    error
-                )
-
-
-            except APIStatusError as error:
-
-                last_error = error
-
-                print(
-                    "OpenAI API status error:",
-                    error.status_code
-                )
-
-                if 400 <= error.status_code < 500:
-
-                    # A rejected cost control is recoverable:
-                    # disable it and send the plain request.
-                    if self._drop_unsupported_option(error, request):
-                        continue
-
-                    # Other client errors are permanent.
-                    raise
-
-
-            # Only wait if another attempt remains.
-            if attempt < self.max_attempts - 1:
-
-                time.sleep(1.0)
-
-
-        # Both attempts failed.
-        raise last_error
+                if self._recover(
+                    error,
+                    request,
+                    attempt,
+                    deadline
+                ) == RETRY:
+                    attempt += 1
 
 
     # -----------------------------------------------------
@@ -593,13 +660,16 @@ class AIProvider:
         delta every failure is final.
         """
 
-        last_error = None
+        limits = CALL_LIMITS.get(route, CALL_LIMITS["answer"])
+        deadline = Deadline(limits["deadline"])
+
+        attempt = 0
 
         # A stale reading must never be charged to a later
         # request that failed or was served from cache.
         self._thread_state.usage = None
 
-        for attempt in range(self.max_attempts):
+        while True:
 
             request = self._build_request(
                 messages,
@@ -615,7 +685,11 @@ class AIProvider:
             try:
 
                 with self.client.responses.stream(
-                    **request
+                    **request,
+                    timeout=deadline.attempt_timeout(
+                        CONNECT_TIMEOUT,
+                        limits["read"]
+                    )
                 ) as stream:
 
                     for event in stream:
@@ -643,75 +717,20 @@ class AIProvider:
 
                 return
 
-            except RateLimitError as error:
+            except (APIStatusError, APIConnectionError) as error:
 
-                last_error = error
-
-                print(
-                    "OpenAI rate limit:",
-                    error
-                )
-
-
-            except APITimeoutError as error:
-
-                last_error = error
-
-                print(
-                    "OpenAI timeout:",
-                    error
-                )
-
-
-            except APIConnectionError as error:
-
-                last_error = error
-
-                print(
-                    "OpenAI connection error:",
-                    error
-                )
-
-
-            except APIStatusError as error:
-
-                last_error = error
-
-                print(
-                    "OpenAI API status error:",
-                    error.status_code
-                )
-
-                if 400 <= error.status_code < 500:
-
-                    # A rejected cost control is recoverable:
-                    # disable it and send the plain request.
-                    if (
-                        not started
-                        and self._drop_unsupported_option(
-                            error,
-                            request
-                        )
-                    ):
-                        continue
-
-                    # Other client errors are permanent.
+                # Text already on screen can never be replayed.
+                if started:
+                    self._log_failure(error)
                     raise
 
-
-            # Text already on screen can never be replayed.
-            if started:
-                raise last_error
-
-
-            # Only wait if another attempt remains.
-            if attempt < self.max_attempts - 1:
-
-                time.sleep(1.0)
-
-
-        # Both attempts failed.
-        raise last_error
+                if self._recover(
+                    error,
+                    request,
+                    attempt,
+                    deadline
+                ) == RETRY:
+                    attempt += 1
 
 
     # -----------------------------------------------------

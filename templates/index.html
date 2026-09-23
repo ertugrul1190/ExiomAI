@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>XEQM Hub</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=asset_version('style.css')) }}">
 </head>
 
 <body>
@@ -602,16 +602,41 @@ async function askStreaming(body, aiMessage) {
     let payload = { route: "unknown" };
 
 
+    /* Deltas arrive far faster than the screen refreshes, and
+       each render re-formats the whole answer. Coalesce them:
+       at most one render per animation frame, always of the
+       latest text. */
+
+    let pendingRender = 0;
+
+    function scheduleRender() {
+
+        if (pendingRender) {
+            return;
+        }
+
+        pendingRender =
+            requestAnimationFrame(() => {
+
+                pendingRender = 0;
+
+                renderStreamingAnswer(
+                    aiMessage,
+                    answer
+                );
+
+            });
+
+    }
+
+
     function handleFrame(frame) {
 
         if (frame.type === "delta") {
 
             answer += frame.text;
 
-            renderStreamingAnswer(
-                aiMessage,
-                answer
-            );
+            scheduleRender();
 
         } else if (frame.type === "message") {
 
@@ -642,68 +667,79 @@ async function askStreaming(body, aiMessage) {
     }
 
 
-    for (;;) {
+    try {
 
-        const { done, value } =
-            await reader.read();
+        for (;;) {
 
-
-        if (done) {
-            break;
-        }
+            const { done, value } =
+                await reader.read();
 
 
-        buffer +=
-            decoder.decode(
-                value,
-                { stream: true }
-            );
+            if (done) {
+                break;
+            }
 
 
-        /* A frame is complete only once its blank line
-           arrives; whatever follows the last one stays
-           buffered. */
-
-        const frames =
-            buffer.split("\n\n");
-
-        buffer = frames.pop();
+            buffer +=
+                decoder.decode(
+                    value,
+                    { stream: true }
+                );
 
 
-        for (const frame of frames) {
+            /* A frame is complete only once its blank line
+               arrives; whatever follows the last one stays
+               buffered. */
 
-            const line =
-                frame
-                    .split("\n")
-                    .find(
-                        part =>
-                            part.startsWith("data: ")
+            const frames =
+                buffer.split("\n\n");
+
+            buffer = frames.pop();
+
+
+            for (const frame of frames) {
+
+                const line =
+                    frame
+                        .split("\n")
+                        .find(
+                            part =>
+                                part.startsWith("data: ")
+                        );
+
+
+                if (!line) {
+                    continue;
+                }
+
+
+                try {
+
+                    handleFrame(
+                        JSON.parse(
+                            line.slice(6)
+                        )
                     );
 
+                } catch (error) {
 
-            if (!line) {
-                continue;
-            }
+                    console.error(
+                        "Bad stream frame:",
+                        error
+                    );
 
-
-            try {
-
-                handleFrame(
-                    JSON.parse(
-                        line.slice(6)
-                    )
-                );
-
-            } catch (error) {
-
-                console.error(
-                    "Bad stream frame:",
-                    error
-                );
+                }
 
             }
 
         }
+
+    } finally {
+
+        /* The caller draws the final answer next; a render
+           still queued must never overwrite it. */
+
+        cancelAnimationFrame(pendingRender);
 
     }
 

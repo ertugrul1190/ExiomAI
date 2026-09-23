@@ -130,136 +130,183 @@ def build_knowledge_sections(documents):
             )
         )
 
+    for section in sections:
+        section["_index"] = _section_index(section)
+
     return sections
 
 
-def score_section(question, section):
-    question_words = normalize_words(question)
+# Important XEQM concepts. A section that shares one with the
+# question earns extra weight in _score().
+CONCEPT_GROUPS = {
+    "service node": [
+        "service node",
+        "shared node",
+        "node operator"
+    ],
+    "staking": [
+        "stake",
+        "staking",
+        "staked",
+        "contribution",
+        "contributor"
+    ],
+    "unbonding": [
+        "unbond",
+        "unbonding",
+        "withdraw",
+        "withdrawal"
+    ],
+    "supply": [
+        "supply",
+        "emission",
+        "mint",
+        "inflation"
+    ],
+    "rewards": [
+        "reward",
+        "rewards",
+        "earn",
+        "earning",
+        "yield"
+    ],
+    "privacy": [
+        "privacy",
+        "private",
+        "cryptonote",
+        "ring signature",
+        "stealth address"
+    ],
+    "developer api": [
+        "api",
+        "developer",
+        "development tier"
+    ],
+    "oracle": [
+        "oracle",
+        "attestation",
+        "prover",
+        "verifier"
+    ],
+    "rfq": [
+        "rfq",
+        "trading platform",
+        "otc"
+    ],
+    "lokinet": [
+        "lokinet",
+        "llarp",
+        "onion routing"
+    ],
+    "governance": [
+        "governance",
+        "treasury",
+        "voting"
+    ],
+    "hard fork": [
+        "hard fork",
+        "hf20",
+        "hf21",
+        "hf22",
+        "hf23"
+    ],
+    "consensus": [
+        "consensus",
+        "proof of stake",
+        "pos",
+        "quorum",
+        "pulse"
+    ]
+}
 
-    title_words = normalize_words(
-        section["title"] + " " + section["parent"]
+
+def _mentioned_concepts(*texts):
+    """
+    Canonical concepts that any of the lowercased texts
+    mention, by name or by one of their variants.
+    """
+
+    return frozenset(
+        canonical
+        for canonical, variants in CONCEPT_GROUPS.items()
+        if any(
+            term in text
+            for text in texts
+            for term in (canonical, *variants)
+        )
     )
 
-    content_words = normalize_words(section["content"])
 
-    title_matches = question_words.intersection(title_words)
-    content_matches = question_words.intersection(content_words)
+def _section_index(section):
+    """
+    Everything scoring needs from a section.
+
+    Knowledge is fixed for the life of the process, so
+    build_knowledge_sections() computes this once at startup
+    instead of on every question. A section built any other
+    way is indexed on the fly, with identical results.
+    """
+
+    index = section.get("_index")
+
+    if index is not None:
+        return index
+
+    return {
+        "title_words": normalize_words(
+            section["title"] + " " + section["parent"]
+        ),
+        "content_words": normalize_words(section["content"]),
+        "concepts": _mentioned_concepts(
+            section["title"].lower(),
+            section["content"].lower()
+        ),
+    }
+
+
+def _question_index(question):
+    """
+    The question side of scoring.
+
+    Unlike a section, a question is matched on the variants
+    only, never on the canonical name: that asymmetry is the
+    original scoring rule and is kept exactly.
+    """
+
+    question_lower = question.lower()
+
+    return {
+        "words": normalize_words(question),
+        "concepts": frozenset(
+            canonical
+            for canonical, variants in CONCEPT_GROUPS.items()
+            if any(
+                variant in question_lower
+                for variant in variants
+            )
+        ),
+    }
+
+
+def _score(query, index):
 
     score = 0
 
     # Heading matches matter more than ordinary body matches.
-    score += len(title_matches) * 6
-    score += len(content_matches) * 2
+    score += len(query["words"] & index["title_words"]) * 6
+    score += len(query["words"] & index["content_words"]) * 2
 
-    question_lower = question.lower()
-    content_lower = section["content"].lower()
-    title_lower = section["title"].lower()
-
-    # Give additional weight to important XEQM concepts.
-    concept_groups = {
-        "service node": [
-            "service node",
-            "shared node",
-            "node operator"
-        ],
-        "staking": [
-            "stake",
-            "staking",
-            "staked",
-            "contribution",
-            "contributor"
-        ],
-        "unbonding": [
-            "unbond",
-            "unbonding",
-            "withdraw",
-            "withdrawal"
-        ],
-        "supply": [
-            "supply",
-            "emission",
-            "mint",
-            "inflation"
-        ],
-        "rewards": [
-            "reward",
-            "rewards",
-            "earn",
-            "earning",
-            "yield"
-        ],
-        "privacy": [
-            "privacy",
-            "private",
-            "cryptonote",
-            "ring signature",
-            "stealth address"
-        ],
-        "developer api": [
-            "api",
-            "developer",
-            "development tier"
-        ],
-        "oracle": [
-            "oracle",
-            "attestation",
-            "prover",
-            "verifier"
-        ],
-        "rfq": [
-            "rfq",
-            "trading platform",
-            "otc"
-        ],
-        "lokinet": [
-            "lokinet",
-            "llarp",
-            "onion routing"
-        ],
-        "governance": [
-            "governance",
-            "treasury",
-            "voting"
-        ],
-        "hard fork": [
-            "hard fork",
-            "hf20",
-            "hf21",
-            "hf22",
-            "hf23"
-        ],
-        "consensus": [
-            "consensus",
-            "proof of stake",
-            "pos",
-            "quorum",
-            "pulse"
-        ]
-    }
-
-    for canonical_concept, variants in concept_groups.items():
-
-        question_mentions_concept = any(
-            variant in question_lower
-            for variant in variants
-        )
-
-        if not question_mentions_concept:
-            continue
-
-        section_mentions_concept = (
-            canonical_concept in title_lower
-            or canonical_concept in content_lower
-            or any(
-                variant in title_lower or variant in content_lower
-                for variant in variants
-            )
-        )
-
-        if section_mentions_concept:
-            score += 12
+    score += len(query["concepts"] & index["concepts"]) * 12
 
     return score
+
+
+def score_section(question, section):
+
+    return _score(
+        _question_index(question),
+        _section_index(section)
+    )
 
 
 def _truncate_section(content, max_chars):
@@ -308,8 +355,10 @@ def retrieve_knowledge(
 
     scored = []
 
+    query = _question_index(question)
+
     for section in sections:
-        score = score_section(question, section)
+        score = _score(query, _section_index(section))
 
         if score > 0:
             scored.append((score, section))
