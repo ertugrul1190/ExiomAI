@@ -10,9 +10,10 @@
 # its worker for the whole answer. With the default sync
 # worker one stream blocks one whole process. gthread serves
 # workers x threads requests at once, and threads share the
-# per-process caches and usage counters (see
-# COST_OPTIMIZATION.md), so fewer, wider processes also mean
-# more cache hits and an exact per-worker budget.
+# per-process caches and usage counters (see "Task Docs/
+# Task 10 - Cost Optimization.md"), so fewer, wider
+# processes also mean more cache hits and an exact
+# per-worker budget.
 #
 # Every value is overridable from the environment. This file
 # deliberately imports nothing from the application.
@@ -48,9 +49,9 @@ graceful_timeout = _int("GUNICORN_GRACEFUL_TIMEOUT", 30)
 keepalive = _int("GUNICORN_KEEPALIVE", 75)
 
 # Worker recycling stays OFF. Usage limits and the daily
-# token ceilings live in each worker's memory
-# (COST_OPTIMIZATION.md), so a recycled worker would hand
-# every client a fresh budget. Only enable it together with
+# token ceilings live in each worker's memory ("Task Docs/
+# Task 10 - Cost Optimization.md"), so a recycled worker
+# would hand every client a fresh budget. Only enable it together with
 # a shared store for those counters.
 max_requests = 0
 
