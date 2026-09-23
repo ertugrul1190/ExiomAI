@@ -143,7 +143,7 @@
 
                 <button
                     class="suggestion-card xeqm-card"
-                    onclick="askSuggestion('Explain XEQM to me simply. What is it, what does it do, and why does it exist?')"
+                    data-question="Explain XEQM to me simply. What is it, what does it do, and why does it exist?"
                 >
 
                     <span class="suggestion-icon">✦</span>
@@ -167,7 +167,7 @@
 
                 <button
                     class="suggestion-card node-card"
-                    onclick="askSuggestion('Explain how EXIOM service nodes work, including staking and the role they play in the network.')"
+                    data-question="Explain how EXIOM service nodes work, including staking and the role they play in the network."
                 >
 
                     <span class="suggestion-icon">◈</span>
@@ -191,7 +191,7 @@
 
                 <button
                     class="suggestion-card network-card"
-                    onclick="askSuggestion('Give me a current EXIOM network snapshot using live Explorer data. Include active service nodes, block height, locked supply, current APY, and daily reward per node.')"
+                    data-question="Give me a current EXIOM network snapshot using live Explorer data. Include active service nodes, block height, locked supply, current APY, and daily reward per node."
                 >
 
                     <span class="suggestion-icon">▥</span>
@@ -215,7 +215,7 @@
 
                 <button
                     class="suggestion-card privacy-card"
-                    onclick="askSuggestion('Explain how privacy works in the EXIOM ecosystem and why it matters.')"
+                    data-question="Explain how privacy works in the EXIOM ecosystem and why it matters."
                 >
 
                     <span class="suggestion-icon">◇</span>
@@ -253,7 +253,6 @@
                 <button
                     id="sendButton"
                     class="send-button"
-                    onclick="askQuestion()"
                 >
                     Ask
                 </button>
@@ -267,7 +266,7 @@
 </div>
 
 
-<script>
+<script nonce="{{ csp_nonce }}">
 
 let conversation = [];
 let requestInProgress = false;
@@ -957,9 +956,13 @@ async function askQuestion() {
     scrollToBottom();
 
 
+    /* The server keeps only the last 8 turns
+       (MAX_CONVERSATION_MESSAGES in app.py) and bounds the
+       request size; sending more is wasted bytes. */
+
     const body = {
         question: question,
-        conversation: conversation
+        conversation: conversation.slice(-8)
     };
 
 
@@ -1077,15 +1080,23 @@ async function askQuestion() {
    ESCAPE HTML
 ------------------------------------------------------- */
 
+/* Quotes too: formatted answers put text inside href="…",
+   and an unescaped quote there would end the attribute. */
+
+const HTML_ESCAPES = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+};
+
 function escapeHTML(text) {
 
-    const div =
-        document.createElement("div");
-
-    div.textContent =
-        String(text);
-
-    return div.innerHTML;
+    return String(text).replace(
+        /[&<>"']/g,
+        (character) => HTML_ESCAPES[character]
+    );
 
 }
 
@@ -1355,6 +1366,29 @@ function scrollToBottom() {
 /* -------------------------------------------------------
    SUGGESTIONS
 ------------------------------------------------------- */
+
+/* Wired here rather than as inline handler attributes: the CSP
+   only runs the nonced script, never inline handlers. */
+
+sendButton.addEventListener(
+    "click",
+    askQuestion
+);
+
+
+document
+    .querySelectorAll("[data-question]")
+    .forEach((button) => {
+
+        button.addEventListener(
+            "click",
+            () => askSuggestion(
+                button.dataset.question
+            )
+        );
+
+    });
+
 
 function askSuggestion(
     question

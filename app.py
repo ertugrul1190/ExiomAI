@@ -4,6 +4,8 @@ import time
 import hashlib
 import itertools
 
+from functools import partial
+
 from flask import (
     Flask,
     g,
@@ -38,7 +40,10 @@ from openai import (
     APIError,
 )
 
-from reliability import env_float
+from reliability import (
+    env_float,
+    env_int,
+)
 
 from hmac import compare_digest
 
@@ -58,6 +63,13 @@ from cache import (
 from usage_control import (
     CostMeter,
     UsageController,
+)
+
+import security
+
+from werkzeug.exceptions import (
+    InternalServerError,
+    RequestEntityTooLarge,
 )
 
 
@@ -94,6 +106,117 @@ knowledge_changelog = load_markdown_file(
 # ---------------------------------------------------------
 
 app = Flask(__name__)
+
+
+# ---------------------------------------------------------
+# REQUEST LIMITS AND ABUSE CONTROL
+# ---------------------------------------------------------
+#
+# See "Task Docs/Task 12 - Security Hardening.md".
+#
+# The body limit is enforced by Werkzeug before any JSON is
+# parsed. The page sends at most 8 turns, so the default fits
+# a full conversation even at 4 bytes per character.
+#
+# The flood guard covers every route but static files; the
+# answer slots cover only the two answering routes. Both are
+# per process, like the usage limits.
+# ---------------------------------------------------------
+
+MAX_REQUEST_BYTES = env_int("EXIOM_MAX_REQUEST_BYTES", 256 * 1024)
+
+app.config["MAX_CONTENT_LENGTH"] = MAX_REQUEST_BYTES
+
+flood_guard = security.FloodGuard(
+    requests_per_minute=env_int(
+        "EXIOM_FLOOD_REQUESTS_PER_MINUTE",
+        120
+    ),
+    max_clients=env_int("EXIOM_MAX_TRACKED_CLIENTS", 50_000)
+)
+
+answer_slots = security.AnswerSlots(
+    per_client=env_int("EXIOM_MAX_CONCURRENT_ANSWERS", 4)
+)
+
+# Answers and cost counters must never sit in a shared cache.
+NO_STORE_PATHS = {"/ask", "/ask/stream", "/api/usage"}
+
+
+@app.before_request
+def guard_request():
+
+    g.csp_nonce = security.new_nonce()
+
+    if request.endpoint == "static":
+        return None
+
+    g.client_id = client_identifier()
+
+    allowed, retry_after = flood_guard.allow(g.client_id)
+
+    if allowed:
+        return None
+
+    return json_error(
+        {
+            "answer":
+                "Whoa, that's a lot of requests \U0001F605 "
+                "Please slow down and try again shortly.",
+            "error_type": "too_many_requests"
+        },
+        429,
+        {"Retry-After": str(retry_after)}
+    )
+
+
+@app.context_processor
+def inject_csp_nonce():
+    return {"csp_nonce": g.get("csp_nonce", "")}
+
+
+@app.after_request
+def harden_response(response):
+
+    security.apply_security_headers(
+        response.headers,
+        g.get("csp_nonce") or security.new_nonce()
+    )
+
+    if request.path in NO_STORE_PATHS:
+        response.headers.setdefault("Cache-Control", "no-store")
+
+    return response
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def request_too_large(_error):
+
+    return json_error(
+        {
+            "answer": "That request is too large to process.",
+            "error_type": "request_too_large"
+        },
+        413,
+        {}
+    )
+
+
+@app.errorhandler(InternalServerError)
+def internal_error(_error):
+
+    # Flask has already logged the traceback; the caller gets
+    # nothing from it.
+    return json_error(
+        {
+            "answer":
+                "EXIOM AI hit an unexpected problem. "
+                "Please try again.",
+            "error_type": "unknown"
+        },
+        500,
+        {}
+    )
 
 
 # ---------------------------------------------------------
@@ -254,6 +377,15 @@ answer_cache = TTLCache(
 # Proxies in front of this service. One is correct for the
 # usual single platform load balancer; 0 disables trusting
 # the forwarded header entirely.
+#
+# Even then, the header is only believed when the connecting
+# peer is on a private or loopback network, where a platform
+# load balancer connects from. A client reaching gunicorn
+# directly from the internet cannot choose its own identity.
+# EXIOM_TRUST_PUBLIC_PROXY=1 lifts that for a proxy that
+# connects from public addresses (e.g. a CDN).
+TRUST_PUBLIC_PROXY = os.getenv("EXIOM_TRUST_PUBLIC_PROXY") == "1"
+
 try:
     TRUSTED_PROXY_HOPS = max(
         0,
@@ -265,8 +397,10 @@ except ValueError:
 
 
 # Cost counters are operational detail, so the endpoint stays
-# off until a token is configured.
-USAGE_TOKEN = os.getenv("EXIOM_USAGE_TOKEN", "")
+# off until a strong (32+ character) token is configured.
+USAGE_TOKEN = security.usage_token_from(
+    os.getenv("EXIOM_USAGE_TOKEN", "")
+)
 
 
 MAX_CONVERSATION_MESSAGES = 8
@@ -289,12 +423,25 @@ def home():
 
 def clean_conversation(conversation):
 
-    return trim_conversation(
+    kept = trim_conversation(
         conversation,
         max_messages=MAX_CONVERSATION_MESSAGES,
         max_chars_per_message=MAX_CHARS_PER_MESSAGE,
         total_char_budget=MAX_CONVERSATION_CHARS
     )
+
+    cleaned = []
+
+    for message in kept:
+
+        content = security.strip_control_characters(
+            message["content"]
+        ).strip()
+
+        if content:
+            cleaned.append({**message, "content": content})
+
+    return cleaned
 
 
 # ---------------------------------------------------------
@@ -311,12 +458,19 @@ def client_identifier():
     one TRUSTED_PROXY_HOPS from the right.
 
     Set EXIOM_TRUSTED_PROXY_HOPS to the number of proxies in
-    front of this service (0 when there are none).
+    front of this service (0 when there are none). The header
+    is ignored from a public peer (see TRUST_PUBLIC_PROXY).
+
+    Anything that is not an IP address falls back to the
+    peer, and IPv6 is keyed by /64 (see security.client_key).
 
     Nothing here is stored beyond in-memory counters.
     """
 
-    if TRUSTED_PROXY_HOPS > 0:
+    if TRUSTED_PROXY_HOPS > 0 and (
+        TRUST_PUBLIC_PROXY
+        or security.is_internal_peer(request.remote_addr)
+    ):
 
         forwarded = [
             part.strip()
@@ -328,9 +482,15 @@ def client_identifier():
         ]
 
         if len(forwarded) >= TRUSTED_PROXY_HOPS:
-            return forwarded[-TRUSTED_PROXY_HOPS]
 
-    return request.remote_addr or "unknown"
+            key = security.client_key(
+                forwarded[-TRUSTED_PROXY_HOPS]
+            )
+
+            if key:
+                return key
+
+    return security.client_key(request.remote_addr) or "unknown"
 
 
 def charge_last_call(client_id):
@@ -403,7 +563,7 @@ def api_error_payload(error):
     print(
         "EXIOM AI provider error:",
         type(error).__name__,
-        error
+        security.redact_secrets(error)
     )
 
     if isinstance(error, RateLimitError):
@@ -536,12 +696,14 @@ def usage_api():
             "error_type": "not_enabled"
         }), 404
 
+    # Compared as bytes: compare_digest raises on non-ASCII
+    # text, which a caller controls.
     supplied = request.headers.get(
         "X-Usage-Token",
         ""
-    )
+    ).encode("utf-8", "surrogateescape")
 
-    if not compare_digest(supplied, USAGE_TOKEN):
+    if not compare_digest(supplied, USAGE_TOKEN.encode("utf-8")):
 
         return jsonify({
             "error_type": "unauthorized"
@@ -884,15 +1046,22 @@ def read_ask_request(data):
     so both transports refuse identically.
     """
 
-    if not data:
+    # Anything but a JSON object -- a list, a bare string, a
+    # body that failed to parse -- is refused the same way.
+    question = (
+        data.get("question", "")
+        if isinstance(data, dict) else None
+    )
+
+    if not isinstance(question, str):
 
         return None, None, ({
             "answer": "I couldn't read that request.",
             "error_type": "invalid_request"
         }, 400, {})
 
-    question = str(
-        data.get("question", "")
+    question = security.strip_control_characters(
+        question
     ).strip()
 
     if not question:
@@ -915,6 +1084,36 @@ def read_ask_request(data):
     )
 
     return question, conversation, None
+
+
+def read_json_body():
+
+    """
+    The parsed JSON body, or None.
+
+    Only an application/json body is read: a cross-site form
+    or beacon cannot send one without a CORS preflight, which
+    this service never approves. Pathologically nested JSON
+    exhausts the parser's recursion instead of raising
+    ValueError, so it is caught here too.
+    """
+
+    try:
+        return request.get_json(silent=True)
+
+    except RecursionError:
+        return None
+
+
+def too_many_concurrent_payload():
+
+    return {
+        "answer":
+            "You already have a few answers on the way \U0001F605 "
+            "Please let them finish first.",
+        "error_type": "too_many_concurrent"
+    # A few seconds: a slot frees as soon as an answer ends.
+    }, 429, {"Retry-After": "5"}
 
 
 # ---------------------------------------------------------
@@ -1124,7 +1323,7 @@ def answer_pipeline(
 
             print(
                 "EXIOM semantic router error:",
-                error
+                security.redact_secrets(error)
             )
 
             route = {
@@ -1380,13 +1579,25 @@ def ask():
     """
 
     question, conversation, error = read_ask_request(
-        request.get_json(silent=True)
+        read_json_body()
     )
 
     if error:
         return json_error(*error)
 
-    client_id = client_identifier()
+    client_id = g.client_id
+
+    if not answer_slots.acquire(client_id):
+        return json_error(*too_many_concurrent_payload())
+
+    try:
+        return answer_whole(question, conversation, client_id)
+
+    finally:
+        answer_slots.release(client_id)
+
+
+def answer_whole(question, conversation, client_id):
 
     parts = []
     meta = {}
@@ -1454,13 +1665,20 @@ def ask_stream():
     """
 
     question, conversation, error = read_ask_request(
-        request.get_json(silent=True)
+        read_json_body()
     )
 
     if error:
         return json_error(*error)
 
-    client_id = client_identifier()
+    client_id = g.client_id
+
+    if not answer_slots.acquire(client_id):
+        return json_error(*too_many_concurrent_payload())
+
+    # The slot is held until the server closes the response,
+    # which WSGI guarantees even when the client disconnects.
+    release = partial(answer_slots.release, client_id)
 
     events = answer_pipeline(
         question,
@@ -1480,7 +1698,12 @@ def ask_stream():
     except StopIteration:
         first = ("whole", {"answer": "", "route": "unknown"})
 
+    except BaseException:
+        release()
+        raise
+
     if first[0] == "error":
+        release()
         return json_error(*first[1])
 
     def body():
@@ -1523,14 +1746,21 @@ def ask_stream():
                     **payload
                 })
 
-    response = Response(
-        stream_with_context(body()),
-        mimetype="text/event-stream"
-    )
+    try:
+        response = Response(
+            stream_with_context(body()),
+            mimetype="text/event-stream"
+        )
+
+    except BaseException:
+        release()
+        raise
+
+    response.call_on_close(release)
 
     # Buffering anywhere in front of this service would
     # collect the whole stream and defeat the point of it.
-    response.headers["Cache-Control"] = "no-cache, no-transform"
+    response.headers["Cache-Control"] = "no-store, no-transform"
     response.headers["X-Accel-Buffering"] = "no"
 
     return response
@@ -1540,5 +1770,9 @@ def ask_stream():
 # LOCAL DEVELOPMENT
 # ---------------------------------------------------------
 
+# Never in production: the Werkzeug debugger executes code.
+# Debug mode is opt-in with FLASK_DEBUG=1, which app.run()
+# reads itself.
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()

@@ -1,2 +1,10 @@
+# Secrets: every .env variant, except the committed template.
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+
 __pycache__/
+.venv/
+.pytest_cache/

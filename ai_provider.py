@@ -25,6 +25,7 @@ from reliability import (
 
 from token_budget import trim_conversation
 from usage_control import CostMeter
+from security import redact_secrets
 
 
 # ---------------------------------------------------------
@@ -360,13 +361,13 @@ class AIProvider:
     def _log_failure(self, error):
 
         if isinstance(error, RateLimitError):
-            print("OpenAI rate limit:", error)
+            print("OpenAI rate limit:", redact_secrets(error))
 
         elif isinstance(error, APITimeoutError):
-            print("OpenAI timeout:", error)
+            print("OpenAI timeout:", redact_secrets(error))
 
         elif isinstance(error, APIConnectionError):
-            print("OpenAI connection error:", error)
+            print("OpenAI connection error:", redact_secrets(error))
 
         else:
             print("OpenAI API status error:", error.status_code)

@@ -301,6 +301,7 @@ class UsageController:
         requests_per_day=None,
         client_tokens_per_day=None,
         global_tokens_per_day=None,
+        max_clients=None,
         now=None
     ):
 
@@ -328,9 +329,19 @@ class UsageController:
             else _env_int("EXIOM_GLOBAL_TOKENS_PER_DAY", 20_000_000)
         )
 
+        # Past this, the least recently active clients are
+        # forgotten. That hands them a fresh allowance, so the
+        # global token ceiling stays the real spend bound.
+        self.max_clients = (
+            max_clients
+            if max_clients is not None
+            else _env_int("EXIOM_MAX_TRACKED_CLIENTS", 50_000)
+        )
+
         self._now = now or time.time
         self._lock = threading.Lock()
 
+        # Insertion order is recency order (see _touch).
         self._clients = {}
 
         self._global_tokens = 0
@@ -352,9 +363,22 @@ class UsageController:
                 "tokens_today": 0
             }
 
-            self._clients[client_id] = state
+        self._touch(client_id, state)
 
         return state
+
+
+    def _touch(self, client_id, state):
+        """
+        Mark the client most recently active, then evict the
+        least recently active beyond max_clients.
+        """
+
+        self._clients.pop(client_id, None)
+        self._clients[client_id] = state
+
+        while len(self._clients) > max(1, self.max_clients):
+            self._clients.pop(next(iter(self._clients)))
 
 
     def _roll_global_day(self, now):

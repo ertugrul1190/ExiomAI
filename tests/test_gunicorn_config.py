@@ -37,3 +37,11 @@ def test_bad_environment_values_fall_back(monkeypatch):
 
     assert config["workers"] == 2
     assert config["threads"] == 1
+
+
+def test_request_heads_are_bounded(monkeypatch):
+    config = load(monkeypatch)
+
+    assert 0 < config["limit_request_line"] <= 8190
+    assert 0 < config["limit_request_fields"] <= 100
+    assert 0 < config["limit_request_field_size"] <= 8190

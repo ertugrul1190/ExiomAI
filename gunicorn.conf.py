@@ -55,5 +55,16 @@ keepalive = _int("GUNICORN_KEEPALIVE", 75)
 # a shared store for those counters.
 max_requests = 0
 
+# Request-head limits, stated explicitly (these are
+# gunicorn's own defaults except the header count, which is
+# halved: the app reads a handful of headers). Oversized
+# heads are refused before reaching Flask. Body size is
+# bounded by the app (EXIOM_MAX_REQUEST_BYTES).
+limit_request_line = 4094
+limit_request_fields = 50
+limit_request_field_size = 8190
+
+# The access log records method, path and status only: the
+# question travels in the POST body, never in a URL.
 accesslog = "-"
 errorlog = "-"
