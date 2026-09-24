@@ -96,6 +96,10 @@ Explorer facts directly answers.
 "How many active nodes are there?" → direct_live_fact
 "What is the current block height?" → direct_live_fact
 "What's the staking requirement?" → direct_live_fact
+"Nodes by country" → direct_live_fact
+
+A message that is only a fact's name, with no question
+around it, asks for that fact's current value.
 
 EXPLANATION:
 The user wants to understand a concept, meaning, reason,
@@ -139,6 +143,9 @@ staking_requirement.
 "How many nodes are active?" DOES request active_nodes.
 "What is the current block height?" DOES request
 block_height.
+"Nodes by country" DOES request nodes_by_country.
+"Where are the nodes located?" DOES request
+nodes_by_country.
 
 
 ============================================================

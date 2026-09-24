@@ -223,3 +223,24 @@ Left to the router on purpose, because they are ambiguous:
 * the singular "pulse quorum" (usually a concept question)
 
 Tests: 405 → 441.
+
+
+## 14.8 Nodes by country, fixed from a real chat
+
+A test chat showed three faults:
+
+* **"Turkey 30 … Türkiye 4".** The feed spells some countries
+  two ways. Regions are now grouped by `country_code` and
+  shown under the spelling with the most nodes, so the list
+  agrees with the "countries" count (14, not 15).
+* **"I don't have it… want me to fetch it?"** Plain "Nodes by
+  country" had no value cue, so it went to the router, which
+  selected no fact. It is now exempt from the value cue (a
+  breakdown has no concept to explain), the router prompt
+  gives it as an example, and the answer prompt forbids
+  offering to fetch or check anything: the AI can't.
+* **One long comma line.** The value is now one country per
+  line, and a direct answer shows it as a bulleted list. In a
+  multi-fact snapshot it folds back onto one line.
+
+Tests: 441 → 447.

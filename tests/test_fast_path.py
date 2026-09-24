@@ -268,6 +268,16 @@ def test_ambiguous_or_conceptual_new_questions_go_to_the_ai(question):
     assert fast_path.classify(question, FULL_REGISTRY) is None
 
 
+@pytest.mark.parametrize("question", [
+    "Nodes by country",
+    "nodes per country",
+])
+def test_the_country_breakdown_needs_no_value_cue(question):
+    assert fast_path.classify(question, FULL_REGISTRY) == {
+        "route": "live", "facts": ["nodes_by_country"]
+    }
+
+
 def test_the_mempool_count_still_wins_over_its_size():
     assert fast_path.classify(
         "how many transactions are in the mempool", FULL_REGISTRY

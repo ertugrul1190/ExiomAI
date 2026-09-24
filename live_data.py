@@ -72,26 +72,41 @@ def _gigabytes(size_bytes):
 
 def _nodes_by_country(feeds):
     counts = {}
+    spellings = {}
 
-    # The map lists nodes per region; a country can appear
-    # several times.
+    # The map lists nodes per region, so a country can appear
+    # several times, and not always under the same name
+    # ("Turkey" and "Türkiye" are both TR). Regions are
+    # grouped by country code and shown under the spelling
+    # that carries the most nodes.
     for place in feeds["node_map"]["data"]["nodes"]:
-        country = place["country"]
+        name = place["country"]
+        count = int(as_number(place["count"]))
+        code = place.get("country_code") or name
 
-        counts[country] = (
-            counts.get(country, 0) + int(as_number(place["count"]))
-        )
+        counts[code] = counts.get(code, 0) + count
+
+        names = spellings.setdefault(code, {})
+        names[name] = names.get(name, 0) + count
 
     if not counts:
         raise ValueError("node map is empty")
 
     ranked = sorted(
-        counts.items(),
+        (
+            (
+                min(names, key=lambda n: (-names[n], n)),
+                counts[code],
+            )
+            for code, names in spellings.items()
+        ),
         key=lambda item: (-item[1], item[0])
     )
 
-    return ", ".join(
-        f"{country} {count:,}" for country, count in ranked
+    # One country per line, so a direct answer can show it
+    # as a list.
+    return "\n".join(
+        f"{country}: {count:,}" for country, count in ranked
     )
 
 

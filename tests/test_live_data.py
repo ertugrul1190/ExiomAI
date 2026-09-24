@@ -40,9 +40,9 @@ FEEDS = {
         "data": {
             "summary": {"countries": 2},
             "nodes": [
-                {"country": "France", "count": 5},
-                {"country": "Germany", "count": 7},
-                {"country": "France", "count": 4},
+                {"country": "France", "country_code": "FR", "count": 5},
+                {"country": "Germany", "country_code": "DE", "count": 7},
+                {"country": "France", "country_code": "FR", "count": 4},
             ],
         },
     },
@@ -325,8 +325,29 @@ def test_feeds_are_read_before_the_page():
 def test_nodes_by_country_adds_up_regions():
     facts = build(FakeSession()).get_network_stats()["facts"]
 
-    assert facts["nodes_by_country"]["value"] == "France 9, Germany 7"
+    assert facts["nodes_by_country"]["value"] == "France: 9\nGermany: 7"
     assert facts["node_countries"]["value"] == "2"
+
+
+def test_nodes_by_country_merges_spellings_of_one_country():
+    # The live feed lists Turkey under both names, with the
+    # same country code.
+    session = FakeSession()
+    session.routes["api/node_map"] = FakeResponse(json.dumps({
+        "status": "OK",
+        "data": {
+            "summary": {"countries": 2},
+            "nodes": [
+                {"country": "Turkey", "country_code": "TR", "count": 30},
+                {"country": "Germany", "country_code": "DE", "count": 20},
+                {"country": "Türkiye", "country_code": "TR", "count": 4},
+            ],
+        },
+    }))
+
+    facts = build(session).get_network_stats()["facts"]
+
+    assert facts["nodes_by_country"]["value"] == "Turkey: 34\nGermany: 20"
 
 
 def test_a_removed_feed_falls_back_to_the_page():

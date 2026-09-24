@@ -551,6 +551,9 @@ VALUE_CUE_EXEMPT_FACT_KEYS = {
     "minimum_operator_contribution",
     "max_contributors",
     "target_block_time",
+    # A breakdown has no concept behind it to explain:
+    # "nodes by country" can only mean the list.
+    "nodes_by_country",
 }
 
 

@@ -98,6 +98,14 @@ def format_fact_answer(fact):
     if not value_text:
         return None
 
+    # A breakdown (one entry per line) reads as a list.
+    if "\n" in value_text:
+        items = "\n".join(
+            f"- {line}" for line in value_text.splitlines()
+        )
+
+        return f"**{label}:**\n\n{items}"
+
     return f"{label}: {value_text}."
 
 
@@ -125,6 +133,10 @@ def format_multiple_fact_answer(selected):
 
         if not value_text:
             continue
+
+        # A snapshot line holds one value, so a breakdown is
+        # folded onto it.
+        value_text = ", ".join(value_text.splitlines())
 
         lines.append(
             f"- **{label}:** {value_text}"
