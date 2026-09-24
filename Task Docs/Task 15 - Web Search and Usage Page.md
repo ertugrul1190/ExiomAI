@@ -9,7 +9,7 @@ Task 15. Two requests:
    Explorer's live data.
 2. Show the client what the service is using and costing.
 
-Tests: 447 → 522, all passing. Verified live against OpenAI
+Tests: 447 → 528, all passing. Verified live against OpenAI
 on 2026-09-24 (15.6).
 
 
@@ -186,13 +186,25 @@ plus a table per day. Its protection:
   CSP: a nonce script and a `'self'` stylesheet
   (`static/usage.css`).
 
-**To hand over:**
+**To hand over (no typing for the client):**
 
-1. Set `EXIOM_USAGE_TOKEN` (32+ characters).
-2. Send the client `https://<site>/usage` and the token,
-   separately.
-3. Estimates use list prices (gpt-5-nano $0.05/$0.005/$0.40
-   per 1M tokens, plus $0.01 per search).
+1. Set `EXIOM_USAGE_TOKEN` on the server (32+ characters;
+   `python -c "import secrets; print(secrets.token_urlsafe(32))"`)
+   and restart.
+2. Run `python usage_link.py https://<site>`. It prints a
+   private link, `https://<site>/usage#<token>`.
+3. Send him that link privately. He bookmarks it, and opening
+   it shows the page straight away.
+
+The token sits after `#`. Browsers never send that part to a
+server, so it stays out of the access log (which logs paths),
+proxies, Cloudflare and referrers. Anyone holding the link can
+see the counters, never questions or answers. To revoke it,
+change the token and restart, and the old link stops working.
+Typing the token into the box still works.
+
+Estimates use list prices (gpt-5-nano $0.05/$0.005/$0.40 per
+1M tokens, plus $0.01 per search).
 
 
 ## 15.5 Privacy (Task 13 addendum)

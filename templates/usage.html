@@ -193,6 +193,22 @@ refreshButton.addEventListener("click", () => {
     if (currentToken) load(currentToken);
 });
 
+/* The private link (usage_link.py) carries the token after
+   "#". Browsers never send that part to a server, so it stays
+   out of every log and referrer, and the page opens with no
+   typing. */
+function tokenFromLink() {
+    try {
+        return decodeURIComponent(location.hash.slice(1)).trim();
+    } catch (error) {
+        return "";
+    }
+}
+
+const linkToken = tokenFromLink();
+
+if (linkToken) load(linkToken);
+
 </script>
 
 </body>
