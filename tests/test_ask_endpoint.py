@@ -42,6 +42,34 @@ class FakeLiveData:
         }
 
 
+NODE_KEY = "99efd7f74cc325ae6d2b62a08be9e932d960dfb53243f3f2d67595cb378747ba"
+
+
+class FakeLookups:
+    """
+    Stands in for Explorer lookups and records what was asked.
+    """
+
+    def __init__(self):
+        self.calls = []
+        self.value = "status active; registered at block 5,948"
+
+    def lookup(self, ids):
+        self.calls.append(list(ids))
+
+        return {
+            f"lookup_{kind}_{value}": {
+                "key": f"lookup_{kind}_{value}",
+                "label": f"Service node {value}",
+                "value": self.value,
+                "unit": "",
+                "source": "Official EXIOM Explorer",
+                "via": "api",
+            }
+            for kind, value in ids
+        }
+
+
 class FakeProvider:
     """
     Stands in for the AI provider and counts what it costs.
@@ -135,6 +163,7 @@ def provider(monkeypatch):
 
     monkeypatch.setattr(application, "ai_provider", fake)
     monkeypatch.setattr(application, "live_data", FakeLiveData())
+    monkeypatch.setattr(application, "explorer_lookups", FakeLookups())
     monkeypatch.setattr(application, "cost_meter", usage_control.CostMeter())
     monkeypatch.setattr(
         application,
@@ -773,3 +802,111 @@ def test_a_failure_after_the_first_token_arrives_in_band(client, provider):
     assert streamed_answer(response) == "answer "
     assert sent[-1]["type"] == "error"
     assert sent[-1]["answer"]
+
+
+# ---------------------------------------------------------
+# EXPLORER LOOKUPS
+# ---------------------------------------------------------
+
+def test_a_named_node_is_looked_up_and_given_to_the_model(
+    client, provider
+):
+    ask(client, f"is node {NODE_KEY} healthy?")
+
+    assert application.explorer_lookups.calls == [[("hex", NODE_KEY)]]
+
+    request_section = (
+        provider.generate_calls[0]["system_prompt"]
+        .split("THIS REQUEST")[1]
+    )
+
+    assert "registered at block 5,948" in request_section
+    assert "via" not in request_section
+
+
+def test_a_question_naming_a_block_skips_the_fast_path(client, provider):
+    """
+    "block height" would otherwise be answered with the
+    current chain height, not the named block.
+    """
+
+    response = ask(client, "what is the block height of block 203140")
+
+    assert application.explorer_lookups.calls == [[("height", "203140")]]
+    assert len(provider.generate_calls) == 1
+    assert response.json["route"] != "live"
+
+
+def test_a_direct_fact_route_still_answers_the_named_id(client, provider):
+    provider.route_result = {
+        "scope": "relevant",
+        "intent": "direct_live_fact",
+        "facts": ["block_height"]
+    }
+
+    ask(client, "block 203140?")
+
+    assert len(provider.generate_calls) == 1
+
+
+def test_a_named_id_is_never_off_topic(client, provider):
+    provider.route_result = {
+        "scope": "unrelated",
+        "intent": "general",
+        "facts": []
+    }
+
+    ask(client, f"{NODE_KEY}")
+
+    assert provider.off_topic_calls == []
+    assert len(provider.generate_calls) == 1
+
+
+def test_lookups_are_paid_work(client, provider, monkeypatch):
+    """
+    A refused caller must not be able to make the server
+    fetch Explorer pages for free.
+    """
+
+    class Refused:
+        def check(self, client_id):
+            return usage_control.UsageDecision(
+                False, "client_daily_tokens", retry_after=60
+            )
+
+    monkeypatch.setattr(application, "usage_controller", Refused())
+
+    ask(client, f"is node {NODE_KEY} healthy?")
+
+    assert application.explorer_lookups.calls == []
+
+
+def test_a_changed_lookup_value_is_never_served_from_cache(
+    client, provider
+):
+    question = f"is node {NODE_KEY} healthy?"
+
+    ask(client, question)
+    application.explorer_lookups.value = "status decommissioned"
+    ask(client, question)
+
+    assert len(provider.generate_calls) == 2
+
+
+def test_questions_without_ids_do_no_lookup(client, provider):
+    ask(client, "what is staking?")
+
+    assert application.explorer_lookups.calls == []
+
+
+def test_a_broken_lookup_still_answers(client, provider):
+    class Broken(FakeLookups):
+        def lookup(self, ids):
+            raise RuntimeError("parser bug")
+
+    application.explorer_lookups = Broken()
+
+    response = ask(client, f"is node {NODE_KEY} healthy?")
+
+    assert response.status_code == 200
+    assert len(provider.generate_calls) == 1

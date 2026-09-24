@@ -1,0 +1,406 @@
+
+<!DOCTYPE html>
+<html lang="en" style="background:#000;color:#fff">
+<head>
+      <title>Service Node 99efd7f7… &middot; Exiom | XEQM Explorer</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#000000">
+    <meta name="description" content="Exiom ($XEQM) Blockchain Explorer - View blocks, transactions, and service nodes on the Exiom network.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Exiom Explorer">
+    <meta property="og:description" content="Block explorer for the Exiom ($XEQM) network — blocks, transactions, service nodes, and governance quorums.">
+    <meta property="og:image" content="https://explorer.xeqmlabs.com/static/og-image-exiom.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="https://explorer.xeqmlabs.com/">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Exiom Explorer">
+    <meta name="twitter:description" content="Block explorer for the Exiom ($XEQM) network.">
+    <meta name="twitter:image" content="https://explorer.xeqmlabs.com/static/og-image-exiom.png">
+    <link rel="stylesheet" type="text/css" href="/style.css?v=1785880250">
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="apple-touch-icon" href="/static/favicon.ico">
+</head>
+<body class="dashboard-layout" style="background:#000;color:#fff;margin:0">
+<div class="app-container">
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <a href="/" class="sidebar-brand">
+            <img src="/static/logo-header.png" alt="Exiom" class="sidebar-logo">
+        </a>
+        <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle Sidebar" aria-label="Toggle Sidebar">
+        </button>
+    </div>
+    <div class="sidebar-search">
+        <form action="/search" method="get">
+            <div class="search-input-wrap">
+                <input type="text" name="value" class="sidebar-search-input" placeholder="Search block, tx, SN...">
+            </div>
+        </form>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <a href="/" class="nav-item " data-tab="dashboard">
+                <span>Dashboard</span>
+            </a>
+            <a href="/#nodes" class="nav-item" data-tab="nodes">
+                <span>Node Command Center</span>
+                <span class="nav-badge" id="nav-my-nodes-count">0</span>
+            </a>
+            <a href="/#health" class="nav-item" data-tab="health">
+                <span>Network Health</span>
+            </a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-title">Explorer</div>
+            <a href="/service_nodes" class="nav-item active">
+                <span>Service Nodes</span>
+                <span class="nav-badge">920</span>
+            </a>
+            <a href="/txpool" class="nav-item ">
+                <span>Mempool</span>
+            </a>
+            <a href="/quorums" class="nav-item ">
+                <span>Quorums</span>
+            </a>
+        </div>
+    </nav>
+    <div class="sidebar-footer">
+        <div class="network-indicator" id="network-indicator">
+            <div class="network-status-dot" id="network-status-dot"></div>
+            <span class="network-label" id="network-label"
+                  data-online-label="Mainnet - v1.0.7 &#8216;Ragnarok&#8217;"
+                  data-offline-label="Mainnet - v1.0.7 &#8216;Ragnarok&#8217;">
+                Mainnet - v1.0.7 &lsquo;Ragnarok&rsquo;
+            </span>
+        </div>
+        <div class="sidebar-stats">
+            <div class="sidebar-stat">
+                <span class="sidebar-stat-label">Block</span>
+                <span class="sidebar-stat-value" id="header-height">203173</span>
+            </div>
+            <div class="sidebar-stat">
+                <span class="sidebar-stat-label">Time (UTC)</span>
+                <span class="sidebar-stat-value">17:06</span>
+            </div>
+        </div>
+    </div>
+</aside>
+    <main class="main-content has-mobile-header">
+        <!-- Mobile header -->
+        <header class="mobile-header" id="mobile-header">
+            <a href="/" class="mobile-header-brand" aria-label="Exiom Explorer home">
+                <img src="/static/logo-header.png" alt="Exiom" class="mobile-header-logo">
+            </a>
+            <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu" aria-expanded="false">
+            </button>
+        </header>
+        <header class="content-header">
+            <div class="header-left">
+                <h1 class="page-title">Service Node</h1>
+            </div>
+            <div class="header-right">
+                <div class="header-stat">
+                    <span class="header-stat-label">Status</span>
+                    <span class="header-stat-value success-text">
+                        Active
+                    </span>
+                </div>
+                <div class="header-stat">
+                    <span class="header-stat-label">Chain Height</span>
+                    <span class="header-stat-value">203173</span>
+                </div>
+            </div>
+        </header>
+        <div class="content-area">
+            <!-- BACK NAV -->
+            <div class="panel">
+                <div class="panel-body" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-md);">
+                    <a href="/service_nodes" class="btn btn-sm">&lsaquo; Back to Service Nodes</a>
+                    <div class="mono hash" style="flex: 1; text-align: center; min-width: 0; overflow: hidden; text-overflow: ellipsis;" title="99efd7f74cc325ae6d2b62a08be9e932d960dfb53243f3f2d67595cb378747ba">
+                        99efd7f74cc325ae6d2b62a08be9e932d960dfb53243f3f2d67595cb378747ba
+                    </div>
+                    <a href="/" class="btn btn-sm">Dashboard &raquo;</a>
+                </div>
+            </div>
+            <!-- STATUS BANNER -->
+            <div class="panel">
+                <div class="panel-body">
+                    <div style="display: flex; align-items: center; gap: var(--space-md);">
+                        <div class="metric-icon success" style="flex-shrink: 0;">
+                        </div>
+                        <div>
+                            <div style="font-size: 1.05rem; font-weight: 600; color: var(--text-bright); margin-bottom: 2px;">Active on the network</div>
+                            <div style="color: var(--text-secondary); font-size: 0.9rem;">Registered, staked, and earning rewards since block <a href="/block/203149" class="mono">203149</a>.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- METRICS GRID -->
+            <div class="metrics-grid metrics-grid-3">
+                <div class="metric-card">
+                    <div class="metric-icon">
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Registered</div>
+                        <div class="metric-value" style="font-size: 1.2rem;"><a href="/block/5948" class="mono" style="color: inherit;">Block 5948</a></div>
+                        <div class="metric-sub">HF v19</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon success">
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Last Uptime Proof</div>
+                        <div class="metric-value" style="font-size: 1.1rem;">
+                            0:04:19
+                        </div>
+                        <div class="metric-sub">
+                            v1.0.7
+                        </div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Stake</div>
+                        <div class="metric-value" style="font-size: 1.1rem;">
+                            200000.000000000
+                        </div>
+                        <div class="metric-sub">
+                            Solo operator
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- IDENTITY -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        Identity
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: var(--space-lg); align-items: start;">
+                        <div class="netinfo-grid" style="grid-template-columns: 1fr;">
+                            <div class="netinfo-cell">
+                                <span class="netinfo-label">Service Node Public Key</span>
+                                <span class="mono" style="word-break: break-all; font-size: 0.85rem; color: var(--text-bright);">99efd7f74cc325ae6d2b62a08be9e932d960dfb53243f3f2d67595cb378747ba</span>
+                            </div>
+                            <div class="netinfo-cell">
+                                <span class="netinfo-label">XEQMnet Address</span>
+                                <span class="mono" style="word-break: break-all; font-size: 0.85rem; color: var(--text-bright);">u8z7x74cac14h5jmckoez4xjgmcsbz7igjb98hssqskhsph8e67y.snode</span>
+                            </div>
+                            <div class="netinfo-cell">
+                                <span class="netinfo-label">Operator Address</span>
+                                <span class="mono" style="word-break: break-all; font-size: 0.85rem; color: var(--text-bright);">XEQMKPoL34ETLyrUZwD4USCHgsaJMNp9V74VK73LCid7YQsJnpsmoKfBVpt2hAoHU3BcMy12k4wut7an3GXBgXTA65YgpncCW6</span>
+                            </div>
+                            <div class="netinfo-cell">
+                                <span class="netinfo-label">Swarm ID</span>
+                                <span class="mono" style="font-size: 0.85rem; color: var(--text-bright);">
+                                    0x47ffffffffffffff
+                                </span>
+                            </div>
+                        </div>
+                        <img src="/qr/99efd7f74cc325ae6d2b62a08be9e932d960dfb53243f3f2d67595cb378747ba" alt="Pubkey QR"
+                             title="99efd7f74cc325ae6d2b62a08be9e932d960dfb53243f3f2d67595cb378747ba"
+                             style="width: 140px; height: 140px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: white; padding: 8px;">
+                    </div>
+                </div>
+            </div>
+            <!-- NETWORK HEALTH -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        Network Health
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="netinfo-grid">
+                        <div class="netinfo-cell">
+                            <span class="netinfo-label">Allowed Downtime</span>
+                            <span class="netinfo-value">
+                                2176 blocks
+                            </span>
+                            <span style="font-size: 0.7rem; color: var(--text-muted);">~1.5 days</span>
+                        </div>
+                        <div class="netinfo-cell">
+                            <span class="netinfo-label">Pulse Votes (last 8)</span>
+                            <span class="netinfo-value ">1 / 1</span>
+                            <span style="font-size: 0.7rem; color: var(--text-muted);">Block production participation</span>
+                        </div>
+                        <div class="netinfo-cell">
+                            <span class="netinfo-label">Checkpoint Votes (last 8)</span>
+                            <span class="netinfo-value ">0 / 0</span>
+                            <span style="font-size: 0.7rem; color: var(--text-muted);">Checkpoint participation</span>
+                        </div>
+                        <div class="netinfo-cell">
+                            <span class="netinfo-label">Next SN Test</span>
+                            <span class="netinfo-value">
+                                <a href="/block/203173" class="mono" style="color: inherit;">Block 203173</a>
+                            </span>
+                            <span style="font-size: 0.7rem; color: var(--text-muted);">
+                                Now!
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- CONTRIBUTORS -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        Contributors
+                        <span class="nav-badge">1</span>
+                    </div>
+                </div>
+                <div class="panel-body" style="padding: 0;">
+                    <div style="overflow-x: auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Address</th>
+                                    <th>Contributed</th>
+                                    <th>Reserved</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="mono hash" title="XEQMKPoL34ETLyrUZwD4USCHgsaJMNp9V74VK73LCid7YQsJnpsmoKfBVpt2hAoHU3BcMy12k4wut7an3GXBgXTA65YgpncCW6">XEQMKPoL34ETLyrUZwD4USCHgsaJMNp9V74VK73LCid7YQsJnpsmoKfBVpt2hAoHU3BcMy12k4wut7an3GXBgXTA65YgpncCW6</td>
+                                    <td class="mono">
+                                        200000.000000000</td>
+                                    <td class="mono">0.000000000</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- PENDING MEMPOOL STAKES -->
+            <!-- RAW DETAILS -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        Raw Details
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div id="more_details"><div class="syntax-highlight"><pre><span></span><span class="p">{</span>
+<span class="w">	</span><span class="nt">"active"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"checkpoint_participation"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">	</span><span class="nt">"contributors"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">		</span><span class="p">{</span>
+<span class="w">			</span><span class="nt">"address"</span><span class="p">:</span><span class="w"> </span><span class="s2">"XEQMKPoL34ETLyrUZwD4USCHgsaJMNp9V74VK73LCid7YQsJnpsmoKfBVpt2hAoHU3BcMy12k4wut7an3GXBgXTA65YgpncCW6"</span><span class="p">,</span>
+<span class="w">			</span><span class="nt">"amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">200000000000000</span><span class="p">,</span>
+<span class="w">			</span><span class="nt">"locked_contributions"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">				</span><span class="p">{</span>
+<span class="w">					</span><span class="nt">"amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">200000000000000</span><span class="p">,</span>
+<span class="w">					</span><span class="nt">"key_image"</span><span class="p">:</span><span class="w"> </span><span class="s2">"f363a32d9bfd684a35affc5d4ec2dd68956f6bcdbaf5fc8a4a34918edbbed9fb"</span><span class="p">,</span>
+<span class="w">					</span><span class="nt">"key_image_pub_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"b194065bd6ae295adc4483a9883d5c41aaf570fa8b6f1f2683f5a97b327d59fd"</span>
+<span class="w">				</span><span class="p">}</span>
+<span class="w">			</span><span class="p">]</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">],</span>
+<span class="w">	</span><span class="nt">"decomm_reason_text"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Missed Uptime Proofs"</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"decommission_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"earned_downtime_blocks"</span><span class="p">:</span><span class="w"> </span><span class="mi">2176</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"funded"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"last_decomm_reasons"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nt">"all"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">			</span><span class="s2">"uptime"</span>
+<span class="w">		</span><span class="p">]</span>
+<span class="w">	</span><span class="p">},</span>
+<span class="w">	</span><span class="nt">"last_decommission_reason_consensus_all"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"last_decommission_reason_consensus_any"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"last_reward_block_height"</span><span class="p">:</span><span class="w"> </span><span class="mi">203149</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"last_reward_transaction_index"</span><span class="p">:</span><span class="w"> </span><span class="mi">4294967295</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"last_uptime_proof"</span><span class="p">:</span><span class="w"> </span><span class="mi">1790269350</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"lokinet_version"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">		</span><span class="mi">0</span><span class="p">,</span>
+<span class="w">		</span><span class="mi">0</span><span class="p">,</span>
+<span class="w">		</span><span class="mi">0</span>
+<span class="w">	</span><span class="p">],</span>
+<span class="w">	</span><span class="nt">"num_contributions"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"num_open_spots"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"num_reserved_spots"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"operator_address"</span><span class="p">:</span><span class="w"> </span><span class="s2">"XEQMKPoL34ETLyrUZwD4USCHgsaJMNp9V74VK73LCid7YQsJnpsmoKfBVpt2hAoHU3BcMy12k4wut7an3GXBgXTA65YgpncCW6"</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"operator_fee"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"payable"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"portions_for_operator"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"pubkey_bls"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2a7ae5c92cae1d6508a1896e9c77282c6dda23a437944b953ec830cefe72e2bf202eef1d75b74bbce7ea109b37fc4c9f4976b231ac5f52f595bfefdb42c32711"</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"pubkey_ed25519"</span><span class="p">:</span><span class="w"> </span><span class="s2">"99efd7f74cc325ae6d2b62a08be9e932d960dfb53243f3f2d67595cb378747ba"</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"pubkey_x25519"</span><span class="p">:</span><span class="w"> </span><span class="s2">"18967cee1dd4de63d4ab970b6d49c7fa3fd367e9205d53f116e2546bb3ef6867"</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"public_ip"</span><span class="p">:</span><span class="w"> </span><span class="s2">"203.0.113.7"</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"pulse_participation"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">		</span><span class="p">{</span>
+<span class="w">			</span><span class="nt">"height"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">				</span><span class="mi">203155</span><span class="p">,</span>
+<span class="w">				</span><span class="mi">0</span>
+<span class="w">			</span><span class="p">],</span>
+<span class="w">			</span><span class="nt">"voted"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">		</span><span class="p">}</span>
+<span class="w">	</span><span class="p">],</span>
+<span class="w">	</span><span class="nt">"pulse_sorter"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nt">"last_height_validating_in_quorum"</span><span class="p">:</span><span class="w"> </span><span class="mi">203155</span><span class="p">,</span>
+<span class="w">		</span><span class="nt">"quorum_index"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">	</span><span class="p">},</span>
+<span class="w">	</span><span class="nt">"pulse_votes"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">		</span><span class="nt">"missed"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">		</span><span class="nt">"voted"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">			</span><span class="p">[</span>
+<span class="w">				</span><span class="mi">203155</span><span class="p">,</span>
+<span class="w">				</span><span class="mi">0</span>
+<span class="w">			</span><span class="p">]</span>
+<span class="w">		</span><span class="p">]</span>
+<span class="w">	</span><span class="p">},</span>
+<span class="w">	</span><span class="nt">"quorumnet_port"</span><span class="p">:</span><span class="w"> </span><span class="mi">9232</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"registration_height"</span><span class="p">:</span><span class="w"> </span><span class="mi">5948</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"registration_hf_version"</span><span class="p">:</span><span class="w"> </span><span class="mi">19</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"requested_unlock_height"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"service_node_pubkey"</span><span class="p">:</span><span class="w"> </span><span class="s2">"99efd7f74cc325ae6d2b62a08be9e932d960dfb53243f3f2d67595cb378747ba"</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"service_node_version"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">		</span><span class="mi">1</span><span class="p">,</span>
+<span class="w">		</span><span class="mi">0</span><span class="p">,</span>
+<span class="w">		</span><span class="mi">7</span>
+<span class="w">	</span><span class="p">],</span>
+<span class="w">	</span><span class="nt">"session_router_version"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">		</span><span class="mi">0</span><span class="p">,</span>
+<span class="w">		</span><span class="mi">0</span><span class="p">,</span>
+<span class="w">		</span><span class="mi">0</span>
+<span class="w">	</span><span class="p">],</span>
+<span class="w">	</span><span class="nt">"staking_requirement"</span><span class="p">:</span><span class="w"> </span><span class="mi">200000000000000</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"state_height"</span><span class="p">:</span><span class="w"> </span><span class="mi">203149</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"storage_lmq_port"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"storage_port"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"storage_server_version"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">		</span><span class="mi">0</span><span class="p">,</span>
+<span class="w">		</span><span class="mi">0</span><span class="p">,</span>
+<span class="w">		</span><span class="mi">0</span>
+<span class="w">	</span><span class="p">],</span>
+<span class="w">	</span><span class="nt">"swarm"</span><span class="p">:</span><span class="w"> </span><span class="s2">"47ffffffffffffff"</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"swarm_id"</span><span class="p">:</span><span class="w"> </span><span class="mi">5188146770730811391</span><span class="p">,</span>
+<span class="w">	</span><span class="nt">"total_contributed"</span><span class="p">:</span><span class="w"> </span><span class="mi">200000000000000</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+                </div>
+            </div>
+        </div>
+<footer class="content-footer">
+    <img class="footer-mark" src="/static/logo-mark.svg" alt="Exiom" aria-hidden="true">
+    <div class="footer-links">
+        <a href="https://xeqmlabs.com/" target="_blank" rel="noopener">XEQMLabs</a>
+        <a href="https://github.com/XEQMLabs/xeqm-core/releases" target="_blank" rel="noopener">Source</a>
+        <a href="https://t.me/ExiomXEQM" target="_blank" rel="noopener">Community</a>
+    </div>
+    <div class="footer-version">
+        Exiom Explorer | v1.0.7 &lsquo;Ragnarok&rsquo;
+    </div>
+</footer>
+    </main>
+</div>
+</body>
+</html>

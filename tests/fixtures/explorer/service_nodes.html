@@ -1,0 +1,237 @@
+
+<!DOCTYPE html>
+<html lang="en" style="background:#000;color:#fff">
+<head>
+      <title>Exiom | XEQM Explorer</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#000000">
+    <meta name="description" content="Exiom ($XEQM) Blockchain Explorer - View blocks, transactions, and service nodes on the Exiom network.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Exiom Explorer">
+    <meta property="og:description" content="Block explorer for the Exiom ($XEQM) network — blocks, transactions, service nodes, and governance quorums.">
+    <meta property="og:image" content="https://explorer.xeqmlabs.com/static/og-image-exiom.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="https://explorer.xeqmlabs.com/">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Exiom Explorer">
+    <meta name="twitter:description" content="Block explorer for the Exiom ($XEQM) network.">
+    <meta name="twitter:image" content="https://explorer.xeqmlabs.com/static/og-image-exiom.png">
+    <link rel="stylesheet" type="text/css" href="/style.css?v=1785880250">
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="apple-touch-icon" href="/static/favicon.ico">
+</head>
+<body class="dashboard-layout" style="background:#000;color:#fff;margin:0">
+<div class="app-container">
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <a href="/" class="sidebar-brand">
+            <img src="/static/logo-header.png" alt="Exiom" class="sidebar-logo">
+        </a>
+        <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle Sidebar" aria-label="Toggle Sidebar">
+        </button>
+    </div>
+    <div class="sidebar-search">
+        <form action="/search" method="get">
+            <div class="search-input-wrap">
+                <input type="text" name="value" class="sidebar-search-input" placeholder="Search block, tx, SN...">
+            </div>
+        </form>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <a href="/" class="nav-item " data-tab="dashboard">
+                <span>Dashboard</span>
+            </a>
+            <a href="/#nodes" class="nav-item" data-tab="nodes">
+                <span>Node Command Center</span>
+                <span class="nav-badge" id="nav-my-nodes-count">0</span>
+            </a>
+            <a href="/#health" class="nav-item" data-tab="health">
+                <span>Network Health</span>
+            </a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-title">Explorer</div>
+            <a href="/service_nodes" class="nav-item active">
+                <span>Service Nodes</span>
+                <span class="nav-badge">915</span>
+            </a>
+            <a href="/txpool" class="nav-item ">
+                <span>Mempool</span>
+            </a>
+            <a href="/quorums" class="nav-item ">
+                <span>Quorums</span>
+            </a>
+        </div>
+    </nav>
+    <div class="sidebar-footer">
+        <div class="network-indicator" id="network-indicator">
+            <div class="network-status-dot" id="network-status-dot"></div>
+            <span class="network-label" id="network-label"
+                  data-online-label="Mainnet - v1.0.7 &#8216;Ragnarok&#8217;"
+                  data-offline-label="Mainnet - v1.0.7 &#8216;Ragnarok&#8217;">
+                Mainnet - v1.0.7 &lsquo;Ragnarok&rsquo;
+            </span>
+        </div>
+        <div class="sidebar-stats">
+            <div class="sidebar-stat">
+                <span class="sidebar-stat-label">Block</span>
+                <span class="sidebar-stat-value" id="header-height">203150</span>
+            </div>
+            <div class="sidebar-stat">
+                <span class="sidebar-stat-label">Time (UTC)</span>
+                <span class="sidebar-stat-value">16:43</span>
+            </div>
+        </div>
+    </div>
+</aside>
+    <main class="main-content has-mobile-header">
+        <header class="mobile-header" id="mobile-header">
+            <a href="/" class="mobile-header-brand" aria-label="Exiom Explorer home">
+                <img src="/static/logo-header.png" alt="Exiom" class="mobile-header-logo">
+            </a>
+            <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu" aria-expanded="false">
+            </button>
+        </header>
+        <div class="content-area">
+<div class="offline-banner is-hidden" role="status" id="offline-banner" hidden style="display:none">
+    <div class="offline-banner-dot"></div>
+    <div class="offline-banner-text">
+        <strong>Disconnected</strong>
+        <span>Explorer is not connected to a daemon. Showing placeholder data until the seed node comes online.</span>
+    </div>
+</div>
+            <!-- SERVICE NODE METRICS -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-icon success">
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Active Nodes</div>
+                        <div class="metric-value success-text">916</div>
+                        <div class="metric-sub">Fully operational</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon warning">
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Awaiting Contribution</div>
+                        <div class="metric-value warning-text">0</div>
+                        <div class="metric-sub">Open for staking</div>
+                    </div>
+                </div>
+            </div>
+            <!-- ACTIVE SERVICE NODES -->
+            <div class="panel" id="service-nodes-active">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        Active Service Nodes
+                        <span class="nav-badge" style="background: rgba(0, 255, 136, 0.15); color: var(--status-live);">916</span>
+                    </div>
+                    <div class="sn-swarm-info">
+                        <span class="header-stat-label">Swarms:</span>
+                        <span class="header-stat-value" title="~6.8 nodes per swarm">134</span>
+                        <span class="header-stat-divider" style="margin:0 8px;opacity:0.3">|</span>
+                        <span class="header-stat-label">v1.0.7 Nodes:</span>
+                        <span class="header-stat-value" style="color:var(--status-warning)">490/916</span>
+                    </div>
+                </div>
+                <div class="panel-body" style="padding: 0;">
+                    <div class="scroll-panel">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th><a href="?active_sort=status&active_order=desc#service-nodes-active" class="sn-sort-link ">
+                                    Status
+                                </a></th>
+                                    <th>Public Key</th>
+                                    <th><a href="?active_sort=reg&active_order=asc#service-nodes-active" class="sn-sort-link sn-sort-active">
+                                    Block Reg. ↓
+                                </a></th>
+                                    <th><a href="?active_sort=lifespan&active_order=desc#service-nodes-active" class="sn-sort-link ">
+                                    Lifespan
+                                </a></th>
+                                    <th>Contribs</th>
+                                    <th>Total Staked</th>
+                                    <th>Fee</th>
+                                    <th><a href="?active_sort=downtime&active_order=desc#service-nodes-active" class="sn-sort-link ">
+                                    Allowed Downtime
+                                </a></th>
+                                    <th><a href="?active_sort=version&active_order=desc#service-nodes-active" class="sn-sort-link ">
+                                    Version
+                                </a></th>
+                                    <th>Last Reward</th>
+                                    <th>Last Uptime</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/99efd7f74cc325ae6d2b62a08be9e932d960dfb53243f3f2d67595cb378747ba">99efd7f74cc325ae6d2b62a08be9e932d960dfb53243f3f2d67595cb378747ba</a></td>
+                                    <td class="mono">#203149</td>
+                                    <td class="mono">—</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    <td class="mono">0.0%</td>
+                                    <td class="mono">1.5d (2176 blk)</td>
+                                    <td class="mono"><span style="color:var(--status-live)">v1.0.7</span></td>
+                                    <td class="mono">#203149</td>
+                                    <td>0:01:01</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/e049e2aa2bc14af522ad9b51f8dff7b58290d72909ca27572147d9fd2cb38c43">e049e2aa2bc14af522ad9b51f8dff7b58290d72909ca27572147d9fd2cb38c43</a></td>
+                                    <td class="mono">#203146</td>
+                                    <td class="mono">3m</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    <td class="mono">0.0%</td>
+                                    <td class="mono">1.5d (2200 blk)</td>
+                                    <td class="mono"><span style="color:var(--status-live)">v1.0.7</span></td>
+                                    <td class="mono">#203146</td>
+                                    <td>0:02:34</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/ecdd88b2e735e41a8e11eed3c2a74cb12abc8bc83d536460830763c78be966d4">ecdd88b2e735e41a8e11eed3c2a74cb12abc8bc83d536460830763c78be966d4</a></td>
+                                    <td class="mono">#203145</td>
+                                    <td class="mono">4m</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    <td class="mono">0.0%</td>
+                                    <td class="mono">1.5d (2170 blk)</td>
+                                    <td class="mono"><span style="color:var(--status-live)">v1.0.7</span></td>
+                                    <td class="mono">#203145</td>
+                                    <td>0:05:37</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/3b83fecde2b06ac4408d6567725b43bba338dca426b35b37fb22d8b246ebedf1">3b83fecde2b06ac4408d6567725b43bba338dca426b35b37fb22d8b246ebedf1</a></td>
+                                    <td class="mono">#203143</td>
+                                    <td class="mono">6m</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    <td class="mono">0.0%</td>
+                                    <td class="mono">1.5d (2158 blk)</td>
+                                    <td class="mono"><span style="color:var(--status-live)">v1.0.7</span></td>
+                                    <td class="mono">#203143</td>
+                                    <td>0:03:43</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/60d1c7a427b1ee97dcccb57361dd564e98242b5ec51f5296fa6afb841cf06fae">60d1c7a427b1ee97dcccb57361dd564e98242b5ec51f5296fa6afb841cf06fae</a></td>
+                                    <td class="mono">#203143</td>
+                                    <td class="mono">6m</td>
+                                    <td>2/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    <td class="mono">10.0%</td>
+                                    <td class="mono">1.6d (2282 blk)</td>
+                                    <td class="mono"><span style="color:var(--status-live)">v1.0.7</span></td>
+                                    <td class="mono">#203143</td>
+                                    <td>0:04:57</td>
+                                
+</body></html>

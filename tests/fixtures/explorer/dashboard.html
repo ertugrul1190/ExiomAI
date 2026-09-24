@@ -1,0 +1,1012 @@
+
+<!DOCTYPE html>
+<html lang="en" style="background:#000;color:#fff">
+<head>
+      <title>Exiom | XEQM Explorer</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#000000">
+    <meta name="description" content="Exiom ($XEQM) Blockchain Explorer - View blocks, transactions, and service nodes on the Exiom network.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Exiom Explorer">
+    <meta property="og:description" content="Block explorer for the Exiom ($XEQM) network — blocks, transactions, service nodes, and governance quorums.">
+    <meta property="og:image" content="https://explorer.xeqmlabs.com/static/og-image-exiom.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="https://explorer.xeqmlabs.com/">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Exiom Explorer">
+    <meta name="twitter:description" content="Block explorer for the Exiom ($XEQM) network.">
+    <meta name="twitter:image" content="https://explorer.xeqmlabs.com/static/og-image-exiom.png">
+    <link rel="stylesheet" type="text/css" href="/style.css?v=1785880250">
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="apple-touch-icon" href="/static/favicon.ico">
+</head>
+<body class="dashboard-layout" style="background:#000;color:#fff;margin:0">
+<!-- PROFESSIONAL DASHBOARD LAYOUT -->
+<div class="app-container">
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <a href="/" class="sidebar-brand">
+            <img src="/static/logo-header.png" alt="Exiom" class="sidebar-logo">
+        </a>
+        <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle Sidebar" aria-label="Toggle Sidebar">
+        </button>
+    </div>
+    <div class="sidebar-search">
+        <form action="/search" method="get">
+            <div class="search-input-wrap">
+                <input type="text" name="value" class="sidebar-search-input" placeholder="Search block, tx, SN...">
+            </div>
+        </form>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <a href="/" class="nav-item active" data-tab="dashboard">
+                <span>Dashboard</span>
+            </a>
+            <a href="/#nodes" class="nav-item" data-tab="nodes">
+                <span>Node Command Center</span>
+                <span class="nav-badge" id="nav-my-nodes-count">0</span>
+            </a>
+            <a href="/#health" class="nav-item" data-tab="health">
+                <span>Network Health</span>
+            </a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-title">Explorer</div>
+            <a href="/service_nodes" class="nav-item ">
+                <span>Service Nodes</span>
+                <span class="nav-badge">915</span>
+            </a>
+            <a href="/txpool" class="nav-item ">
+                <span>Mempool</span>
+            </a>
+            <a href="/quorums" class="nav-item ">
+                <span>Quorums</span>
+            </a>
+        </div>
+    </nav>
+    <div class="sidebar-footer">
+        <div class="network-indicator" id="network-indicator">
+            <div class="network-status-dot" id="network-status-dot"></div>
+            <span class="network-label" id="network-label"
+                  data-online-label="Mainnet - v1.0.7 &#8216;Ragnarok&#8217;"
+                  data-offline-label="Mainnet - v1.0.7 &#8216;Ragnarok&#8217;">
+                Mainnet - v1.0.7 &lsquo;Ragnarok&rsquo;
+            </span>
+        </div>
+        <div class="sidebar-stats">
+            <div class="sidebar-stat">
+                <span class="sidebar-stat-label">Block</span>
+                <span class="sidebar-stat-value" id="header-height">203149</span>
+            </div>
+            <div class="sidebar-stat">
+                <span class="sidebar-stat-label">Time (UTC)</span>
+                <span class="sidebar-stat-value">16:43</span>
+            </div>
+        </div>
+    </div>
+</aside>
+    <!-- MAIN CONTENT AREA -->
+    <main class="main-content has-mobile-header">
+        <!-- Mobile header (visible only on mobile) -->
+        <header class="mobile-header" id="mobile-header">
+            <a href="/" class="mobile-header-brand" aria-label="Exiom Explorer home">
+                <img src="/static/logo-header.png" alt="Exiom" class="mobile-header-logo">
+            </a>
+            <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu" aria-expanded="false">
+            </button>
+        </header>
+        <!-- TAB CONTENT PANELS -->
+        <div class="content-area">
+            <div class="offline-banner is-hidden" role="status" id="offline-banner" hidden style="display:none">
+                <div class="offline-banner-dot"></div>
+                <div class="offline-banner-text">
+                    <strong>Disconnected</strong>
+                    <span>
+                        Explorer is not connected to a daemon. Showing placeholder data until the seed node comes online.
+                    </span>
+                </div>
+            </div>
+            <!-- ═══════════════════════════════════════════════════════════════
+                 TAB 1: DASHBOARD - Overview & Block Stream
+                 ═══════════════════════════════════════════════════════════════ -->
+            <div class="tab-panel" id="panel-dashboard">
+                <!-- HERO METRICS -->
+                <div class="metrics-grid metrics-hero">
+                    <div class="metric-card">
+                        <div class="metric-icon">
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-label">Block Height</div>
+                            <div class="metric-value accent" id="metric-block-height" data-pulse-target="1790268201" data-hf-version="21" data-difficulty="0">203149</div>
+                            <div class="metric-sub" id="metric-block-sub">
+                                Next pulse <span id="metric-pulse-text">in 12 seconds</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon success">
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-label">Active Service Nodes</div>
+                            <div class="metric-value" id="metric-active-sns">915</div>
+                            <div class="metric-sub" id="metric-awaiting-sub">0 pool nodes available</div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-label">Circulating Supply</div>
+                            <div class="metric-value" id="metric-supply">280.5M XEQM</div>
+                            <div class="metric-sub">Fixed genesis &middot; predictable emissions</div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon warning">
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-label">Staking Requirement</div>
+                            <div class="metric-value" id="metric-staking-req">200,000 XEQM</div>
+                            <div class="metric-sub">v1.0.7 &lsquo;Ragnarok&rsquo;</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- LIVE BLOCK STREAM -->
+                <div class="panel block-stream-container">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <span class="live-dot"></span>
+                            Live Block Stream
+                        </div>
+                        <a href="/blocks" class="btn-sm">View All Blocks</a>
+                    </div>
+                    <div class="block-stream" id="block-stream">
+                        <a href="/block/203148" class="block-card" data-height="203148">
+                            <div class="block-height">#203148</div>
+                            <div class="block-hash">f3cf4b7a71ba8519...</div>
+                            <div class="block-stats">
+                                <div class="block-stat">
+                                    <span class="block-stat-label">TXs</span>
+                                    <span class="block-stat-value">1</span>
+                                </div>
+                                <div class="block-stat">
+                                    <span class="block-stat-label">Size</span>
+                                    <span class="block-stat-value">795B</span>
+                                </div>
+                            </div>
+                            <div class="block-time" data-timestamp="1790268156">0:00:32</div>
+                        </a>
+                        <a href="/block/203147" class="block-card" data-height="203147">
+                            <div class="block-height">#203147</div>
+                            <div class="block-hash">b33bb97e4a7b2d44...</div>
+                            <div class="block-stats">
+                                <div class="block-stat">
+                                    <span class="block-stat-label">TXs</span>
+                                    <span class="block-stat-value">1</span>
+                                </div>
+                                <div class="block-stat">
+                                    <span class="block-stat-label">Size</span>
+                                    <span class="block-stat-value">795B</span>
+                                </div>
+                            </div>
+                            <div class="block-time" data-timestamp="1790268091">0:01:37</div>
+                        </a>
+                        <a href="/block/203146" class="block-card" data-height="203146">
+                            <div class="block-height">#203146</div>
+                            <div class="block-hash">cde1d49df29a8b96...</div>
+                            <div class="block-stats">
+                                <div class="block-stat">
+                                    <span class="block-stat-label">TXs</span>
+                                    <span class="block-stat-value">2</span>
+                                </div>
+                                <div class="block-stat">
+                                    <span class="block-stat-label">Size</span>
+                                    <span class="block-stat-value">1.30kB</span>
+                                </div>
+                            </div>
+                            <div class="block-time" data-timestamp="1790268046">0:02:22</div>
+                        </a>
+                        <a href="/block/203145" class="block-card" data-height="203145">
+                            <div class="block-height">#203145</div>
+                            <div class="block-hash">8d34d57f5c377ef8...</div>
+                            <div class="block-stats">
+                                <div class="block-stat">
+                                    <span class="block-stat-label">TXs</span>
+                                    <span class="block-stat-value">4</span>
+                                </div>
+                                <div class="block-stat">
+                                    <span class="block-stat-label">Size</span>
+                                    <span class="block-stat-value">2.31kB</span>
+                                </div>
+                            </div>
+                            <div class="block-time" data-timestamp="1790268001">0:03:07</div>
+                        </a>
+                        <a href="/block/203144" class="block-card" data-height="203144">
+                            <div class="block-height">#203144</div>
+                            <div class="block-hash">ad71d276f93a1b8f...</div>
+                            <div class="block-stats">
+                                <div class="block-stat">
+                                    <span class="block-stat-label">TXs</span>
+                                    <span class="block-stat-value">2</span>
+                                </div>
+                                <div class="block-stat">
+                                    <span class="block-stat-label">Size</span>
+                                    <span class="block-stat-value">1.30kB</span>
+                                </div>
+                            </div>
+                            <div class="block-time" data-timestamp="1790267937">0:04:11</div>
+                        </a>
+                        <a href="/block/203143" class="block-card" data-height="203143">
+                            <div class="block-height">#203143</div>
+                            <div class="block-hash">89d370eeb81f1074...</div>
+                            <div class="block-stats">
+                                <div class="block-stat">
+                                    <span class="block-stat-label">TXs</span>
+                                    <span class="block-stat-value">4</span>
+                                </div>
+                                <div class="block-stat">
+                                    <span class="block-stat-label">Size</span>
+                                    <span class="block-stat-value">2.31kB</span>
+                                </div>
+                            </div>
+                            <div class="block-time" data-timestamp="1790267891">0:04:57</div>
+                        </a>
+                        <a href="/block/203142" class="block-card" data-height="203142">
+                            <div class="block-height">#203142</div>
+                            <div class="block-hash">e8c83c5ae364835a...</div>
+                            <div class="block-stats">
+                                <div class="block-stat">
+                                    <span class="block-stat-label">TXs</span>
+                                    <span class="block-stat-value">1</span>
+                                </div>
+                                <div class="block-stat">
+                                    <span class="block-stat-label">Size</span>
+                                    <span class="block-stat-value">795B</span>
+                                </div>
+                            </div>
+                            <div class="block-time" data-timestamp="1790267816">0:06:12</div>
+                        </a>
+                        <a href="/block/203141" class="block-card" data-height="203141">
+                            <div class="block-height">#203141</div>
+                            <div class="block-hash">d1185ab40dc893f3...</div>
+                            <div class="block-stats">
+                                <div class="block-stat">
+                                    <span class="block-stat-label">TXs</span>
+                                    <span class="block-stat-value">4</span>
+                                </div>
+                                <div class="block-stat">
+                                    <span class="block-stat-label">Size</span>
+                                    <span class="block-stat-value">2.31kB</span>
+                                </div>
+                            </div>
+                            <div class="block-time" data-timestamp="1790267769">0:06:59</div>
+                        </a>
+                        <a href="/block/203140" class="block-card" data-height="203140">
+                            <div class="block-height">#203140</div>
+                            <div class="block-hash">a35feb521bf53342...</div>
+                            <div class="block-stats">
+                                <div class="block-stat">
+                                    <span class="block-stat-label">TXs</span>
+                                    <span class="block-stat-value">4</span>
+                                </div>
+                                <div class="block-stat">
+                                    <span class="block-stat-label">Size</span>
+                                    <span class="block-stat-value">2.31kB</span>
+                                </div>
+                            </div>
+                            <div class="block-time" data-timestamp="1790267674">0:08:34</div>
+                        </a>
+                        <a href="/block/203139" class="block-card" data-height="203139">
+                            <div class="block-height">#203139</div>
+                            <div class="block-hash">0540831ead680c7c...</div>
+                            <div class="block-stats">
+                                <div class="block-stat">
+                                    <span class="block-stat-label">TXs</span>
+                                    <span class="block-stat-value">1</span>
+                                </div>
+                                <div class="block-stat">
+                                    <span class="block-stat-label">Size</span>
+                                    <span class="block-stat-value">795B</span>
+                                </div>
+                            </div>
+                            <div class="block-time" data-timestamp="1790267609">0:09:39</div>
+                        </a>
+                        <a href="/block/203138" class="block-card" data-height="203138">
+                            <div class="block-height">#203138</div>
+                            <div class="block-hash">cec135759973090d...</div>
+                            <div class="block-stats">
+                                <div class="block-stat">
+                                    <span class="block-stat-label">TXs</span>
+                                    <span class="block-stat-value">5</span>
+                                </div>
+                                <div class="block-stat">
+                                    <span class="block-stat-label">Size</span>
+                                    <span class="block-stat-value">2.81kB</span>
+                                </div>
+                            </div>
+                            <div class="block-time" data-timestamp="1790267563">0:10:25</div>
+                        </a>
+                        <a href="/block/203137" class="block-card" data-height="203137">
+                            <div class="block-height">#203137</div>
+                            <div class="block-hash">e12bd6913e3fd4d8...</div>
+                            <div class="block-stats">
+                                <div class="block-stat">
+                                    <span class="block-stat-label">TXs</span>
+                                    <span class="block-stat-value">4</span>
+                                </div>
+                                <div class="block-stat">
+                                    <span class="block-stat-label">Size</span>
+                                    <span class="block-stat-value">2.31kB</span>
+                                </div>
+                            </div>
+                            <div class="block-time" data-timestamp="1790267517">0:11:11</div>
+                        </a>
+                    </div>
+                    <div class="panel-footer">
+                        <div class="stream-stat">
+                            <span class="stream-stat-label">Avg Block (1h)</span>
+                            <span class="stream-stat-value" id="stat-avg-1h">1m 00s</span>
+                        </div>
+                        <div class="stream-stat">
+                            <span class="stream-stat-label">Avg Block (12h)</span>
+                            <span class="stream-stat-value" id="stat-avg-12h">1m 00s</span>
+                        </div>
+                        <div class="stream-stat">
+                            <span class="stream-stat-label">Avg Block (24h)</span>
+                            <span class="stream-stat-value" id="stat-avg-24h">1m 00s</span>
+                        </div>
+                        <div class="stream-stat">
+                            <span class="stream-stat-label">SN Reward</span>
+                            <span class="stream-stat-value" id="stat-sn-reward">8.25 XEQM</span>
+                        </div>
+                        <div class="stream-stat">
+                            <span class="stream-stat-label">SN Rewards (24h)</span>
+                            <span class="stream-stat-value" id="stat-sn-rewards-24h">11,880 XEQM</span>
+                        </div>
+                        <div class="stream-stat">
+                            <span class="stream-stat-label">Mempool</span>
+                            <span class="stream-stat-value" id="mempool-count">0 tx</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- NETWORK STATS (Supply + Node Distribution Charts) -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">Network Distribution</div>
+                    </div>
+                    <div class="network-stats-charts">
+                        <!-- SUPPLY DISTRIBUTION CHART -->
+                        <div class="network-chart-section" id="supply-distribution">
+                            <div class="chart-section-title">Supply Distribution</div>
+                            <div class="chart-section-body">
+                                <div class="supply-chart-wrap">
+                                    <div class="donut-center">
+                                        <span class="donut-pct" id="supply-donut-pct">65.7%</span>
+                                        <span class="donut-label" id="supply-donut-label">Locked</span>
+                                    </div>
+                                </div>
+                                <div class="supply-legend">
+                                    <div class="legend-row" data-chart="supply" data-segment="locked" data-pct="65.7" data-val="184400000">
+                                        <span class="legend-color" style="background: var(--accent);"></span>
+                                        <span class="legend-label">Locked</span>
+                                        <span class="legend-value">184,400,000 XEQM</span>
+                                        <span class="legend-pct">65.7%</span>
+                                    </div>
+                                    <div class="legend-row" data-chart="supply" data-segment="circulating" data-pct="34.3" data-val="96128963">
+                                        <span class="legend-color" style="background: rgba(255,255,255,0.15);"></span>
+                                        <span class="legend-label">Circulating</span>
+                                        <span class="legend-value">96,128,963 XEQM</span>
+                                        <span class="legend-pct">34.3%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- NODE DISTRIBUTION CHART -->
+                        <div class="network-chart-section" id="node-distribution">
+                            <div class="chart-section-title">Node Distribution</div>
+                            <div class="chart-section-body">
+                                <div class="supply-chart-wrap">
+                                    <div class="donut-center">
+                                        <span class="donut-pct" id="node-donut-pct">100.0%</span>
+                                        <span class="donut-label" id="node-donut-label">Full</span>
+                                    </div>
+                                </div>
+                                <div class="supply-legend">
+                                    <div class="legend-row" data-chart="node" data-segment="full" data-pct="100.0" data-val="915">
+                                        <span class="legend-color" style="background: var(--status-live);"></span>
+                                        <span class="legend-label">Full Nodes</span>
+                                        <span class="legend-value">915 nodes</span>
+                                        <span class="legend-pct">100.0%</span>
+                                    </div>
+                                    <div class="legend-row" data-chart="node" data-segment="open" data-pct="0.0" data-val="0">
+                                        <span class="legend-color" style="background: rgba(255,255,255,0.15);"></span>
+                                        <span class="legend-label">Open Nodes</span>
+                                        <span class="legend-value">0 nodes</span>
+                                        <span class="legend-pct">0.0%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- NETWORK TOTALS -->
+                    <div class="network-stats-divider"></div>
+                    <div class="network-stats-totals">
+                        <div class="stats-total-item">
+                            <div class="stats-total-label">Total Supply</div>
+                            <div class="stats-total-value" id="stats-total-supply">280,528,963 XEQM</div>
+                        </div>
+                        <div class="stats-total-item">
+                            <div class="stats-total-label">Total Nodes</div>
+                            <div class="stats-total-value" id="stats-total-nodes">915</div>
+                        </div>
+                        <div class="stats-total-item">
+                            <div class="stats-total-label">Staking Req</div>
+                            <div class="stats-total-value" id="stats-total-staking">200,000 XEQM</div>
+                        </div>
+                        <div class="stats-total-item">
+                            <div class="stats-total-label">Min Operator Contribution</div>
+                            <div class="stats-total-value">100,000 XEQM</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- NODE MAP -->
+                <div class="panel" id="node-map-section">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            Global Node Map
+                        </div>
+                    </div>
+                    <div class="node-map-body">
+                        <div class="map-stats-bar">
+                            <div class="map-stat">
+                                <span class="map-stat-label">Total Nodes</span>
+                                <span class="map-stat-value" id="stat-total">--</span>
+                            </div>
+                            <div class="map-stat">
+                                <span class="map-stat-label">Countries</span>
+                                <span class="map-stat-value" id="stat-countries">--</span>
+                            </div>
+                        </div>
+                        <div class="map-layout">
+                            <div class="map-container" id="node-map"></div>
+                            <div class="map-sidebar" id="map-sidebar">
+                                <div class="map-sidebar-title">Nodes by Country</div>
+                                <div id="country-list"></div>
+                            </div>
+                        </div>
+                        <div class="map-note">Locations shown at country/state level only &middot; No exact coordinates or IPs are exposed</div>
+                    </div>
+                </div>
+            </div>
+            <!-- ═══════════════════════════════════════════════════════════════
+                 TAB 2: NODE COMMAND CENTER
+                 ═══════════════════════════════════════════════════════════════ -->
+            <div class="tab-panel" id="panel-nodes">
+                <!-- NODE STATS OVERVIEW -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-icon success">
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-label">Active Nodes</div>
+                            <div class="metric-value success-text" id="nodes-active">915</div>
+                            <div class="metric-sub">Fully operational</div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon warning">
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-label">Awaiting Contribution</div>
+                            <div class="metric-value warning-text" id="nodes-awaiting">0</div>
+                            <div class="metric-sub">Open for staking</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- MY NODES TRACKER -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            My Tracked Nodes
+                        </div>
+                        <button class="btn-sm" onclick="toggleAddNode()">+ Track Node</button>
+                    </div>
+                    <div id="my-nodes-content">
+                        <div class="my-nodes-empty" id="my-nodes-empty">
+                            <div class="empty-state">
+                                <h3>Track Your Nodes</h3>
+                                <p>Add service node public keys to monitor status, uptime, and rewards.</p>
+                            </div>
+                            <div class="add-node-form" id="add-node-form">
+                                <input type="text" class="add-node-input" id="add-node-input"
+                                       placeholder="Paste one or more pubkeys (space-separated)…"
+                                       onkeydown="if (event.key === 'Enter') { event.preventDefault(); addNode(); }">
+                                <button class="btn-primary" onclick="addNode()">Track</button>
+                            </div>
+                            <div id="add-node-status" style="text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; min-height: 16px;"></div>
+                        </div>
+                        <div class="my-nodes-list" id="my-nodes-list" style="display: none;"></div>
+                        <div class="my-nodes-pagination" id="my-nodes-pagination" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- ═══════════════════════════════════════════════════════════════
+                 TAB 3: NETWORK HEALTH
+                 ═══════════════════════════════════════════════════════════════ -->
+            <div class="tab-panel" id="panel-health">
+                <!-- NETWORK HEALTH OVERVIEW -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-icon">
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-label">Total Nodes</div>
+                            <div class="metric-value" id="health-total-nodes">915</div>
+                            <div class="metric-sub">Across all regions</div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-label">Consensus</div>
+                            <div class="metric-value">Pulse</div>
+                            <div class="metric-sub">HF v21</div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-label">Database Size</div>
+                            <div class="metric-value" id="health-db-size" title="Reported by the daemon, which rounds this figure for privacy. See the Blocks page for a block-weight estimate of chain data.">~2.00GB</div>
+                            <div class="metric-sub">Daemon-reported (rounded)</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- NETWORK INFO: HF SCHEDULE + TOKENOMICS + NODE STATUS -->
+                <div class="panel network-info-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            Network Info
+                        </div>
+                        <span class="metric-sub" style="font-size:0.7rem">
+                            Currently: <strong>HF v21 — Weekly Reward Batching</strong>
+                        </span>
+                    </div>
+                    <!-- HARD FORK SCHEDULE -->
+                    <div class="netinfo-section">
+                        <div class="netinfo-section-title">Hard Fork Schedule</div>
+                        <table class="data-table netinfo-hf-table">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>HF</th>
+                                    <th>Name</th>
+                                    <th>Height</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="hf-row-past">
+                                    <td>
+                                        <span class="badge" style="background:rgba(255,255,255,0.08);color:var(--text-muted)">Past</span>
+                                    </td>
+                                    <td class="mono">v7</td>
+                                    <td>
+                                        <strong>Genesis</strong> ★
+                                    </td>
+                                    <td class="mono">
+                                        <a href="/block/0">0</a>
+                                    </td>
+                                    <td class="text-secondary" style="font-size:0.8rem">Monero-derived PoW. Chain starts here with 276,786,541.3247 XEQM premint.</td>
+                                </tr>
+                                <tr class="hf-row-past">
+                                    <td>
+                                        <span class="badge" style="background:rgba(255,255,255,0.08);color:var(--text-muted)">Past</span>
+                                    </td>
+                                    <td class="mono">v11</td>
+                                    <td>
+                                        Infinite Staking
+                                    </td>
+                                    <td class="mono">
+                                        <a href="/block/2">2</a>
+                                    </td>
+                                    <td class="text-secondary" style="font-size:0.8rem">Service node staking framework.</td>
+                                </tr>
+                                <tr class="hf-row-past">
+                                    <td>
+                                        <span class="badge" style="background:rgba(255,255,255,0.08);color:var(--text-muted)">Past</span>
+                                    </td>
+                                    <td class="mono">v12</td>
+                                    <td>
+                                        Checkpointing
+                                    </td>
+                                    <td class="mono">
+                                        <a href="/block/3">3</a>
+                                    </td>
+                                    <td class="text-secondary" style="font-size:0.8rem">RandomX PoW + service-node checkpointing.</td>
+                                </tr>
+                                <tr class="hf-row-past">
+                                    <td>
+                                        <span class="badge" style="background:rgba(255,255,255,0.08);color:var(--text-muted)">Past</span>
+                                    </td>
+                                    <td class="mono">v13</td>
+                                    <td>
+                                        Enforce Checkpoints
+                                    </td>
+                                    <td class="mono">
+                                        <a href="/block/4">4</a>
+                                    </td>
+                                    <td class="text-secondary" style="font-size:0.8rem">Checkpoints become consensus-enforced.</td>
+                                </tr>
+                                <tr class="hf-row-past">
+                                    <td>
+                                        <span class="badge" style="background:rgba(255,255,255,0.08);color:var(--text-muted)">Past</span>
+                                    </td>
+                                    <td class="mono">v14</td>
+                                    <td>
+                                        Blink
+                                    </td>
+                                    <td class="mono">
+                                        <a href="/block/5">5</a>
+                                    </td>
+                                    <td class="text-secondary" style="font-size:0.8rem">Instant transactions via SN quorums.</td>
+                                </tr>
+                                <tr class="hf-row-past">
+                                    <td>
+                                        <span class="badge" style="background:rgba(255,255,255,0.08);color:var(--text-muted)">Past</span>
+                                    </td>
+                                    <td class="mono">v15</td>
+                                    <td>
+                                        ONS
+                                    </td>
+                                    <td class="mono">
+                                        <a href="/block/6">6</a>
+                                    </td>
+                                    <td class="text-secondary" style="font-size:0.8rem">On-chain name service.</td>
+                                </tr>
+                                <tr class="hf-row-past">
+                                    <td>
+                                        <span class="badge" style="background:rgba(255,255,255,0.08);color:var(--text-muted)">Past</span>
+                                    </td>
+                                    <td class="mono">v16</td>
+                                    <td>
+                                        <strong>Pulse</strong> ★
+                                    </td>
+                                    <td class="mono">
+                                        <a href="/block/750">750</a>
+                                    </td>
+                                    <td class="text-secondary" style="font-size:0.8rem">Pulse consensus — Pure Proof-of-Stake begins.</td>
+                                </tr>
+                                <tr class="hf-row-past">
+                                    <td>
+                                        <span class="badge" style="background:rgba(255,255,255,0.08);color:var(--text-muted)">Past</span>
+                                    </td>
+                                    <td class="mono">v17</td>
+                                    <td>
+                                        Emission Cleanup
+                                    </td>
+                                    <td class="mono">
+                                        <a href="/block/751">751</a>
+                                    </td>
+                                    <td class="text-secondary" style="font-size:0.8rem">Miner share eliminated; SN + foundation only.</td>
+                                </tr>
+                                <tr class="hf-row-past">
+                                    <td>
+                                        <span class="badge" style="background:rgba(255,255,255,0.08);color:var(--text-muted)">Past</span>
+                                    </td>
+                                    <td class="mono">v18</td>
+                                    <td>
+                                        Timesync &amp; Proofs
+                                    </td>
+                                    <td class="mono">
+                                        <a href="/block/752">752</a>
+                                    </td>
+                                    <td class="text-secondary" style="font-size:0.8rem">Improved uptime proofs and wallet ONS.</td>
+                                </tr>
+                                <tr class="hf-row-past">
+                                    <td>
+                                        <span class="badge" style="background:rgba(255,255,255,0.08);color:var(--text-muted)">Past</span>
+                                    </td>
+                                    <td class="mono">v19</td>
+                                    <td>
+                                        <strong>Reward Batching</strong> ★
+                                    </td>
+                                    <td class="mono">
+                                        <a href="/block/753">753</a>
+                                    </td>
+                                    <td class="text-secondary" style="font-size:0.8rem">Batched SN rewards begin (8.25 XEQM/block). Governance share configured but not yet on-chain — activates at HF20.</td>
+                                </tr>
+                                <tr class="hf-row-past">
+                                    <td>
+                                        <span class="badge" style="background:rgba(255,255,255,0.08);color:var(--text-muted)">Past</span>
+                                    </td>
+                                    <td class="mono">v19.1</td>
+                                    <td>
+                                        Reward Batching r1
+                                    </td>
+                                    <td class="mono">
+                                        <a href="/block/754">754</a>
+                                    </td>
+                                    <td class="text-secondary" style="font-size:0.8rem">Reward batching revision 1.</td>
+                                </tr>
+                                <tr class="hf-row-past">
+                                    <td>
+                                        <span class="badge" style="background:rgba(255,255,255,0.08);color:var(--text-muted)">Past</span>
+                                    </td>
+                                    <td class="mono">v19.2</td>
+                                    <td>
+                                        Reward Batching r2
+                                    </td>
+                                    <td class="mono">
+                                        <a href="/block/755">755</a>
+                                    </td>
+                                    <td class="text-secondary" style="font-size:0.8rem">Reward batching revision 2.</td>
+                                </tr>
+                                <tr class="hf-row-past">
+                                    <td>
+                                        <span class="badge" style="background:rgba(255,255,255,0.08);color:var(--text-muted)">Past</span>
+                                    </td>
+                                    <td class="mono">v19.3</td>
+                                    <td>
+                                        <strong>Reward Batching r3</strong> ★
+                                    </td>
+                                    <td class="mono">
+                                        <a href="/block/756">756</a>
+                                    </td>
+                                    <td class="text-secondary" style="font-size:0.8rem">Final mainnet-ready state.</td>
+                                </tr>
+                                <tr class="hf-row-past">
+                                    <td>
+                                        <span class="badge" style="background:rgba(255,255,255,0.08);color:var(--text-muted)">Past</span>
+                                    </td>
+                                    <td class="mono">v20</td>
+                                    <td>
+                                        <strong>Governance Payouts</strong> ★
+                                    </td>
+                                    <td class="mono">
+                                        <a href="/block/37000">37000</a>
+                                    </td>
+                                    <td class="text-secondary" style="font-size:0.8rem">Dev fund / governance payouts activate on-chain (12.4 XEQM/block). Full emission: 20.65 XEQM/block.</td>
+                                </tr>
+                                <tr class="hf-row-current">
+                                    <td>
+                                        <span class="badge success">Active</span>
+                                    </td>
+                                    <td class="mono">v21</td>
+                                    <td>
+                                        <strong>Weekly Reward Batching</strong> ★
+                                    </td>
+                                    <td class="mono">
+                                        <a href="/block/99000">99000</a>
+                                    </td>
+                                    <td class="text-secondary" style="font-size:0.8rem">SN payout batching interval extends from 20 to 10,080 blocks (one week); each wallet gets a deterministic weekly payout slot. Minimum batch payout raises to 1 XEQM.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="netinfo-legend">
+                            ★ = protocol milestone &middot; PoS (Pulse) begins at HF16 &middot; HF20 activates governance payouts &middot; HF21 moves SN payouts to weekly batching
+                        </div>
+                    </div>
+                    <!-- TOKENOMICS -->
+                    <div class="netinfo-section">
+                        <div class="netinfo-section-title">Tokenomics</div>
+                        <div class="netinfo-grid">
+                            <div class="netinfo-cell"><span class="netinfo-label">Circulating Supply</span><span class="netinfo-value">276,786,542 XEQM</span></div>
+                            <div class="netinfo-cell"><span class="netinfo-label">Block Time</span><span class="netinfo-value">60 seconds</span></div>
+                            <div class="netinfo-cell"><span class="netinfo-label">SN Reward / Block</span><span class="netinfo-value">8.25 XEQM</span></div>
+                            <div class="netinfo-cell"><span class="netinfo-label">Governance / Block</span><span class="netinfo-value">12.4 XEQM (starts at HF20)</span></div>
+                            <div class="netinfo-cell"><span class="netinfo-label">Daily SN Emission</span><span class="netinfo-value">11,880 XEQM</span></div>
+                            <div class="netinfo-cell"><span class="netinfo-label">Daily Gov Emission</span><span class="netinfo-value">0 XEQM (12.4/block · ~17,857/day starts at HF20)</span></div>
+                            <div class="netinfo-cell"><span class="netinfo-label">Full Stake</span><span class="netinfo-value">200,000 XEQM</span></div>
+                            <div class="netinfo-cell"><span class="netinfo-label">Min Operator</span><span class="netinfo-value">100,000 XEQM (50%)</span></div>
+                            <div class="netinfo-cell"><span class="netinfo-label">Max Contributors</span><span class="netinfo-value">11 (operator + 10)</span></div>
+                            <div class="netinfo-cell"><span class="netinfo-label">Solo APY @ 700 nodes</span><span class="netinfo-value">~3.1% (block rewards only)</span></div>
+                        </div>
+                        <div class="netinfo-legend">
+                            Values reflect HF19+ tokenomics. Fixed genesis supply, no burns — Monero-based architecture does not support cryptographic burns.
+                            HF20 (block 37,000) activates governance payouts: total emission rises to 20.65 XEQM/block.
+                        </div>
+                    </div>
+                    <!-- SN ROI / EARNINGS PROJECTION -->
+                    <div class="netinfo-section">
+                        <div class="netinfo-section-title">Service Node Earnings Projection</div>
+                        <div class="netinfo-grid" style="grid-template-columns: repeat(2, 1fr)">
+                            <div class="netinfo-cell"><span class="netinfo-label">Active Nodes</span><span class="netinfo-value">915</span></div>
+                            <div class="netinfo-cell"><span class="netinfo-label">APY (current)</span><span class="netinfo-value">2.37%</span></div>
+                            <div class="netinfo-cell"><span class="netinfo-label">Daily Reward / Node</span><span class="netinfo-value">12.98 XEQM</span></div>
+                            <div class="netinfo-cell"><span class="netinfo-label">Annual Reward / Node</span><span class="netinfo-value">4,739 XEQM</span></div>
+                        </div>
+                        <table class="data-table" style="margin-top:12px">
+                            <thead>
+                                <tr>
+                                    <th>XEQM Price</th>
+                                    <th>Node Value</th>
+                                    <th>Daily Earnings</th>
+                                    <th>Monthly Earnings</th>
+                                    <th>Yearly Earnings</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="mono">$0.03</td>
+                                    <td class="mono">$6,000</td>
+                                    <td class="mono">$0.39</td>
+                                    <td class="mono">$12</td>
+                                    <td class="mono">$142</td>
+                                </tr>
+                                <tr>
+                                    <td class="mono">$0.05</td>
+                                    <td class="mono">$10,000</td>
+                                    <td class="mono">$0.65</td>
+                                    <td class="mono">$19</td>
+                                    <td class="mono">$237</td>
+                                </tr>
+                                <tr>
+                                    <td class="mono">$0.10</td>
+                                    <td class="mono">$20,000</td>
+                                    <td class="mono">$1.30</td>
+                                    <td class="mono">$39</td>
+                                    <td class="mono">$474</td>
+                                </tr>
+                                <tr>
+                                    <td class="mono">$0.20</td>
+                                    <td class="mono">$40,000</td>
+                                    <td class="mono">$2.60</td>
+                                    <td class="mono">$78</td>
+                                    <td class="mono">$948</td>
+                                </tr>
+                                <tr>
+                                    <td class="mono">$0.30</td>
+                                    <td class="mono">$60,000</td>
+                                    <td class="mono">$3.90</td>
+                                    <td class="mono">$117</td>
+                                    <td class="mono">$1,422</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="netinfo-legend">
+                            Based on 915 active nodes &middot; 200,000 XEQM full stake &middot; 8.25 XEQM/block &middot; 1,440 blocks/day. Assumes solo operator (0% fee).
+                        </div>
+                    </div>
+                    <!-- PUBLIC NODES -->
+                    <div class="netinfo-section">
+                        <div class="netinfo-section-title">Public Nodes</div>
+                        <div class="netinfo-nodes-group">
+                            <div class="netinfo-nodes-label">Remote RPC for wallets — connect using host:port below</div>
+                            <div class="netinfo-nodes-grid">
+                                <div class="netinfo-node-card" data-role="public">
+                                    <div class="netinfo-node-head">
+                                        <span class="netinfo-node-role public">public</span>
+                                        <span class="netinfo-node-name">Public Node 1</span>
+                                    </div>
+                                    <div class="netinfo-node-location">US Central</div>
+                                    <div class="netinfo-node-stats">
+                                        <div><span>Host</span><span class="text-muted">coming soon</span></div>
+                                        <div><span>Status</span><span class="text-muted">coming soon</span></div>
+                                    </div>
+                                </div>
+                                <div class="netinfo-node-card" data-role="public">
+                                    <div class="netinfo-node-head">
+                                        <span class="netinfo-node-role public">public</span>
+                                        <span class="netinfo-node-name">Public Node 2</span>
+                                    </div>
+                                    <div class="netinfo-node-location">US Central</div>
+                                    <div class="netinfo-node-stats">
+                                        <div><span>Host</span><span class="text-muted">coming soon</span></div>
+                                        <div><span>Status</span><span class="text-muted">coming soon</span></div>
+                                    </div>
+                                </div>
+                                <div class="netinfo-node-card" data-role="public">
+                                    <div class="netinfo-node-head">
+                                        <span class="netinfo-node-role public">public</span>
+                                        <span class="netinfo-node-name">Public Node 3</span>
+                                    </div>
+                                    <div class="netinfo-node-location">EU</div>
+                                    <div class="netinfo-node-stats">
+                                        <div><span>Host</span><span class="text-muted">coming soon</span></div>
+                                        <div><span>Status</span><span class="text-muted">coming soon</span></div>
+                                    </div>
+                                </div>
+                                <div class="netinfo-node-card" data-role="public">
+                                    <div class="netinfo-node-head">
+                                        <span class="netinfo-node-role public">public</span>
+                                        <span class="netinfo-node-name">Public Node 4</span>
+                                    </div>
+                                    <div class="netinfo-node-location">EU</div>
+                                    <div class="netinfo-node-stats">
+                                        <div><span>Host</span><span class="text-muted">coming soon</span></div>
+                                        <div><span>Status</span><span class="text-muted">coming soon</span></div>
+                                    </div>
+                                </div>
+                                <div class="netinfo-node-card" data-role="public">
+                                    <div class="netinfo-node-head">
+                                        <span class="netinfo-node-role public">public</span>
+                                        <span class="netinfo-node-name">Public Node 5</span>
+                                    </div>
+                                    <div class="netinfo-node-location">Sydney</div>
+                                    <div class="netinfo-node-stats">
+                                        <div><span>Host</span><span class="text-muted">coming soon</span></div>
+                                        <div><span>Status</span><span class="text-muted">coming soon</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="netinfo-legend">
+                            Public RPC endpoints &mdash; coming soon. Seed nodes are kept private for network stability.
+                        </div>
+                    </div>
+                </div>
+                <!-- NETWORK PERFORMANCE -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            Network Performance
+                        </div>
+                        <span class="metric-sub" style="font-size:0.7rem">Difficulty: <span id="health-difficulty">0</span></span>
+                    </div>
+                    <div class="panel-body" style="padding:0">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Period</th>
+                                    <th>Avg Block Time</th>
+                                    <th>Blocks</th>
+                                    <th>Avg Hashrate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="mono">12h</td>
+                                    <td class="success-text" id="perf-avg-12h">
+                                        1m 00s
+                                    </td>
+                                    <td class="mono" id="perf-blocks-12h">720</td>
+                                    <td class="mono" id="perf-hashrate-12h">16.66 kH/s</td>
+                                </tr>
+                                <tr>
+                                    <td class="mono">24h</td>
+                                    <td class="success-text" id="perf-avg-24h">
+                                        1m 00s
+                                    </td>
+                                    <td class="mono" id="perf-blocks-24h">1440</td>
+                                    <td class="mono" id="perf-hashrate-24h">16.66 kH/s</td>
+                                </tr>
+                                <tr>
+                                    <td class="mono">7d</td>
+                                    <td class="success-text" id="perf-avg-7d">
+                                        1m 00s
+                                    </td>
+                                    <td class="mono" id="perf-blocks-7d">10400</td>
+                                    <td class="mono" id="perf-hashrate-7d">16.67 kH/s</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- FOOTER -->
+        <footer class="content-footer">
+            <img class="footer-mark" src="/static/logo-mark.svg" alt="Exiom" aria-hidden="true">
+            <div class="footer-links">
+                <a href="https://xeqmlabs.com/" target="_blank" rel="noopener">XEQMLabs</a>
+                <a href="https://github.com/XEQMLabs/xeqm-core/releases" target="_blank" rel="noopener">Source</a>
+                <a href="https://t.me/ExiomXEQM" target="_blank" rel="noopener">Community</a>
+            </div>
+            <div class="footer-version">
+                Exiom Explorer | v1.0.7 &lsquo;Ragnarok&rsquo;
+            </div>
+        </footer>
+    </main>
+</div>
+<!-- SCRIPTS -->
+<!-- Node map (Leaflet) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</body>
+</html>

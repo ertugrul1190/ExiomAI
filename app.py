@@ -18,6 +18,7 @@ from flask import (
 
 from ai_provider import AIProvider
 from live_data import LiveData
+import explorer_lookup
 
 from fact_catalog import (
     get_selected_facts,
@@ -345,6 +346,7 @@ ai_provider = AIProvider(
 )
 
 live_data = LiveData()
+explorer_lookups = explorer_lookup.ExplorerLookup()
 
 
 # Router decisions depend on the question and on which facts
@@ -1224,6 +1226,22 @@ def answer_pipeline(
 
 
     # -----------------------------------------------------
+    # NAMED EXPLORER IDS
+    # -----------------------------------------------------
+    #
+    # A question naming a service node, block or transaction
+    # is about that item. It skips the fast path, which only
+    # knows network-wide values: "block height of block N"
+    # must not be answered with the current chain height.
+    #
+    # The IDs are only parsed here. Fetching them is paid
+    # work, done after usage control.
+    # -----------------------------------------------------
+
+    lookup_ids = explorer_lookup.find_ids(question)
+
+
+    # -----------------------------------------------------
     # DETERMINISTIC FAST PATH
     # -----------------------------------------------------
     #
@@ -1235,7 +1253,7 @@ def answer_pipeline(
     # semantic AI router exactly as before.
     # -----------------------------------------------------
 
-    fast_result = fast_path.classify(
+    fast_result = None if lookup_ids else fast_path.classify(
         question,
         fact_registry
     )
@@ -1297,6 +1315,22 @@ def answer_pipeline(
         yield "error", budget_exceeded_payload(decision)
 
         return
+
+
+    lookup_facts = {}
+
+    if lookup_ids:
+
+        # A lookup that breaks must cost the answer its
+        # lookup, never the answer itself.
+        try:
+            lookup_facts = explorer_lookups.lookup(lookup_ids)
+
+        except Exception as error:
+            print(
+                "EXIOM Explorer lookup error:",
+                type(error).__name__
+            )
 
 
     # -----------------------------------------------------
@@ -1364,6 +1398,11 @@ def answer_pipeline(
         []
     )
 
+    # A question naming an Explorer ID is about EXIOM,
+    # however terse it is.
+    if lookup_facts and scope == "unrelated":
+        scope = "relevant"
+
 
     # -----------------------------------------------------
     # CLEARLY UNRELATED
@@ -1416,6 +1455,7 @@ def answer_pipeline(
     if (
         scope == "relevant"
         and intent == "direct_live_fact"
+        and not lookup_facts
     ):
 
         direct_answer = answer_selected_direct_fact(
@@ -1447,6 +1487,12 @@ def answer_pipeline(
             selected_fact_keys,
             fact_registry
         )
+    )
+
+    # Looked-up items travel with the selected facts, so
+    # they reach the prompt and the answer-reuse key alike.
+    selected_live_facts.update(
+        slim_facts_for_prompt(lookup_facts)
     )
 
     network_stats = live_data.get_network_stats()

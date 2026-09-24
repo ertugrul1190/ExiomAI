@@ -1,0 +1,184 @@
+
+<!DOCTYPE html>
+<html lang="en" style="background:#000;color:#fff">
+<head>
+      <title>Exiom | XEQM Explorer</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#000000">
+    <meta name="description" content="Exiom ($XEQM) Blockchain Explorer - View blocks, transactions, and service nodes on the Exiom network.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Exiom Explorer">
+    <meta property="og:description" content="Block explorer for the Exiom ($XEQM) network — blocks, transactions, service nodes, and governance quorums.">
+    <meta property="og:image" content="https://explorer.xeqmlabs.com/static/og-image-exiom.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="https://explorer.xeqmlabs.com/">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Exiom Explorer">
+    <meta name="twitter:description" content="Block explorer for the Exiom ($XEQM) network.">
+    <meta name="twitter:image" content="https://explorer.xeqmlabs.com/static/og-image-exiom.png">
+    <link rel="stylesheet" type="text/css" href="/style.css?v=1785880250">
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="apple-touch-icon" href="/static/favicon.ico">
+</head>
+<body class="dashboard-layout" style="background:#000;color:#fff;margin:0">
+<div class="app-container">
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <a href="/" class="sidebar-brand">
+            <img src="/static/logo-header.png" alt="Exiom" class="sidebar-logo">
+        </a>
+        <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle Sidebar" aria-label="Toggle Sidebar">
+        </button>
+    </div>
+    <div class="sidebar-search">
+        <form action="/search" method="get">
+            <div class="search-input-wrap">
+                <input type="text" name="value" class="sidebar-search-input" placeholder="Search block, tx, SN...">
+            </div>
+        </form>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <a href="/" class="nav-item " data-tab="dashboard">
+                <span>Dashboard</span>
+            </a>
+            <a href="/#nodes" class="nav-item" data-tab="nodes">
+                <span>Node Command Center</span>
+                <span class="nav-badge" id="nav-my-nodes-count">0</span>
+            </a>
+            <a href="/#health" class="nav-item" data-tab="health">
+                <span>Network Health</span>
+            </a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-title">Explorer</div>
+            <a href="/service_nodes" class="nav-item ">
+                <span>Service Nodes</span>
+                <span class="nav-badge">915</span>
+            </a>
+            <a href="/txpool" class="nav-item active">
+                <span>Mempool</span>
+            </a>
+            <a href="/quorums" class="nav-item ">
+                <span>Quorums</span>
+            </a>
+        </div>
+    </nav>
+    <div class="sidebar-footer">
+        <div class="network-indicator" id="network-indicator">
+            <div class="network-status-dot" id="network-status-dot"></div>
+            <span class="network-label" id="network-label"
+                  data-online-label="Mainnet - v1.0.7 &#8216;Ragnarok&#8217;"
+                  data-offline-label="Mainnet - v1.0.7 &#8216;Ragnarok&#8217;">
+                Mainnet - v1.0.7 &lsquo;Ragnarok&rsquo;
+            </span>
+        </div>
+        <div class="sidebar-stats">
+            <div class="sidebar-stat">
+                <span class="sidebar-stat-label">Block</span>
+                <span class="sidebar-stat-value" id="header-height">203150</span>
+            </div>
+            <div class="sidebar-stat">
+                <span class="sidebar-stat-label">Time (UTC)</span>
+                <span class="sidebar-stat-value">16:43</span>
+            </div>
+        </div>
+    </div>
+</aside>
+    <main class="main-content has-mobile-header">
+        <header class="mobile-header" id="mobile-header">
+            <a href="/" class="mobile-header-brand" aria-label="Exiom Explorer home">
+                <img src="/static/logo-header.png" alt="Exiom" class="mobile-header-logo">
+            </a>
+            <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu" aria-expanded="false">
+            </button>
+        </header>
+        <div class="content-area">
+<div class="offline-banner is-hidden" role="status" id="offline-banner" hidden style="display:none">
+    <div class="offline-banner-dot"></div>
+    <div class="offline-banner-text">
+        <strong>Disconnected</strong>
+        <span>Explorer is not connected to a daemon. Showing placeholder data until the seed node comes online.</span>
+    </div>
+</div>
+            <!-- MEMPOOL METRICS -->
+            <div class="metrics-grid metrics-grid-3">
+                <div class="metric-card">
+                    <div class="metric-icon">
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Pending Transactions</div>
+                        <div class="metric-value accent">0</div>
+                        <div class="metric-sub">Awaiting confirmation</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Total Size</div>
+                        <div class="metric-value">0B</div>
+                        <div class="metric-sub">Combined transaction data</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon success">
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Block Height</div>
+                        <div class="metric-value">203150</div>
+                        <div class="metric-sub">Current chain height</div>
+                    </div>
+                </div>
+            </div>
+            <!-- TX TYPE LEGEND -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Transaction Type Legend</div>
+                </div>
+                <div class="panel-body">
+                    <div class="tx-legend-grid">
+                        <div class="tx-legend-item"><span class="tx-legend-icon">&#x1F3C1;</span> Service Node Registration</div>
+                        <div class="tx-legend-item"><span class="tx-legend-icon">&#x2691;</span> Contribution</div>
+                        <div class="tx-legend-item"><span class="tx-legend-icon">&#x1F44D;</span> Recommission</div>
+                        <div class="tx-legend-item"><span class="tx-legend-icon">&#x1F44E;</span> Decommission</div>
+                        <div class="tx-legend-item"><span class="tx-legend-icon">&#x1F6AB;</span> Deregistration</div>
+                        <div class="tx-legend-item"><span class="tx-legend-icon">&#x1F513;</span> Stake Unlock</div>
+                        <div class="tx-legend-item"><span class="tx-legend-icon">&#x1F4BE;</span> ENS Update</div>
+                    </div>
+                </div>
+            </div>
+            <!-- MEMPOOL TABLE -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span class="live-dot"></span>
+                        Transaction Pool
+                    </div>
+                </div>
+                <div class="panel-body" style="padding: 0;">
+                    <div class="empty-state">
+                        <h3>Mempool Empty</h3>
+                        <p>No pending transactions in the mempool.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+<footer class="content-footer">
+    <img class="footer-mark" src="/static/logo-mark.svg" alt="Exiom" aria-hidden="true">
+    <div class="footer-links">
+        <a href="https://xeqmlabs.com/" target="_blank" rel="noopener">XEQMLabs</a>
+        <a href="https://github.com/XEQMLabs/xeqm-core/releases" target="_blank" rel="noopener">Source</a>
+        <a href="https://t.me/ExiomXEQM" target="_blank" rel="noopener">Community</a>
+    </div>
+    <div class="footer-version">
+        Exiom Explorer | v1.0.7 &lsquo;Ragnarok&rsquo;
+    </div>
+</footer>
+    </main>
+</div>
+</body>
+</html>

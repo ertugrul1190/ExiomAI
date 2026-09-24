@@ -1,5 +1,8 @@
+import json
+import logging
 import threading
 import time
+from pathlib import Path
 
 import requests
 
@@ -8,43 +11,102 @@ import live_data
 
 PAGE = """
 <html><body>
+<div class="offline-banner is-hidden" id="offline-banner" hidden>
+Disconnected. Explorer is not connected to a daemon.
+</div>
 <div>Block Height: 123,456</div>
 <div>Active Service Nodes: 1,024</div>
+<div>APY (current) 2.36%</div>
 </body></html>
 """
 
 
+FEEDS = {
+    "api/live_slow": {
+        "status": "OK",
+        "height": 123457,
+        "active_sns": 1025,
+        "total_sns": 1030,
+        "circulating_supply_atomic": 280_528_963_924_700_000,
+        "total_locked_atomic": 184_400_000_000_000_000,
+        "avg_24h": 60.016,
+    },
+    "api/networkinfo": {
+        "status": "OK",
+        "data": {"height": 123457, "tx_pool_size": 3},
+    },
+    "api/node_map": {
+        "status": "OK",
+        "data": {
+            "summary": {"countries": 2},
+            "nodes": [
+                {"country": "France", "count": 5},
+                {"country": "Germany", "count": 7},
+                {"country": "France", "count": 4},
+            ],
+        },
+    },
+}
+
+
 class FakeResponse:
 
-    text = PAGE
+    def __init__(self, text, status_code=200):
+        self.text = text
+        self.status_code = status_code
 
     def raise_for_status(self):
-        pass
+        if self.status_code >= 400:
+            raise requests.HTTPError(str(self.status_code))
+
+    def json(self):
+        return json.loads(self.text)
 
 
 class FakeSession:
     """
-    Counts Explorer fetches; optionally slow or failing.
+    Serves the Explorer's feeds and page; counts page
+    fetches; optionally slow or failing.
+
+    Tests change ``routes`` to break individual sources.
     """
 
     def __init__(self, delay=0.0, fail=False):
         self.delay = delay
         self.fail = fail
         self.calls = 0
+        self.requests = 0
+        self.paths = []
         self.timeouts = []
         self._lock = threading.Lock()
 
+        self.routes = {"": FakeResponse(PAGE)}
+
+        for path, payload in FEEDS.items():
+            self.routes[path] = FakeResponse(json.dumps(payload))
+
     def get(self, url, headers=None, timeout=None):
+        path = url.removeprefix(live_data.LiveData().explorer_url)
+
         with self._lock:
-            self.calls += 1
+            self.requests += 1
+            self.paths.append(path)
             self.timeouts.append(timeout)
+
+            # Every reading asks for the dashboard exactly
+            # once, whether or not the Explorer answers.
+            if path == "":
+                self.calls += 1
 
         time.sleep(self.delay)
 
         if self.fail:
             raise requests.ConnectionError("explorer down")
 
-        return FakeResponse()
+        return self.routes.get(path, FakeResponse("", 404))
+
+    def close(self):
+        pass
 
 
 def wait_for_background_refresh(data):
@@ -55,7 +117,7 @@ def wait_for_background_refresh(data):
 
 def build(session, clock=None):
     data = live_data.LiveData()
-    data.session = session
+    data.session_factory = lambda: session
 
     if clock:
         data._now = clock
@@ -69,7 +131,8 @@ def test_a_page_is_parsed_into_facts():
     stats = data.get_network_stats()
 
     assert stats["status"] == "available"
-    assert stats["facts"]["block_height"]["value"] == "123,456"
+    assert stats["facts"]["block_height"]["value"] == "123,457"
+    assert stats["facts"]["current_apy"]["value"] == "2.36"
 
 
 def test_the_explorer_call_is_time_bounded():
@@ -241,3 +304,377 @@ def test_a_failed_early_refresh_keeps_the_valid_reading():
     now[0] += data.refresh_ahead_seconds
 
     assert data.get_network_stats()["status"] == "unavailable"
+
+
+def test_feeds_are_read_before_the_page():
+    stats = build(FakeSession()).get_network_stats()
+    facts = stats["facts"]
+
+    assert facts["block_height"]["via"] == "api"
+    assert facts["active_nodes"]["value"] == "1,025"
+    assert facts["locked_supply"]["value"] == "184,400,000"
+    assert facts["unlocked_supply"]["value"] == "96,128,964"
+    assert facts["locked_supply_percent"]["value"] == "65.7"
+    assert facts["average_block_time_24h"]["value"] == "1m 00s"
+    assert facts["mempool_transactions"]["value"] == "3"
+
+    # Facts the page alone shows still come from the page.
+    assert facts["current_apy"]["via"] == "page"
+
+
+def test_nodes_by_country_adds_up_regions():
+    facts = build(FakeSession()).get_network_stats()["facts"]
+
+    assert facts["nodes_by_country"]["value"] == "France 9, Germany 7"
+    assert facts["node_countries"]["value"] == "2"
+
+
+def test_a_removed_feed_falls_back_to_the_page():
+    session = FakeSession()
+    del session.routes["api/live_slow"]
+    del session.routes["api/networkinfo"]
+
+    stats = build(session).get_network_stats()
+    block_height = stats["facts"]["block_height"]
+
+    assert stats["status"] == "available"
+    assert block_height["value"] == "123,456"
+    assert block_height["via"] == "page"
+
+    # A fact only a feed carries is gone, not guessed.
+    assert "registered_nodes" not in stats["facts"]
+
+
+def test_a_feed_that_is_no_longer_json_falls_back():
+    session = FakeSession()
+    session.routes["api/live_slow"] = FakeResponse("<html>moved</html>")
+
+    facts = build(session).get_network_stats()["facts"]
+
+    assert facts["active_nodes"]["value"] == "1,024"
+    assert facts["active_nodes"]["via"] == "page"
+
+
+def test_a_feed_reporting_a_bad_status_is_not_trusted():
+    session = FakeSession()
+    session.routes["api/live_slow"] = FakeResponse(
+        json.dumps({**FEEDS["api/live_slow"], "status": "BUSY"})
+    )
+
+    facts = build(session).get_network_stats()["facts"]
+
+    assert facts["active_nodes"]["via"] == "page"
+
+
+def test_a_renamed_field_moves_only_that_fact():
+    session = FakeSession()
+    renamed = dict(FEEDS["api/live_slow"])
+    renamed["active_service_nodes"] = renamed.pop("active_sns")
+    session.routes["api/live_slow"] = FakeResponse(json.dumps(renamed))
+
+    facts = build(session).get_network_stats()["facts"]
+
+    assert facts["active_nodes"]["via"] == "page"
+    assert facts["active_nodes"]["value"] == "1,024"
+    assert facts["registered_nodes"]["via"] == "api"
+
+
+def test_a_field_of_the_wrong_type_falls_back():
+    session = FakeSession()
+    changed = dict(FEEDS["api/live_slow"])
+    changed["active_sns"] = "1025"
+    session.routes["api/live_slow"] = FakeResponse(json.dumps(changed))
+
+    facts = build(session).get_network_stats()["facts"]
+
+    assert facts["active_nodes"]["via"] == "page"
+
+
+def test_feeds_alone_are_enough_when_the_page_breaks():
+    session = FakeSession()
+    session.routes[""] = FakeResponse("", 500)
+
+    stats = build(session).get_network_stats()
+
+    assert stats["status"] == "available"
+    assert stats["connection_state"] == "connected"
+    assert stats["facts"]["block_height"]["value"] == "123,457"
+    assert "current_apy" not in stats["facts"]
+
+
+def test_an_unrecognisable_explorer_is_unavailable():
+    """
+    Every source answered, but nothing in them is a fact:
+    nothing can be presented as current.
+    """
+
+    session = FakeSession()
+    session.routes = {"": FakeResponse("<html>redesigned</html>")}
+
+    assert build(session).get_network_stats()["status"] == (
+        "unavailable"
+    )
+
+
+def test_an_unreachable_explorer_costs_one_round_of_requests():
+    """
+    The sources are asked at once, so a down Explorer costs
+    one timeout, and no background page fetch is started.
+    """
+
+    session = FakeSession(fail=True)
+    data = build(session)
+
+    data.get_network_stats()
+    data.wait_for_page_refreshes()
+
+    assert "quorums" not in session.paths
+    assert session.requests == len(data.feeds) + 2
+
+
+def test_the_hidden_offline_banner_means_connected():
+    """
+    The page always carries its "Disconnected" banner and
+    hides it while the daemon is up.
+    """
+
+    session = FakeSession()
+    del session.routes["api/live_slow"]
+    del session.routes["api/networkinfo"]
+    del session.routes["api/node_map"]
+
+    stats = build(session).get_network_stats()
+
+    assert stats["connection_state"] == "connected"
+
+
+def test_a_visible_offline_banner_means_disconnected():
+    session = FakeSession()
+    session.routes[""] = FakeResponse(
+        PAGE.replace(' hidden>', '>').replace("is-hidden", "")
+    )
+
+    stats = build(session).get_network_stats()
+
+    assert stats["connection_state"] == "disconnected"
+
+
+def test_a_broken_source_is_logged_once(caplog):
+    now = [1000.0]
+    session = FakeSession()
+    del session.routes["api/node_map"]
+    data = build(session, clock=lambda: now[0])
+
+    with caplog.at_level(logging.WARNING, logger="live_data"):
+        data.get_network_stats()
+        now[0] += data.cache_seconds + 1
+        data.get_network_stats()
+
+    warnings = [
+        record for record in caplog.records
+        if "node_map" in record.getMessage()
+    ]
+
+    assert len(warnings) == 1
+
+
+# ---------------------------------------------------------
+# FACTS FROM THE OTHER EXPLORER PAGES
+# ---------------------------------------------------------
+
+FIXTURES = Path(__file__).parent / "fixtures" / "explorer"
+
+
+def explorer_page(name):
+    return FakeResponse((FIXTURES / name).read_text())
+
+
+def session_with_pages():
+    session = FakeSession()
+    session.routes[""] = explorer_page("dashboard.html")
+    session.routes["txpool"] = explorer_page("txpool.html")
+    session.routes["quorums"] = explorer_page("quorums.html")
+    session.routes["service_nodes"] = explorer_page("service_nodes.html")
+
+    return session
+
+
+def settled(data):
+    """
+    A reading taken once the background pages have arrived.
+    """
+
+    data.get_network_stats()
+    data.wait_for_page_refreshes()
+    data.cache.clear()
+
+    return data.get_network_stats()
+
+
+def test_quorum_counts_come_from_the_quorums_page():
+    facts = settled(build(session_with_pages()))["facts"]
+
+    assert facts["testing_quorums"]["value"] == "55"
+    assert facts["pulse_quorums"]["value"] == "56"
+    assert facts["checkpoint_quorums"]["value"] == "14"
+    assert facts["blink_quorums"]["value"] == "11"
+
+
+def test_mempool_size_comes_from_the_mempool_page():
+    facts = build(session_with_pages()).get_network_stats()["facts"]
+
+    assert facts["mempool_size"]["value"] == "0B"
+
+
+def test_current_release_adoption_comes_from_the_node_list():
+    facts = settled(build(session_with_pages()))["facts"]
+
+    assert facts["nodes_on_current_release"]["value"] == "490/916"
+
+
+def test_swarms_fall_back_to_the_node_list():
+    session = session_with_pages()
+    del session.routes["api/live_slow"]
+
+    facts = settled(build(session))["facts"]
+
+    assert facts["active_swarms"]["value"] == "134"
+    assert facts["active_swarms"]["via"] == "page"
+
+
+def test_the_real_dashboard_is_read_as_connected():
+    stats = build(session_with_pages()).get_network_stats()
+
+    assert stats["connection_state"] == "connected"
+
+
+def test_slow_pages_never_hold_up_a_reading():
+    session = session_with_pages()
+    session.delay = 0.3
+    data = build(session)
+
+    started = time.perf_counter()
+
+    # Every request takes 0.3 s and the sources are fetched
+    # in parallel, so a reading costs one request's time.
+    data.get_network_stats()
+    waited = time.perf_counter() - started
+
+    data.wait_for_page_refreshes()
+
+    assert waited < 0.6
+
+
+def test_slow_pages_are_fetched_at_their_own_interval():
+    """
+    The quorum and node-list pages are large and change
+    slowly; they are not refetched on every 30 s reading.
+    """
+
+    now = [1000.0]
+    session = session_with_pages()
+    data = build(session, clock=lambda: now[0])
+
+    def quorum_fetches():
+        return session.paths.count("quorums")
+
+    settled(data)
+
+    now[0] += data.cache_seconds + 1
+    data.get_network_stats()
+    data.wait_for_page_refreshes()
+
+    assert quorum_fetches() == 1
+
+    # Renewal starts halfway through a copy's life.
+    now[0] = 1000.0 + data.pages["quorums"]["max_age"] / 2
+    data.cache.clear()
+    facts = data.get_network_stats()["facts"]
+    data.wait_for_page_refreshes()
+
+    assert facts["pulse_quorums"]["value"] == "56"
+    assert quorum_fetches() == 2
+
+
+def test_an_expired_slow_page_is_not_used():
+    now = [1000.0]
+    session = session_with_pages()
+    data = build(session, clock=lambda: now[0])
+
+    settled(data)
+
+    session.routes["quorums"] = FakeResponse("", 500)
+    now[0] += data.pages["quorums"]["max_age"] + 1
+    data.cache.clear()
+
+    facts = data.get_network_stats()["facts"]
+
+    assert "pulse_quorums" not in facts
+    assert "block_height" in facts
+
+
+def test_a_failed_slow_page_is_dropped_not_reused():
+    now = [1000.0]
+    session = session_with_pages()
+    data = build(session, clock=lambda: now[0])
+
+    settled(data)
+
+    session.routes["quorums"] = FakeResponse("", 500)
+    now[0] += data.pages["quorums"]["max_age"] / 2
+    data.cache.clear()
+    data.get_network_stats()
+    data.wait_for_page_refreshes()
+    data.cache.clear()
+
+    assert "pulse_quorums" not in data.get_network_stats()["facts"]
+
+
+def test_a_background_page_not_yet_fetched_is_not_logged(caplog):
+    session = session_with_pages()
+    session.delay = 0.05
+
+    with caplog.at_level(logging.WARNING, logger="live_data"):
+        data = build(session)
+        data.get_network_stats()
+        data.wait_for_page_refreshes()
+
+    assert not [
+        r for r in caplog.records if "quorums" in r.getMessage()
+    ]
+
+
+def test_a_sub_minute_block_time_reads_like_the_page():
+    session = FakeSession()
+    fast = dict(FEEDS["api/live_slow"], avg_24h=59.4)
+    session.routes["api/live_slow"] = FakeResponse(json.dumps(fast))
+
+    facts = build(session).get_network_stats()["facts"]
+
+    assert facts["average_block_time_24h"]["value"] == "59s"
+
+
+def test_a_sub_minute_block_time_falls_back_to_the_page():
+    session = FakeSession()
+    del session.routes["api/live_slow"]
+    session.routes[""] = FakeResponse(
+        PAGE + "<div>Avg Block (1h) 59s Avg Block (12h) 1m 00s</div>"
+    )
+
+    facts = build(session).get_network_stats()["facts"]
+
+    assert facts["average_block_time_1h"]["value"] == "59s"
+
+
+def test_a_banner_marked_not_hidden_means_disconnected():
+    session = FakeSession()
+    session.routes[""] = FakeResponse(
+        PAGE.replace(
+            'class="offline-banner is-hidden" id="offline-banner" hidden',
+            'class="offline-banner" id="offline-banner" aria-hidden="false"'
+        )
+    )
+
+    assert build(session).get_network_stats()["connection_state"] == (
+        "disconnected"
+    )
