@@ -248,6 +248,7 @@
                     type="text"
                     placeholder="Ask anything about XEQM..."
                     autocomplete="off"
+                    aria-describedby="privacyNote"
                 >
 
                 <button
@@ -258,6 +259,15 @@
                 </button>
 
             </div>
+
+            <!-- PRIVACY NOTICE (Task 13) -->
+
+            <p id="privacyNote" class="privacy-note">
+                Questions are sent to an AI service to write the
+                answer. Your chat lives only in this tab and is gone
+                when you close it. Never share a recovery phrase,
+                private key or personal details.
+            </p>
 
         </section>
 
@@ -311,8 +321,34 @@ const streamSwitch =
 const STREAMING_KEY = "exiom.streaming";
 
 
+/* Storage can be blocked (private browsing, strict privacy
+   settings) and then throws. The toggle must never take the
+   whole page down with it: it just stops being remembered. */
+
+function readSetting(key) {
+
+    try {
+        return window.localStorage.getItem(key);
+    } catch (error) {
+        return null;
+    }
+
+}
+
+
+function writeSetting(key, value) {
+
+    try {
+        window.localStorage.setItem(key, value);
+    } catch (error) {
+        /* Not remembered; the choice still applies now. */
+    }
+
+}
+
+
 let streamingEnabled =
-    window.localStorage.getItem(
+    readSetting(
         STREAMING_KEY
     ) !== "off";
 
@@ -327,7 +363,7 @@ streamSwitch.addEventListener(
         streamingEnabled =
             streamSwitch.checked;
 
-        window.localStorage.setItem(
+        writeSetting(
             STREAMING_KEY,
             streamingEnabled ? "on" : "off"
         );

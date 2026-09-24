@@ -64,7 +64,12 @@ limit_request_line = 4094
 limit_request_fields = 50
 limit_request_field_size = 8190
 
-# The access log records method, path and status only: the
-# question travels in the POST body, never in a URL.
+# The access log records time, method, path, status, size and
+# duration only (Task 13). gunicorn's default format also
+# logs the client address, Referer and User-Agent: personal
+# data this service has no use for. The question travels in
+# the POST body, never in a URL; the query string is left out
+# anyway.
 accesslog = "-"
+access_log_format = '%(t)s "%(m)s %(U)s" %(s)s %(B)s %(M)sms'
 errorlog = "-"

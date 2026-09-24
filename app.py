@@ -66,6 +66,7 @@ from usage_control import (
 )
 
 import security
+import privacy
 
 from werkzeug.exceptions import (
     InternalServerError,
@@ -424,7 +425,7 @@ def home():
 def clean_conversation(conversation):
 
     kept = trim_conversation(
-        conversation,
+        privacy.without_wallet_secrets(conversation),
         max_messages=MAX_CONVERSATION_MESSAGES,
         max_chars_per_message=MAX_CHARS_PER_MESSAGE,
         total_char_budget=MAX_CONVERSATION_CHARS
@@ -1069,6 +1070,21 @@ def read_ask_request(data):
         return None, None, ({
             "answer": "Please enter a question.",
             "error_type": "empty_question"
+        }, 400, {})
+
+    # Before anything else sees it: a pasted recovery phrase or
+    # key must never reach the AI provider, a cache or a log.
+    if privacy.contains_wallet_secret(question):
+
+        return None, None, ({
+            "answer":
+                "That looks like a wallet recovery phrase or "
+                "private key, so I didn't send or keep it \U0001F512 "
+                "Never share these with anyone, me included: "
+                "whoever has them controls the wallet. If you've "
+                "shared it anywhere, move your funds to a new "
+                "wallet.",
+            "error_type": "sensitive_content"
         }, 400, {})
 
     if len(question) > 1000:

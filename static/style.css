@@ -770,6 +770,15 @@ main {
     font-size: 15px;
 }
 
+.privacy-note {
+    margin: -8px 0 0;
+    padding: 0 20px 16px;
+
+    color: rgba(255,255,255,.42);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
 .chat-box input:focus {
     border-color:
         rgba(101,230,167,.35);

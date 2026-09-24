@@ -45,3 +45,15 @@ def test_request_heads_are_bounded(monkeypatch):
     assert 0 < config["limit_request_line"] <= 8190
     assert 0 < config["limit_request_fields"] <= 100
     assert 0 < config["limit_request_field_size"] <= 8190
+
+
+def test_access_log_records_no_personal_data(monkeypatch):
+    log_format = load(monkeypatch)["access_log_format"]
+
+    # h: client address, a: User-Agent, f: Referer,
+    # r/q: query string, {...}i: any request header.
+    for atom in ("%(h)s", "%(a)s", "%(f)s", "%(r)s", "%(q)s", "}i"):
+        assert atom not in log_format
+
+    assert "%(U)s" in log_format
+    assert "%(s)s" in log_format

@@ -264,9 +264,15 @@ class AIProvider:
         json_output
     ):
 
+        # store=False: the Responses API otherwise keeps every
+        # response (question included) retrievable for 30 days.
+        # Nothing here reads a stored response back; each call
+        # sends its own context. Not a cost control, so never
+        # dropped.
         request = {
             "model": self.primary_model,
             "input": messages,
+            "store": False,
         }
 
         if max_output_tokens:

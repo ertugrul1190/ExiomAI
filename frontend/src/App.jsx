@@ -7,6 +7,24 @@ gsap.registerPlugin(ScrollTrigger)
 
 const STREAMING_KEY = 'exiom.streaming'
 
+// Storage throws when blocked (private browsing, strict
+// privacy settings); the toggle then just isn't remembered.
+function readSetting(key) {
+  try {
+    return window.localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function writeSetting(key, value) {
+  try {
+    window.localStorage.setItem(key, value)
+  } catch {
+    // Not remembered; the choice still applies now.
+  }
+}
+
 function App() {
   const page = useRef()
   const button = useRef()
@@ -22,7 +40,7 @@ function App() {
   const [live, setLive] = useState('')
 
   const [streaming, setStreaming] = useState(
-    () => window.localStorage.getItem(STREAMING_KEY) !== 'off'
+    () => readSetting(STREAMING_KEY) !== 'off'
   )
 
   const toggleStreaming = () => {
@@ -30,7 +48,7 @@ function App() {
 
     setStreaming(next)
 
-    window.localStorage.setItem(
+    writeSetting(
       STREAMING_KEY,
       next ? 'on' : 'off'
     )
