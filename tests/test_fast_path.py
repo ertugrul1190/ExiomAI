@@ -197,3 +197,93 @@ def test_unrelated_question_goes_to_the_ai_router():
 
 def test_empty_question_returns_none():
     assert fast_path.classify("", REGISTRY) is None
+
+
+# ---------------------------------------------------------
+# DIRECT LIVE FACTS ADDED WITH THE EXPLORER FEEDS
+# ---------------------------------------------------------
+
+NEW_FACT_KEYS = [
+    "inactive_nodes", "registered_nodes", "open_pool_nodes",
+    "active_swarms", "node_countries", "nodes_by_country",
+    "locked_supply_percent", "unlocked_supply", "max_contributors",
+    "average_block_time_1h", "average_block_time_24h",
+    "average_block_time_7d", "target_block_time", "blocks_24h",
+    "hashrate_24h", "total_transactions", "mempool_size",
+    "database_size", "nodes_on_current_release", "testing_quorums",
+    "pulse_quorums", "checkpoint_quorums", "blink_quorums",
+]
+
+FULL_REGISTRY = dict(
+    REGISTRY,
+    **{key: {"label": key, "value": "1", "unit": ""} for key in NEW_FACT_KEYS}
+)
+
+
+@pytest.mark.parametrize("question,expected", [
+    ("how many inactive nodes are there", "inactive_nodes"),
+    ("how many decommissioned nodes right now", "inactive_nodes"),
+    ("how many registered service nodes", "registered_nodes"),
+    ("how many open pool nodes", "open_pool_nodes"),
+    ("how many swarms are there", "active_swarms"),
+    ("how many countries have nodes", "node_countries"),
+    ("current nodes by country", "nodes_by_country"),
+    ("what percentage of supply is locked right now", "locked_supply_percent"),
+    ("what is the unlocked supply now", "unlocked_supply"),
+    ("what's the max contributors", "max_contributors"),
+    ("current average block time", "average_block_time_24h"),
+    ("average block time in the last hour right now", "average_block_time_1h"),
+    ("current average block time this week", "average_block_time_7d"),
+    ("what is the target block time", "target_block_time"),
+    ("how many blocks in the last 24 hours", "blocks_24h"),
+    ("what is the current hashrate", "hashrate_24h"),
+    ("how many total transactions", "total_transactions"),
+    ("current mempool size", "mempool_size"),
+    ("what is the current database size", "database_size"),
+    ("how many nodes are upgraded now", "nodes_on_current_release"),
+    ("how many nodes on the latest version", "nodes_on_current_release"),
+    ("how many testing quorums", "testing_quorums"),
+    ("how many pulse quorums are there", "pulse_quorums"),
+    ("current checkpoint quorums", "checkpoint_quorums"),
+    ("how many blink quorums", "blink_quorums"),
+])
+def test_new_explorer_values_skip_both_ai_calls(question, expected):
+    result = fast_path.classify(question, FULL_REGISTRY)
+
+    assert result == {"route": "live", "facts": [expected]}
+
+
+@pytest.mark.parametrize("question", [
+    "what is a pulse quorum",
+    "explain blink quorums",
+    "how many quorums",
+    "what is the block time",
+    "how many total nodes",
+    "which countries have the most nodes",
+    "why is the hashrate so low",
+    "what is the hashrate",
+    "how many pulse quorums and blink quorums",
+])
+def test_ambiguous_or_conceptual_new_questions_go_to_the_ai(question):
+    assert fast_path.classify(question, FULL_REGISTRY) is None
+
+
+def test_the_mempool_count_still_wins_over_its_size():
+    assert fast_path.classify(
+        "how many transactions are in the mempool", FULL_REGISTRY
+    ) == {"route": "live", "facts": ["mempool_transactions"]}
+
+
+def test_every_explorer_fact_has_a_fast_path_phrase():
+    """
+    A new registry fact without a phrase silently costs an AI
+    call for its plainest question.
+    """
+
+    import live_data
+
+    missing = set(live_data.LiveData().fact_definitions) - set(
+        fast_path.FACT_PHRASES
+    )
+
+    assert missing == set()

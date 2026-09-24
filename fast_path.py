@@ -361,6 +361,152 @@ FACT_PHRASES = {
         "earnings per year",
         "per year per node",
     ),
+
+    # "Total nodes" is deliberately absent: the Explorer's
+    # dashboard uses it for the active count, its feed for
+    # the registered count.
+    "inactive_nodes": (
+        "inactive nodes",
+        "inactive service nodes",
+        "decommissioned nodes",
+        "decommissioned service nodes",
+    ),
+
+    "registered_nodes": (
+        "registered nodes",
+        "registered service nodes",
+    ),
+
+    "open_pool_nodes": (
+        "open pool nodes",
+        "pool nodes",
+        "open nodes",
+        "nodes open for staking",
+    ),
+
+    "active_swarms": (
+        "swarms",
+        "active swarms",
+    ),
+
+    "node_countries": (
+        "countries",
+        "countries have nodes",
+        "countries with nodes",
+    ),
+
+    "nodes_by_country": (
+        "nodes by country",
+        "nodes per country",
+        "nodes in each country",
+    ),
+
+    "locked_supply_percent": (
+        "percentage locked",
+        "percent locked",
+        "locked percentage",
+        "percentage of supply locked",
+        "percentage of supply is locked",
+        "percentage of the supply is locked",
+    ),
+
+    "unlocked_supply": (
+        "unlocked supply",
+        "unstaked supply",
+    ),
+
+    "max_contributors": (
+        "max contributors",
+        "maximum contributors",
+        "max contributors per node",
+        "maximum contributors per node",
+    ),
+
+    # "Block time" alone is left to the router: it may mean
+    # the target or the measured average.
+    "average_block_time_24h": (
+        "average block time",
+        "avg block time",
+        "average block time today",
+    ),
+
+    "average_block_time_1h": (
+        "average block time in the last hour",
+        "average block time last hour",
+        "average block time this hour",
+    ),
+
+    "average_block_time_7d": (
+        "average block time this week",
+        "average block time last week",
+        "average block time in the last 7 days",
+        "average block time in the last week",
+    ),
+
+    "target_block_time": (
+        "target block time",
+    ),
+
+    "blocks_24h": (
+        "blocks in the last 24 hours",
+        "blocks in 24 hours",
+        "blocks in 24h",
+        "blocks per day",
+        "blocks a day",
+    ),
+
+    "hashrate_24h": (
+        "hashrate",
+        "hash rate",
+        "network hashrate",
+    ),
+
+    "total_transactions": (
+        "total transactions",
+        "transactions ever",
+        "transactions so far",
+    ),
+
+    "mempool_size": (
+        "mempool size",
+        "size of the mempool",
+    ),
+
+    "database_size": (
+        "database size",
+        "blockchain size",
+        "size of the blockchain",
+    ),
+
+    "nodes_on_current_release": (
+        "nodes are upgraded",
+        "nodes upgraded",
+        "upgraded nodes",
+        "nodes are updated",
+        "nodes updated",
+        "nodes on the latest version",
+        "nodes on latest version",
+        "nodes on the current release",
+        "nodes on the latest release",
+    ),
+
+    # "Quorums" alone is left to the router: there are four
+    # kinds.
+    "testing_quorums": (
+        "testing quorums",
+    ),
+
+    "pulse_quorums": (
+        "pulse quorums",
+    ),
+
+    "checkpoint_quorums": (
+        "checkpoint quorums",
+    ),
+
+    "blink_quorums": (
+        "blink quorums",
+    ),
 }
 
 
@@ -403,6 +549,8 @@ VALUE_CUES = (
 VALUE_CUE_EXEMPT_FACT_KEYS = {
     "staking_requirement",
     "minimum_operator_contribution",
+    "max_contributors",
+    "target_block_time",
 }
 
 

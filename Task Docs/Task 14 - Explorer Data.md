@@ -36,8 +36,9 @@ The feeds are undocumented and can change without notice,
 which is why every fact the pages also show keeps a page
 fallback.
 
-Registry: 16 facts before, 39 now. The router and fast path
-needed no change; they read the registry.
+Registry: 16 facts before, 39 now. The router needed no
+change: it reads the registry. The fast path gained phrases
+for the new facts (14.7).
 
 
 ## 14.2 Source layer and fallback (`live_data.py`)
@@ -197,3 +198,28 @@ Reviewed and kept:
   codebase. None of it has enums.
 
 Tests: 342 → 405, all passing.
+
+
+## 14.7 Fast path for the new facts
+
+Every registry fact now has phrases in `fast_path.py`, so the
+plainest question for it ("how many pulse quorums are there",
+"current mempool size") is answered from the Explorer with no
+AI call. A test fails if a future registry fact has no phrase.
+
+The existing rules are unchanged: a value cue ("how many",
+"current", "now"…) is required, and two facts, extra words,
+pronouns or an explanation cue ("what is a pulse quorum") send
+the question to the AI router. Max contributors and target
+block time join the value-cue exemptions, alongside the
+staking requirement: they are named thresholds.
+
+Left to the router on purpose, because they are ambiguous:
+
+* "quorums" (four kinds)
+* "block time" (target or measured average)
+* "total nodes" (the dashboard means active nodes, the feed
+  means registered ones)
+* the singular "pulse quorum" (usually a concept question)
+
+Tests: 405 → 441.
