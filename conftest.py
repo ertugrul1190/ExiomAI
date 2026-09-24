@@ -16,3 +16,7 @@ os.environ.setdefault("OPENAI_API_KEY", "test-key-not-used")
 # them.
 os.environ.setdefault("EXIOM_FLOOD_REQUESTS_PER_MINUTE", "1000000")
 os.environ.setdefault("EXIOM_MAX_CONCURRENT_ANSWERS", "1000000")
+
+# The usage ledger is a file shared across restarts; tests
+# that need one build their own in a temporary directory.
+os.environ.setdefault("EXIOM_USAGE_DB", "off")

@@ -524,3 +524,146 @@ def test_stream_never_retries_once_text_was_sent(monkeypatch):
 
     assert chunks == ["hel"]
     assert len(provider.client.responses.requests) == 1
+
+
+# ---------------------------------------------------------
+# WEB SEARCH
+# ---------------------------------------------------------
+
+class SearchCall:
+    type = "web_search_call"
+
+
+class TextMessage:
+    type = "message"
+
+
+def searched_response(text="price", searches=1):
+    response = FakeResponse(text)
+    response.output = [SearchCall()] * searches + [TextMessage()]
+    return response
+
+
+def test_answers_do_not_search_unless_asked(monkeypatch):
+    provider = build_provider([FakeResponse("answer")], monkeypatch)
+
+    provider.generate("system", [], "what is staking?")
+
+    request = provider.client.responses.requests[0]
+
+    assert "tools" not in request
+    assert "tool_choice" not in request
+
+
+def test_a_search_answer_sends_one_restricted_search(monkeypatch):
+    provider = build_provider([searched_response()], monkeypatch)
+
+    provider.generate("system", [], "exiom coin price", web_search=True)
+
+    request = provider.client.responses.requests[0]
+    [tool] = request["tools"]
+
+    assert tool["type"] == "web_search"
+    assert tool["search_context_size"] == "low"
+    assert "coingecko.com" in tool["filters"]["allowed_domains"]
+    assert "xeqmlabs.com" in tool["filters"]["allowed_domains"]
+    assert request["tool_choice"] == "required"
+    assert request["max_output_tokens"] > ai_provider.MAIN_MAX_OUTPUT_TOKENS
+
+
+def test_search_never_runs_with_minimal_reasoning(monkeypatch):
+    monkeypatch.setattr(ai_provider, "MAIN_REASONING_EFFORT", "minimal")
+
+    provider = build_provider([searched_response()], monkeypatch)
+
+    provider.generate("system", [], "exiom coin price", web_search=True)
+
+    request = provider.client.responses.requests[0]
+
+    assert request["reasoning"]["effort"] == "low"
+
+
+def test_every_search_is_metered(monkeypatch):
+    provider = build_provider([searched_response(searches=2)], monkeypatch)
+
+    provider.generate("system", [], "exiom coin price", web_search=True)
+
+    snapshot = provider.cost_meter.snapshot()
+
+    assert snapshot["web_searches"] == 2
+    assert snapshot["by_route"]["answer"]["web_searches"] == 2
+
+
+def test_a_rejected_search_tool_is_dropped_and_the_answer_still_comes(
+    monkeypatch
+):
+    provider = build_provider(
+        [
+            status_error(400, "Tool 'web_search' is not supported with this model."),
+            FakeResponse("answer"),
+        ],
+        monkeypatch
+    )
+
+    result = provider.generate("system", [], "price", web_search=True)
+
+    assert result["answer"] == "answer"
+    assert result["searched"] is False
+    assert provider.web_search_enabled is False
+    assert "tools" not in provider.client.responses.requests[1]
+    assert "tool_choice" not in provider.client.responses.requests[1]
+
+
+def test_generate_reports_whether_it_searched(monkeypatch):
+    provider = build_provider([searched_response()], monkeypatch)
+
+    result = provider.generate("system", [], "price", web_search=True)
+
+    assert result["searched"] is True
+
+
+def test_web_search_can_be_switched_off(monkeypatch):
+    monkeypatch.setenv("EXIOM_WEB_SEARCH", "0")
+
+    provider = build_provider([FakeResponse("answer")], monkeypatch)
+
+    assert provider.web_search_enabled is False
+
+    provider.generate("system", [], "price", web_search=True)
+
+    assert "tools" not in provider.client.responses.requests[0]
+
+
+def test_streamed_search_is_requested_and_metered(monkeypatch):
+    provider = build_provider([], monkeypatch)
+
+    stream = FakeStream(["$0.0", "17"])
+    stream.get_final_response = lambda: searched_response("$0.017")
+
+    attach_stream(provider, [stream])
+
+    chunks = list(
+        provider.stream_generate("system", [], "price", web_search=True)
+    )
+
+    assert chunks == ["$0.0", "17"]
+    assert provider.client.responses.requests[0]["tools"][0]["type"] == \
+        "web_search"
+    assert provider.cost_meter.snapshot()["web_searches"] == 1
+
+
+@pytest.mark.parametrize("configured, expected", [
+    ("https://CoinGecko.com/, xeqmlabs.com", ["coingecko.com", "xeqmlabs.com"]),
+    ("bad domain, ok.io, *, http://, a", ["ok.io"]),
+    ("", list(ai_provider.DEFAULT_WEB_SEARCH_DOMAINS)),
+    ("not a domain, !!", list(ai_provider.DEFAULT_WEB_SEARCH_DOMAINS)),
+    ("x.com, x.com", ["x.com"]),
+])
+def test_search_domains_are_validated(configured, expected):
+    assert ai_provider.parse_search_domains(configured) == expected
+
+
+def test_search_domains_are_capped_at_the_api_limit():
+    configured = ",".join(f"site{index}.com" for index in range(150))
+
+    assert len(ai_provider.parse_search_domains(configured)) == 100

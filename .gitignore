@@ -8,3 +8,6 @@
 __pycache__/
 .venv/
 .pytest_cache/
+
+# Usage ledger (Task 15): counters, per deployment
+usage.sqlite3*

@@ -162,7 +162,34 @@ Conversation context carries over, so follow-ups like "and
 what about last week?" or "explain that more simply" work.
 
 
-## 4. What it won't do
+## 4. Prices, markets and other current information
+
+Some current information isn't on the Explorer: the XEQM
+price, market cap and volume, where XEQM is traded, the latest
+software release and recent announcements. For these, EXIOM AI
+runs a quick web search limited to XEQMLabs' own sites, its
+GitHub and the price trackers and exchanges that list XEQM,
+and names the site each figure comes from.
+
+| You can ask about | Example question |
+| --- | --- |
+| XEQM price | Exiom coin price |
+| Market cap and volume | What's XEQM's market cap? |
+| Where to buy right now | Where can I buy XEQM right now? |
+| Latest software release | What's the latest XEQM release? |
+| Recent announcements | Any recent XEQMLabs news? |
+
+- Prices differ slightly between sites and exchanges, and the
+  answer says so.
+- Network numbers (supply, nodes, block height) always come
+  from the Explorer, never from a web page.
+- No price predictions, and no advice to buy or sell.
+- Searches take a few seconds longer than other answers.
+- Searches have a daily limit. Past it, EXIOM AI says it can't
+  check right now and points to CoinGecko or the exchange.
+
+
+## 5. What it won't do
 
 - **Off-topic questions** (unrelated to EXIOM, XEQM or crypto)
   get a friendly decline.
@@ -175,7 +202,7 @@ what about last week?" or "explain that more simply" work.
   ports.
 
 
-## 5. Good to know
+## 6. Good to know
 
 - **Numbers are live.** Most values refresh every 30 seconds.
   Quorum counts and "nodes on the latest release" change

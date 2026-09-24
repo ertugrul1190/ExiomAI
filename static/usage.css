@@ -1,0 +1,101 @@
+/* The usage page (templates/usage.html). Builds on style.css. */
+
+[hidden] {
+    display: none !important;
+}
+
+.usage-button {
+    padding: 9px 16px;
+    border: 0;
+    border-radius: 10px;
+    background: white;
+    color: #070a10;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.usage-panel {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 32px;
+}
+
+.usage-panel input {
+    flex: 1 1 220px;
+    padding: 9px 12px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    color: inherit;
+}
+
+.usage-message {
+    min-height: 1.2em;
+    color: #9da8b8;
+    font-size: 14px;
+}
+
+.usage-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.usage-card {
+    padding: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    background: rgba(255,255,255,0.03);
+}
+
+.usage-card span {
+    display: block;
+    color: #9da8b8;
+    font-size: 12px;
+}
+
+.usage-card strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 22px;
+    font-variant-numeric: tabular-nums;
+}
+
+.usage-table-wrap {
+    margin-top: 20px;
+    overflow-x: auto;
+}
+
+.usage-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+}
+
+.usage-table th,
+.usage-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    text-align: right;
+    white-space: nowrap;
+}
+
+.usage-table th:first-child,
+.usage-table td:first-child {
+    text-align: left;
+}
+
+.usage-table th {
+    color: #9da8b8;
+    font-weight: normal;
+}
+
+.usage-note {
+    margin: 20px 0 40px;
+    color: #9da8b8;
+    font-size: 13px;
+    line-height: 1.5;
+}

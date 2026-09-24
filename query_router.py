@@ -1,4 +1,36 @@
 import json
+import re
+
+
+# ---------------------------------------------------------
+# MARKET QUESTION BACKSTOP
+# ---------------------------------------------------------
+#
+# The router flags these for a web search, but at minimal
+# reasoning it sometimes forgets (1 in 4 identical calls in
+# the Task 15 live test). The plainest wording is caught here
+# too, at no cost. It only ever adds a search to a relevant,
+# non-explanation question (see app.py).
+# ---------------------------------------------------------
+
+MARKET_PATTERN = re.compile(
+    r"\b("
+    r"prices?|priced"
+    r"|market\s?caps?|marketcap"
+    r"|(trading|24h|24 hour|daily)\s+volume"
+    r"|worth"
+    r"|how much is (xeqm|exiom|it|one)"
+    r"|where (can|do|should|to) (i |we |you )?(buy|trade|get|purchase)"
+    r"|exchanges?|listed|listings?"
+    r"|(latest|newest|current) ((xeqm|exiom) )?(core |software )?releases?"
+    r"|news|announcements?"
+    r")\b",
+    re.IGNORECASE
+)
+
+
+def asks_for_current_market_info(question):
+    return bool(MARKET_PATTERN.search(question or ""))
 
 
 def build_fact_catalogue(fact_registry):
@@ -77,6 +109,9 @@ does not change this.
 Examples: "Who made you?", "Who is behind this?",
 "Are you made by XEQMLabs?", "What are you?" → relevant
 
+XEQM price, market and exchange questions are RELEVANT:
+"Exiom coin price", "Where can I buy XEQM?" → relevant
+
 UNRELATED means it has nothing reasonably to do with those.
 
 MIXED means it contains both.
@@ -149,12 +184,38 @@ nodes_by_country.
 
 
 ============================================================
+WEB SEARCH
+============================================================
+
+"search" is true ONLY when a relevant message needs CURRENT
+EXIOM/XEQM information that no Explorer fact above supplies
+and that changes over time:
+
+- XEQM market price, market cap, trading volume
+- where XEQM is traded or listed right now
+- the latest XEQM software release
+- recent EXIOM/XEQMLabs announcements or news
+
+Otherwise "search" is false: concepts, explanations, how
+EXIOM works, EXIOM AI itself, anything an Explorer fact
+answers, and every unrelated message.
+
+"Exiom coin price" → search true
+"How much is XEQM worth?" → search true
+"Where can I buy XEQM right now?" → search true
+"What's the latest XEQM release?" → search true
+"How many active nodes are there?" → search false
+"What is staking?" → search false
+"Will XEQM go up?" → search false
+
+
+============================================================
 OUTPUT
 ============================================================
 
 Return ONLY valid JSON, exactly this structure:
 
-{{"scope":"relevant","intent":"explanation","facts":[]}}
+{{"scope":"relevant","intent":"explanation","facts":[],"search":false}}
 
 "facts" must contain zero or more exact keys from AVAILABLE
 LIVE EXPLORER FACTS. Never invent a fact key.
@@ -170,10 +231,16 @@ def parse_router_result(raw_result, fact_registry):
         result = json.loads(raw_result)
 
     except (json.JSONDecodeError, TypeError):
+        result = None
+
+    # Valid JSON that is not an object ("[]", "true") is as
+    # unusable as invalid JSON.
+    if not isinstance(result, dict):
         return {
             "scope": "relevant",
             "intent": "general",
-            "facts": []
+            "facts": [],
+            "search": False
         }
 
     valid_scopes = {
@@ -212,8 +279,12 @@ def parse_router_result(raw_result, fact_registry):
         if fact in available_keys
     ]
 
+    # Only a literal true searches: a search is paid work.
+    search = result.get("search") is True and scope != "unrelated"
+
     return {
         "scope": scope,
         "intent": intent,
-        "facts": facts
+        "facts": facts,
+        "search": search
     }

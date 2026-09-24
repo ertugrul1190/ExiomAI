@@ -95,6 +95,12 @@ class FakeProvider:
 
         self.last_usage = {"input_tokens": 100, "output_tokens": 20}
 
+        # None answers "answer to <question>"; any string,
+        # empty included, is the answer instead.
+        self.answer_text = None
+
+        self.web_search_enabled = True
+
     @property
     def calls(self):
         return (
@@ -111,17 +117,22 @@ class FakeProvider:
 
         return dict(self.route_result)
 
-    def generate(self, system_prompt, conversation, question):
+    def generate(self, system_prompt, conversation, question,
+                 web_search=False):
         self.generate_calls.append(
             {
                 "system_prompt": system_prompt,
                 "conversation": conversation,
                 "question": question,
+                "web_search": web_search,
             }
         )
 
         if self.generate_error:
             raise self.generate_error
+
+        if self.answer_text is not None:
+            return {"answer": self.answer_text}
 
         return {"answer": f"answer to {question}"}
 
@@ -130,21 +141,27 @@ class FakeProvider:
 
         return {"answer": "banter"}
 
-    def stream_generate(self, system_prompt, conversation, question):
+    def stream_generate(self, system_prompt, conversation, question,
+                        web_search=False):
         self.generate_calls.append(
             {
                 "system_prompt": system_prompt,
                 "conversation": conversation,
                 "question": question,
+                "web_search": web_search,
             }
         )
 
         if self.generate_error:
             raise self.generate_error
 
-        for index, chunk in enumerate(
+        chunks = (
             ["answer ", "to ", question]
-        ):
+            if self.answer_text is None
+            else [self.answer_text] if self.answer_text else []
+        )
+
+        for index, chunk in enumerate(chunks):
             if self.stream_error_after == index:
                 raise RuntimeError("stream broke")
 
@@ -910,3 +927,197 @@ def test_a_broken_lookup_still_answers(client, provider):
 
     assert response.status_code == 200
     assert len(provider.generate_calls) == 1
+
+
+
+# ---------------------------------------------------------
+# WEB SEARCH
+# ---------------------------------------------------------
+
+SEARCH_ROUTE = {
+    "scope": "relevant",
+    "intent": "general",
+    "facts": [],
+    "search": True
+}
+
+
+@pytest.mark.parametrize("send", [ask, ask_stream])
+def test_a_flagged_question_is_answered_with_a_search(client, provider, send):
+    provider.route_result = dict(SEARCH_ROUTE)
+
+    assert send(client, "exiom coin price").status_code == 200
+
+    [call] = provider.generate_calls
+
+    assert call["web_search"] is True
+    assert "WEB SEARCH: ON" in call["system_prompt"]
+
+
+@pytest.mark.parametrize("send", [ask, ask_stream])
+def test_an_unflagged_question_never_searches(client, provider, send):
+    send(client, "what is staking?")
+
+    [call] = provider.generate_calls
+
+    assert call["web_search"] is False
+    assert "WEB SEARCH" not in call["system_prompt"].split("THIS REQUEST")[1]
+
+
+def test_searched_answers_are_never_reused(client, provider):
+    provider.route_result = dict(SEARCH_ROUTE)
+
+    ask(client, "exiom coin price")
+    ask(client, "exiom coin price")
+
+    assert len(provider.generate_calls) == 2
+
+
+def test_past_the_search_allowance_the_answer_says_it_cannot_check(
+    client,
+    provider,
+    monkeypatch
+):
+    monkeypatch.setattr(
+        application,
+        "usage_controller",
+        usage_control.UsageController(client_web_searches_per_day=0)
+    )
+    provider.route_result = dict(SEARCH_ROUTE)
+
+    assert ask(client, "exiom coin price").status_code == 200
+
+    [call] = provider.generate_calls
+
+    assert call["web_search"] is False
+    assert "WEB SEARCH: UNAVAILABLE" in call["system_prompt"]
+
+
+def test_search_off_in_the_provider_is_not_claimed(client, provider, monkeypatch):
+    provider.web_search_enabled = False
+    provider.route_result = dict(SEARCH_ROUTE)
+
+    ask(client, "exiom coin price")
+
+    [call] = provider.generate_calls
+
+    assert call["web_search"] is False
+    assert "WEB SEARCH: UNAVAILABLE" in call["system_prompt"]
+    assert application.usage_controller.snapshot()[
+        "global_web_searches_today"
+    ] == 0
+
+
+# ---------------------------------------------------------
+# EMPTY ANSWERS
+# ---------------------------------------------------------
+
+def test_an_empty_answer_is_never_sent_blank(client, provider):
+    provider.answer_text = "   "
+
+    response = ask(client, "what is staking?")
+
+    assert response.status_code == 200
+    assert response.json["answer"] == application.EMPTY_ANSWER
+
+
+def test_an_empty_stream_is_never_left_blank(client, provider):
+    provider.answer_text = ""
+
+    response = ask_stream(client, "what is staking?")
+
+    assert streamed_answer(response) == application.EMPTY_ANSWER
+    assert frames(response)[-1]["type"] == "done"
+
+
+def test_an_empty_answer_is_not_reused(client, provider):
+    provider.answer_text = ""
+
+    ask(client, "what is staking?")
+    ask(client, "what is staking?")
+
+    assert len(provider.generate_calls) == 2
+
+
+# ---------------------------------------------------------
+# USAGE PAGE
+# ---------------------------------------------------------
+
+def test_usage_endpoint_reports_the_daily_ledger(
+    client,
+    provider,
+    monkeypatch,
+    tmp_path
+):
+    from usage_ledger import UsageLedger
+
+    ledger = UsageLedger(str(tmp_path / "usage.sqlite3"))
+    ledger.record("answer", calls=2, web_searches=1, cost_usd=0.02)
+
+    monkeypatch.setattr(application, "usage_ledger", ledger)
+    monkeypatch.setattr(application, "USAGE_TOKEN", "secret")
+
+    payload = client.get(
+        "/api/usage",
+        headers={"X-Usage-Token": "secret"}
+    ).json
+
+    assert payload["ledger"] == "available"
+    assert payload["web_search"] == "on"
+    assert payload["daily"][0]["provider_calls"] == 2
+    assert payload["daily"][0]["web_searches"] == 1
+    assert "web_searches" in payload["cost"]
+
+
+def test_usage_page_is_an_empty_shell(client, provider, monkeypatch):
+    monkeypatch.setattr(application, "USAGE_TOKEN", "secret")
+
+    response = client.get("/usage")
+    page = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "X-Usage-Token" in page
+    assert "secret" not in page
+    assert response.headers["Cache-Control"] == "no-store"
+    assert "noindex" in response.headers.get("X-Robots-Tag", "")
+
+
+def test_usage_page_is_off_without_a_token(client, provider):
+    assert client.get("/usage").status_code == 404
+
+
+@pytest.mark.parametrize("send", [ask, ask_stream])
+def test_a_price_question_searches_even_if_the_router_forgets(
+    client,
+    provider,
+    send
+):
+    provider.route_result = {
+        "scope": "relevant", "intent": "mixed", "facts": [], "search": False
+    }
+
+    send(client, "Exiom Coin Price")
+
+    assert provider.generate_calls[0]["web_search"] is True
+
+
+def test_a_concept_question_about_price_does_not_search(client, provider):
+    provider.route_result = {
+        "scope": "relevant", "intent": "explanation", "facts": [],
+        "search": False
+    }
+
+    ask(client, "what does market cap mean?")
+
+    assert provider.generate_calls[0]["web_search"] is False
+
+
+def test_an_unrelated_price_question_does_not_search(client, provider):
+    provider.route_result = {
+        "scope": "unrelated", "intent": "general", "facts": [],
+        "search": False
+    }
+
+    ask(client, "price of eggs")
+
+    assert provider.generate_calls == []

@@ -200,3 +200,62 @@ def test_missing_client_id_is_still_tracked():
 
     assert controller.check(None).allowed
     assert not controller.check(None).allowed
+
+
+# ---------------------------------------------------------
+# WEB SEARCH ALLOWANCE
+# ---------------------------------------------------------
+
+def test_web_searches_are_capped_per_client():
+    controller = usage_control.UsageController(
+        client_web_searches_per_day=2,
+        global_web_searches_per_day=100,
+        now=lambda: 1_000_000
+    )
+
+    assert controller.claim_web_search("a")
+    assert controller.claim_web_search("a")
+    assert not controller.claim_web_search("a")
+
+    # Another client keeps its own allowance.
+    assert controller.claim_web_search("b")
+
+
+def test_web_searches_are_capped_globally():
+    controller = usage_control.UsageController(
+        client_web_searches_per_day=10,
+        global_web_searches_per_day=2,
+        now=lambda: 1_000_000
+    )
+
+    assert controller.claim_web_search("a")
+    assert controller.claim_web_search("b")
+    assert not controller.claim_web_search("c")
+
+
+def test_web_search_allowance_resets_each_day():
+    clock = {"now": 1_000_000}
+
+    controller = usage_control.UsageController(
+        client_web_searches_per_day=1,
+        global_web_searches_per_day=1,
+        now=lambda: clock["now"]
+    )
+
+    assert controller.claim_web_search("a")
+    assert not controller.claim_web_search("a")
+
+    clock["now"] += 86400
+
+    assert controller.claim_web_search("a")
+
+
+def test_web_search_limits_are_reported():
+    limits = usage_control.UsageController(
+        client_web_searches_per_day=3,
+        global_web_searches_per_day=7
+    ).snapshot()
+
+    assert limits["limits"]["client_web_searches_per_day"] == 3
+    assert limits["limits"]["global_web_searches_per_day"] == 7
+    assert limits["global_web_searches_today"] == 0

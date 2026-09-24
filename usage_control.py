@@ -37,11 +37,18 @@ MODEL_RATES = {
 DEFAULT_RATES = MODEL_RATES["gpt-5-nano"]
 
 
+# USD per web search call, for reasoning models including
+# gpt-5-nano: "$10.00 / 1k calls". The pages a search reads
+# are billed separately, as ordinary input tokens.
+WEB_SEARCH_CALL_USD = 0.01
+
+
 def empty_route_totals():
     return {
         "calls": 0,
         "input_tokens": 0,
         "output_tokens": 0,
+        "web_searches": 0,
         "estimated_cost_usd": 0.0
     }
 
@@ -66,11 +73,16 @@ class CostMeter:
     Aggregate token usage and estimated spend.
 
     Stores counters only. No question text is ever kept.
+
+    The in-memory totals cover this process since it started.
+    A ledger (usage_ledger.py), when given, receives the same
+    counters so every worker's spend adds up across restarts.
     """
 
-    def __init__(self):
+    def __init__(self, ledger=None):
 
         self._lock = threading.Lock()
+        self.ledger = ledger
         self.reset()
 
 
@@ -85,10 +97,22 @@ class CostMeter:
             self.cached_input_tokens = 0
             self.output_tokens = 0
             self.reasoning_tokens = 0
+            self.web_searches = 0
             self.estimated_cost_usd = 0.0
 
             self.by_route = {}
             self.free_responses = 0
+
+
+    def _route_totals(self, route):
+        """
+        One route's totals. Call with the lock held.
+        """
+
+        return self.by_route.setdefault(
+            route,
+            empty_route_totals()
+        )
 
 
     def _rates(self, model):
@@ -157,15 +181,23 @@ class CostMeter:
             self.reasoning_tokens += reasoning_tokens
             self.estimated_cost_usd += cost
 
-            route_totals = self.by_route.setdefault(
-                route,
-                empty_route_totals()
-            )
+            route_totals = self._route_totals(route)
 
             route_totals["calls"] += 1
             route_totals["input_tokens"] += input_tokens
             route_totals["output_tokens"] += output_tokens
             route_totals["estimated_cost_usd"] += cost
+
+        if self.ledger:
+            self.ledger.record(
+                route,
+                calls=1,
+                input_tokens=input_tokens,
+                cached_input_tokens=cached_input_tokens,
+                output_tokens=output_tokens,
+                reasoning_tokens=reasoning_tokens,
+                cost_usd=cost
+            )
 
         return {
             "input_tokens": input_tokens,
@@ -185,12 +217,49 @@ class CostMeter:
 
             self.free_responses += 1
 
-            route_totals = self.by_route.setdefault(
-                route,
-                empty_route_totals()
-            )
+            route_totals = self._route_totals(route)
 
             route_totals["calls"] += 1
+
+        if self.ledger:
+            self.ledger.record(route, free_responses=1)
+
+
+    def record_web_searches(self, count, route="unknown"):
+        """
+        Record the web searches one provider call ran.
+
+        Billed per call on top of the call's tokens, so they
+        are counted apart from record_usage.
+        """
+
+        try:
+            count = max(0, int(count))
+
+        except (TypeError, ValueError):
+            return
+
+        if not count:
+            return
+
+        cost = count * WEB_SEARCH_CALL_USD
+
+        with self._lock:
+
+            self.web_searches += count
+            self.estimated_cost_usd += cost
+
+            route_totals = self._route_totals(route)
+
+            route_totals["web_searches"] += count
+            route_totals["estimated_cost_usd"] += cost
+
+        if self.ledger:
+            self.ledger.record(
+                route,
+                web_searches=count,
+                cost_usd=cost
+            )
 
 
     def snapshot(self):
@@ -218,6 +287,7 @@ class CostMeter:
                 ),
                 "output_tokens": self.output_tokens,
                 "reasoning_tokens": self.reasoning_tokens,
+                "web_searches": self.web_searches,
                 "estimated_cost_usd": round(
                     self.estimated_cost_usd,
                     6
@@ -301,6 +371,8 @@ class UsageController:
         requests_per_day=None,
         client_tokens_per_day=None,
         global_tokens_per_day=None,
+        client_web_searches_per_day=None,
+        global_web_searches_per_day=None,
         max_clients=None,
         now=None
     ):
@@ -329,6 +401,22 @@ class UsageController:
             else _env_int("EXIOM_GLOBAL_TOKENS_PER_DAY", 20_000_000)
         )
 
+        # A web search costs about thirty ordinary answers
+        # (WEB_SEARCH_CALL_USD), so it has its own ceilings.
+        # Past either one, questions are still answered, just
+        # without a search.
+        self.client_web_searches_per_day = (
+            client_web_searches_per_day
+            if client_web_searches_per_day is not None
+            else _env_int("EXIOM_CLIENT_WEB_SEARCHES_PER_DAY", 20)
+        )
+
+        self.global_web_searches_per_day = (
+            global_web_searches_per_day
+            if global_web_searches_per_day is not None
+            else _env_int("EXIOM_GLOBAL_WEB_SEARCHES_PER_DAY", 500)
+        )
+
         # Past this, the least recently active clients are
         # forgotten. That hands them a fresh allowance, so the
         # global token ceiling stays the real spend bound.
@@ -345,6 +433,7 @@ class UsageController:
         self._clients = {}
 
         self._global_tokens = 0
+        self._global_web_searches = 0
         self._global_day = None
 
 
@@ -360,7 +449,8 @@ class UsageController:
                 "day": day,
                 "recent_requests": [],
                 "requests_today": 0,
-                "tokens_today": 0
+                "tokens_today": 0,
+                "web_searches_today": 0
             }
 
         self._touch(client_id, state)
@@ -388,6 +478,7 @@ class UsageController:
         if self._global_day != day:
             self._global_day = day
             self._global_tokens = 0
+            self._global_web_searches = 0
 
 
     def _prune(self, now):
@@ -490,6 +581,38 @@ class UsageController:
             self._global_tokens += tokens
 
 
+    def claim_web_search(self, client_id):
+        """
+        Take one web search from today's allowances.
+
+        Claimed before the call, so a failed call still counts:
+        the ceilings err towards spending less.
+        """
+
+        client_id = client_id or "unknown"
+
+        now = self._now()
+
+        with self._lock:
+
+            self._roll_global_day(now)
+
+            state = self._client_state(client_id, now)
+
+            if (
+                self._global_web_searches
+                >= self.global_web_searches_per_day
+                or state["web_searches_today"]
+                >= self.client_web_searches_per_day
+            ):
+                return False
+
+            self._global_web_searches += 1
+            state["web_searches_today"] += 1
+
+            return True
+
+
     def snapshot(self):
 
         with self._lock:
@@ -497,10 +620,15 @@ class UsageController:
             return {
                 "tracked_clients": len(self._clients),
                 "global_tokens_today": self._global_tokens,
+                "global_web_searches_today": self._global_web_searches,
                 "limits": {
                     "requests_per_minute": self.requests_per_minute,
                     "requests_per_day": self.requests_per_day,
                     "client_tokens_per_day": self.client_tokens_per_day,
-                    "global_tokens_per_day": self.global_tokens_per_day
+                    "global_tokens_per_day": self.global_tokens_per_day,
+                    "client_web_searches_per_day":
+                        self.client_web_searches_per_day,
+                    "global_web_searches_per_day":
+                        self.global_web_searches_per_day
                 }
             }

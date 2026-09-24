@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>EXIOM AI Usage</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=asset_version('style.css')) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='usage.css', v=asset_version('usage.css')) }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <header class="topbar">
+        <div class="brand">
+            <span class="brand-mark">X</span>
+            <span>EXIOM AI USAGE</span>
+        </div>
+        <button id="refresh" class="usage-button" type="button" hidden>Refresh</button>
+    </header>
+
+    <form id="token-form" class="usage-panel">
+        <label for="token">Usage token</label>
+        <input id="token" type="password" autocomplete="off" required>
+        <button class="usage-button" type="submit">Show usage</button>
+    </form>
+
+    <p id="message" class="usage-message" role="status"></p>
+
+    <section id="report" hidden>
+
+        <div class="usage-cards">
+            <div class="usage-card"><span>Today, estimated</span><strong id="today-cost">–</strong></div>
+            <div class="usage-card"><span>Last 30 days, estimated</span><strong id="month-cost">–</strong></div>
+            <div class="usage-card"><span>AI calls today</span><strong id="today-calls">–</strong></div>
+            <div class="usage-card"><span>Free answers today</span><strong id="today-free">–</strong></div>
+            <div class="usage-card"><span>Web searches today</span><strong id="today-searches">–</strong></div>
+        </div>
+
+        <div class="usage-table-wrap">
+            <table class="usage-table">
+                <thead>
+                    <tr>
+                        <th>Day (UTC)</th>
+                        <th>AI calls</th>
+                        <th>Free answers</th>
+                        <th>Web searches</th>
+                        <th>Tokens in</th>
+                        <th>Tokens out</th>
+                        <th>Est. cost</th>
+                    </tr>
+                </thead>
+                <tbody id="days"></tbody>
+            </table>
+        </div>
+
+        <p class="usage-note">
+            Costs are estimates from token counts at list prices, plus
+            $0.01 per web search. The OpenAI billing dashboard is the
+            invoice. "Free answers" came from the Explorer, a greeting
+            or a cached answer, with no AI call. Only counts are
+            recorded, never questions or answers.
+        </p>
+
+    </section>
+
+</div>
+
+<script nonce="{{ csp_nonce }}">
+
+const form = document.getElementById("token-form");
+const tokenInput = document.getElementById("token");
+const message = document.getElementById("message");
+const report = document.getElementById("report");
+const refreshButton = document.getElementById("refresh");
+
+/* Held in memory only, never in browser storage: other pages
+   on this site share storage with this one. A reload asks
+   again. */
+let currentToken = "";
+
+const usd = (value) => "$" + Number(value || 0).toFixed(value >= 1 ? 2 : 4);
+const count = (value) => Number(value || 0).toLocaleString("en-US");
+
+function setText(id, text) {
+    document.getElementById(id).textContent = text;
+}
+
+function render(payload) {
+
+    const days = Array.isArray(payload.daily) ? payload.daily : [];
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const today = days.find((day) => day.day === todayKey) || {};
+
+    setText("today-cost", usd(today.estimated_cost_usd));
+    setText("month-cost", usd(days.reduce((sum, day) => sum + (day.estimated_cost_usd || 0), 0)));
+    setText("today-calls", count(today.provider_calls));
+    setText("today-free", count(today.free_responses));
+    setText("today-searches", count(today.web_searches));
+
+    const body = document.getElementById("days");
+    body.replaceChildren();
+
+    for (const day of days) {
+        const row = document.createElement("tr");
+
+        for (const value of [
+            day.day,
+            count(day.provider_calls),
+            count(day.free_responses),
+            count(day.web_searches),
+            count(day.input_tokens),
+            count(day.output_tokens),
+            usd(day.estimated_cost_usd)
+        ]) {
+            const cell = document.createElement("td");
+            cell.textContent = value;
+            row.appendChild(cell);
+        }
+
+        body.appendChild(row);
+    }
+
+    if (payload.ledger !== "available") {
+        message.textContent =
+            "Daily history is " + (payload.ledger === "off" ? "switched off" : "unavailable right now") +
+            " on the server, so no days can be shown.";
+    } else if (!days.length) {
+        message.textContent = "No usage recorded yet.";
+    } else {
+        message.textContent = "Updated " + new Date().toLocaleTimeString() + ".";
+    }
+
+    report.hidden = false;
+    form.hidden = true;
+    refreshButton.hidden = false;
+}
+
+async function load(token) {
+
+    message.textContent = "Loading…";
+
+    let response;
+
+    try {
+        response = await fetch("/api/usage", {
+            headers: { "X-Usage-Token": token },
+            cache: "no-store"
+        });
+    } catch (error) {
+        message.textContent = "Couldn't reach the server. Please try again.";
+        return;
+    }
+
+    if (response.status === 401) {
+        currentToken = "";
+        form.hidden = false;
+        report.hidden = true;
+        refreshButton.hidden = true;
+        message.textContent = "That token wasn't accepted.";
+        return;
+    }
+
+    if (!response.ok) {
+        message.textContent = "The server couldn't return usage right now (" + response.status + ").";
+        return;
+    }
+
+    let payload;
+
+    try {
+        payload = await response.json();
+    } catch (error) {
+        message.textContent = "The server returned something unreadable.";
+        return;
+    }
+
+    currentToken = token;
+    render(payload);
+}
+
+form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const token = tokenInput.value.trim();
+    tokenInput.value = "";
+    if (token) load(token);
+});
+
+refreshButton.addEventListener("click", () => {
+    if (currentToken) load(currentToken);
+});
+
+</script>
+
+</body>
+</html>

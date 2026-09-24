@@ -1,4 +1,5 @@
 import os
+import re
 import threading
 import time
 
@@ -64,6 +65,99 @@ OFF_TOPIC_REASONING_EFFORT = os.getenv(
 ROUTER_MAX_OUTPUT_TOKENS = 300
 MAIN_MAX_OUTPUT_TOKENS = 1600
 OFF_TOPIC_MAX_OUTPUT_TOKENS = 200
+
+
+# A searched answer reasons over the pages it read before it
+# writes, so it needs more room under the same ceiling.
+SEARCH_MAX_OUTPUT_TOKENS = 2400
+
+
+# ---------------------------------------------------------
+# WEB SEARCH
+# ---------------------------------------------------------
+#
+# The provider's built-in web_search tool, used only when the
+# router flags a relevant question as needing current
+# information nothing else supplies (price, listings, latest
+# release, announcements). See "Task Docs/Task 15 - Web
+# Search and Usage Page.md".
+#
+# Searches are restricted to these domains (subdomains
+# included): XEQMLabs' own sites, its code, and the price
+# trackers and exchanges that list XEQM. Overridable with a
+# comma-separated EXIOM_WEB_SEARCH_DOMAINS; EXIOM_WEB_SEARCH=0
+# switches search off.
+# ---------------------------------------------------------
+
+DEFAULT_WEB_SEARCH_DOMAINS = (
+    "xeqmlabs.com",
+    "github.com",
+    "coingecko.com",
+    "coinmarketcap.com",
+    "livecoinwatch.com",
+    "coinpaprika.com",
+    "nonkyc.io",
+    "mexc.com",
+    "lbank.com",
+)
+
+# The API accepts at most this many allowed domains.
+MAX_WEB_SEARCH_DOMAINS = 100
+
+DOMAIN_PATTERN = re.compile(
+    r"^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$"
+)
+
+
+def parse_search_domains(configured):
+    """
+    Bare, valid, unique host names from a comma-separated
+    list, or the defaults when none survive. The API wants
+    "example.com", never "https://example.com/".
+    """
+
+    domains = []
+
+    for part in (configured or "").split(","):
+
+        domain = re.sub(r"^[a-z]+://", "", part.strip().lower())
+        domain = domain.split("/", 1)[0]
+
+        if DOMAIN_PATTERN.match(domain) and domain not in domains:
+            domains.append(domain)
+
+    return (
+        domains[:MAX_WEB_SEARCH_DOMAINS]
+        or list(DEFAULT_WEB_SEARCH_DOMAINS)
+    )
+
+
+WEB_SEARCH_DOMAINS = parse_search_domains(
+    os.getenv("EXIOM_WEB_SEARCH_DOMAINS", "")
+)
+
+
+def answer_output_ceiling(web_search):
+    return (
+        SEARCH_MAX_OUTPUT_TOKENS
+        if web_search else MAIN_MAX_OUTPUT_TOKENS
+    )
+
+
+def count_web_searches(response):
+    """
+    The web_search_call items in a response's output.
+    """
+
+    try:
+        return sum(
+            1
+            for item in (getattr(response, "output", None) or [])
+            if getattr(item, "type", None) == "web_search_call"
+        )
+
+    except TypeError:
+        return 0
 
 
 # Router context. The router decides how to handle the
@@ -237,6 +331,12 @@ class AIProvider:
         self.supports_reasoning_effort = True
         self.supports_text_options = True
 
+        # Off when configured off, or once the provider has
+        # rejected the tool (see _drop_unsupported_option).
+        self.web_search_enabled = (
+            os.getenv("EXIOM_WEB_SEARCH", "1") != "0"
+        )
+
         # Router prompts are rebuilt only when the set of
         # available Explorer facts actually changes.
         self._router_prompt = None
@@ -252,6 +352,15 @@ class AIProvider:
         return getattr(self._thread_state, "usage", None)
 
 
+    @property
+    def last_web_searches(self):
+        """
+        Web searches run by this thread's most recent call.
+        """
+
+        return getattr(self._thread_state, "web_searches", 0)
+
+
     # -----------------------------------------------------
     # REQUEST BUILDING
     # -----------------------------------------------------
@@ -261,7 +370,8 @@ class AIProvider:
         messages,
         max_output_tokens,
         reasoning_effort,
-        json_output
+        json_output,
+        web_search=False
     ):
 
         # store=False: the Responses API otherwise keeps every
@@ -277,6 +387,24 @@ class AIProvider:
 
         if max_output_tokens:
             request["max_output_tokens"] = max_output_tokens
+
+        if web_search and self.web_search_enabled:
+
+            request["tools"] = [{
+                "type": "web_search",
+                "filters": {"allowed_domains": WEB_SEARCH_DOMAINS},
+                # A price or a release number needs a snippet,
+                # not whole pages: fewer tokens read.
+                "search_context_size": "low",
+            }]
+
+            # The router already decided a search is needed;
+            # an answer from memory would be stale.
+            request["tool_choice"] = "required"
+
+            # Web search does not run with minimal reasoning.
+            if reasoning_effort == "minimal":
+                reasoning_effort = "low"
 
         if reasoning_effort and self.supports_reasoning_effort:
             request["reasoning"] = {
@@ -326,6 +454,21 @@ class AIProvider:
             return False
 
         names = f"{message} {parameter}"
+
+        # Checked first: losing search costs one answer its
+        # current information, never the answer itself.
+        if "tools" in request and any(
+            name in names
+            for name in ("web_search", "tool_choice", "tools")
+        ):
+
+            print(
+                "EXIOM web search disabled: the web_search tool "
+                "is not supported by this model."
+            )
+
+            self.web_search_enabled = False
+            return True
 
         if "reasoning" in names and "reasoning" in request:
 
@@ -424,7 +567,8 @@ class AIProvider:
         route="unknown",
         max_output_tokens=None,
         reasoning_effort=None,
-        json_output=False
+        json_output=False,
+        web_search=False
     ):
 
         """
@@ -449,6 +593,7 @@ class AIProvider:
         # A stale reading must never be charged to a later
         # request that failed or was served from cache.
         self._thread_state.usage = None
+        self._thread_state.web_searches = 0
 
         while True:
 
@@ -456,7 +601,8 @@ class AIProvider:
                 messages,
                 max_output_tokens,
                 reasoning_effort,
-                json_output
+                json_output,
+                web_search
             )
 
             try:
@@ -469,11 +615,7 @@ class AIProvider:
                     )
                 )
 
-                self._thread_state.usage = self.cost_meter.record_usage(
-                    self.primary_model,
-                    getattr(response, "usage", None),
-                    route
-                )
+                self._meter(response, route)
 
                 return response
 
@@ -486,6 +628,23 @@ class AIProvider:
                     deadline
                 ) == RETRY:
                     attempt += 1
+
+
+    def _meter(self, response, route):
+        """
+        Record a completed response's tokens and searches.
+        """
+
+        self._thread_state.usage = self.cost_meter.record_usage(
+            self.primary_model,
+            getattr(response, "usage", None),
+            route
+        )
+
+        searches = count_web_searches(response)
+
+        self._thread_state.web_searches = searches
+        self.cost_meter.record_web_searches(searches, route)
 
 
     # -----------------------------------------------------
@@ -572,7 +731,8 @@ class AIProvider:
         self,
         system_prompt,
         conversation,
-        question
+        question,
+        web_search=False
     ):
 
         messages = [
@@ -590,14 +750,16 @@ class AIProvider:
         response = self._create_response(
             messages,
             route="answer",
-            max_output_tokens=MAIN_MAX_OUTPUT_TOKENS,
-            reasoning_effort=MAIN_REASONING_EFFORT
+            max_output_tokens=answer_output_ceiling(web_search),
+            reasoning_effort=MAIN_REASONING_EFFORT,
+            web_search=web_search
         )
 
         return {
             "answer": response.output_text,
             "provider": "openai",
-            "model": self.primary_model
+            "model": self.primary_model,
+            "searched": self.last_web_searches > 0
         }
 
 
@@ -651,7 +813,8 @@ class AIProvider:
         messages,
         route="unknown",
         max_output_tokens=None,
-        reasoning_effort=None
+        reasoning_effort=None,
+        web_search=False
     ):
 
         """
@@ -675,6 +838,7 @@ class AIProvider:
         # A stale reading must never be charged to a later
         # request that failed or was served from cache.
         self._thread_state.usage = None
+        self._thread_state.web_searches = 0
 
         while True:
 
@@ -682,7 +846,8 @@ class AIProvider:
                 messages,
                 max_output_tokens,
                 reasoning_effort,
-                json_output=False
+                json_output=False,
+                web_search=web_search
             )
 
             # Nothing has reached the caller yet, so this
@@ -716,11 +881,7 @@ class AIProvider:
 
                     final = stream.get_final_response()
 
-                self._thread_state.usage = self.cost_meter.record_usage(
-                    self.primary_model,
-                    getattr(final, "usage", None),
-                    route
-                )
+                self._meter(final, route)
 
                 return
 
@@ -748,7 +909,8 @@ class AIProvider:
         self,
         system_prompt,
         conversation,
-        question
+        question,
+        web_search=False
     ):
 
         """
@@ -770,8 +932,9 @@ class AIProvider:
         return self._stream_response(
             messages,
             route="answer",
-            max_output_tokens=MAIN_MAX_OUTPUT_TOKENS,
-            reasoning_effort=MAIN_REASONING_EFFORT
+            max_output_tokens=answer_output_ceiling(web_search),
+            reasoning_effort=MAIN_REASONING_EFFORT,
+            web_search=web_search
         )
 
 

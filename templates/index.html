@@ -264,7 +264,8 @@
 
             <p id="privacyNote" class="privacy-note">
                 Questions are sent to an AI service to write the
-                answer. Your chat lives only in this tab and is gone
+                answer; for prices and similar it may search the
+                web. Your chat lives only in this tab and is gone
                 when you close it. Never share a recovery phrase,
                 private key or personal details.
             </p>
@@ -1248,12 +1249,22 @@ function formatInline(text) {
         escapeHTML(text);
 
 
+    /* One pass for both link forms, so a URL already inside a
+       Markdown link is never linked twice. Web-search answers
+       cite their sources as [site](url). */
+
     formatted =
         formatted.replace(
 
-            /(https?:\/\/[^\s<]+)/g,
+            /\[([^\]\n]+)\]\((https?:\/\/[^\s)<]+)\)|(https?:\/\/[^\s<]+)/g,
 
-            '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+            (match, label, labelledUrl, bareUrl) => {
+
+                const url = labelledUrl || bareUrl;
+
+                return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label || url}</a>`;
+
+            }
 
         );
 
