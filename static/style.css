@@ -1046,6 +1046,16 @@ main {
     animation: streamCaret 1s steps(2, start) infinite;
 }
 
+/* The answer is re-drawn every frame while it types out,
+   which would restart the bullets' fade-in forever and
+   keep them invisible. Typed answers need no reveal: the
+   typing is the reveal. */
+
+.message-content.is-streaming li,
+.message-content.is-typed li {
+    animation: none;
+}
+
 @keyframes streamCaret {
     0%, 100% {
         opacity: 1;

@@ -637,30 +637,116 @@ async function askStreaming(body, aiMessage) {
     let payload = { route: "unknown" };
 
 
-    /* Deltas arrive far faster than the screen refreshes, and
-       each render re-formats the whole answer. Coalesce them:
-       at most one render per animation frame, always of the
-       latest text. */
+    /* Text arrives in bursts, so showing it as it lands
+       looks jerky and far too fast. Instead a frame loop
+       reveals it at a steady typing pace, speeding up only
+       in proportion to how far behind it has fallen, so a
+       long backlog (or a whole cached answer) still drains
+       in a few seconds. */
 
-    let pendingRender = 0;
+    let shown = 0;
+    let rendered = 0;
+    let lastTime = 0;
+    let networkDone = false;
+    let pendingFrame = 0;
+    let finishReveal;
 
-    function scheduleRender() {
+    const revealed =
+        new Promise(resolve => {
+            finishReveal = resolve;
+        });
 
-        if (pendingRender) {
-            return;
+
+    function tick(now) {
+
+        pendingFrame = 0;
+
+        /* Capped so a tab returning from the background
+           doesn't dump everything in one frame. */
+
+        const seconds =
+            lastTime
+                ? Math.min((now - lastTime) / 1000, 0.1)
+                : 1 / 60;
+
+        lastTime = now;
+
+
+        const backlog =
+            answer.length - shown;
+
+        if (backlog > 0) {
+
+            shown = Math.min(
+                answer.length,
+                shown +
+                    (
+                        REVEAL_CHARS_PER_SECOND +
+                        backlog * REVEAL_CATCH_UP
+                    ) * seconds
+            );
+
+        } else {
+
+            shown = answer.length;
+
         }
 
-        pendingRender =
-            requestAnimationFrame(() => {
 
-                pendingRender = 0;
+        let visible = Math.floor(shown);
 
-                renderStreamingAnswer(
-                    aiMessage,
-                    answer
-                );
+        /* Never split an emoji's surrogate pair. */
 
-            });
+        if (
+            /[\uDC00-\uDFFF]/.test(
+                answer.charAt(visible)
+            )
+        ) {
+            visible += 1;
+        }
+
+
+        if (visible !== rendered) {
+
+            rendered = visible;
+
+            renderStreamingAnswer(
+                aiMessage,
+                answer.slice(0, visible)
+            );
+
+        }
+
+
+        followStream();
+
+
+        if (
+            networkDone &&
+            rendered >= answer.length
+        ) {
+
+            finishReveal();
+
+            return;
+
+        }
+
+
+        pendingFrame =
+            requestAnimationFrame(tick);
+
+    }
+
+
+    function startReveal() {
+
+        if (!pendingFrame) {
+
+            pendingFrame =
+                requestAnimationFrame(tick);
+
+        }
 
     }
 
@@ -671,17 +757,20 @@ async function askStreaming(body, aiMessage) {
 
             answer += frame.text;
 
-            scheduleRender();
+            startReveal();
 
         } else if (frame.type === "message") {
 
-            /* A cached, deterministic or Explorer answer:
-               whole and instant, nothing to stream. */
+            /* A cached, deterministic or Explorer answer
+               arrives whole; it is typed out like any
+               other. */
 
             answer =
                 String(frame.answer || "");
 
             payload = frame;
+
+            startReveal();
 
         } else if (frame.type === "done") {
 
@@ -696,6 +785,8 @@ async function askStreaming(body, aiMessage) {
                 answer
                     ? answer + "\n\n" + frame.answer
                     : String(frame.answer || "");
+
+            startReveal();
 
         }
 
@@ -769,12 +860,23 @@ async function askStreaming(body, aiMessage) {
 
         }
 
+
+        /* The network is finished, but the reader may still
+           be catching up; the final answer is drawn only once
+           it has typed everything out. */
+
+        networkDone = true;
+
+        startReveal();
+
+        await revealed;
+
     } finally {
 
         /* The caller draws the final answer next; a render
            still queued must never overwrite it. */
 
-        cancelAnimationFrame(pendingRender);
+        cancelAnimationFrame(pendingFrame);
 
     }
 
@@ -794,13 +896,6 @@ async function askStreaming(body, aiMessage) {
 
 function renderStreamingAnswer(aiMessage, text) {
 
-    /* Only follow the text if the reader is already at the
-       bottom; otherwise they are reading back and should
-       not be yanked forward. */
-
-    const stick = nearBottom();
-
-
     aiMessage.classList.remove(
         "thinking-message"
     );
@@ -818,18 +913,20 @@ function renderStreamingAnswer(aiMessage, text) {
 
     `;
 
-
-    if (stick) {
-
-        answerBox.scrollTop =
-            answerBox.scrollHeight;
-
-    }
-
 }
 
 
 function renderAnswer(aiMessage, data, answer) {
+
+    /* An answer that was just typed out is already on
+       screen; replaying the bullets' fade-in would blink
+       them. */
+
+    const typedClass =
+        aiMessage.querySelector(".is-streaming")
+            ? " is-typed"
+            : "";
+
 
     const sourceHTML =
 
@@ -900,7 +997,7 @@ function renderAnswer(aiMessage, data, answer) {
 
         ${liveBadgeHTML}
 
-        <div class="message-content">
+        <div class="message-content${typedClass}">
 
             ${formatAnswer(
                 answer
@@ -918,7 +1015,9 @@ function renderAnswer(aiMessage, data, answer) {
     );
 
 
-    scrollToBottom();
+    if (following) {
+        scrollToBottom();
+    }
 
 }
 
@@ -988,6 +1087,8 @@ async function askQuestion() {
         aiMessage
     );
 
+
+    following = true;
 
     scrollToBottom();
 
@@ -1367,13 +1468,129 @@ function formatAnswer(text) {
    SCROLL
 ------------------------------------------------------- */
 
-function nearBottom() {
+/* -------------------------------------------------------
+   FOLLOWING THE STREAM
 
-    return (
+   While an answer is typed out the box glides along with
+   it, a fraction of the remaining distance each frame, so
+   new lines ease into view rather than jumping. Scrolling
+   up to read back stops the following; returning to the
+   bottom resumes it.
+------------------------------------------------------- */
+
+const REVEAL_CHARS_PER_SECOND = 55;
+const REVEAL_CATCH_UP = 0.6;
+const FOLLOW_EASING = 0.2;
+
+const reduceMotion =
+    window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+    );
+
+let following = true;
+
+
+function stopFollowing() {
+
+    following = false;
+
+}
+
+
+answerBox.addEventListener(
+    "wheel",
+    function(event) {
+
+        if (event.deltaY < 0) {
+            stopFollowing();
+        }
+
+    },
+    { passive: true }
+);
+
+answerBox.addEventListener(
+    "touchmove",
+    stopFollowing,
+    { passive: true }
+);
+
+answerBox.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (
+            ["ArrowUp", "PageUp", "Home"]
+                .includes(event.key)
+        ) {
+            stopFollowing();
+        }
+
+    }
+);
+
+/* Grabbing the scrollbar lands on the box itself. */
+
+answerBox.addEventListener(
+    "mousedown",
+    function(event) {
+
+        if (event.target === answerBox) {
+            stopFollowing();
+        }
+
+    }
+);
+
+answerBox.addEventListener(
+    "scroll",
+    function() {
+
+        /* Tight, so a small scroll up isn't undone at
+           once. */
+
+        const gap =
+            answerBox.scrollHeight -
+            answerBox.scrollTop -
+            answerBox.clientHeight;
+
+        if (gap < 8) {
+            following = true;
+        }
+
+    },
+    { passive: true }
+);
+
+
+function followStream() {
+
+    if (!following) {
+        return;
+    }
+
+
+    const target =
         answerBox.scrollHeight -
-        answerBox.scrollTop -
-        answerBox.clientHeight
-    ) < 120;
+        answerBox.clientHeight;
+
+    const distance =
+        target - answerBox.scrollTop;
+
+
+    if (distance <= 1) {
+        return;
+    }
+
+
+    answerBox.scrollTop =
+        reduceMotion.matches
+            ? target
+            : answerBox.scrollTop +
+                Math.max(
+                    1,
+                    Math.ceil(distance * FOLLOW_EASING)
+                );
 
 }
 
