@@ -6,7 +6,7 @@
 # is pure waste.
 #
 # Caching an answer is only safe when EVERYTHING that shaped
-# that answer is part of the key. For EXIOM AI that means:
+# that answer is part of the key. For ExiomAI that means:
 #
 # - the exact question (normalised)
 # - the routing decision

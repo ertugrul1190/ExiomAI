@@ -4,26 +4,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#060A1F">
-    <title>EXIOM AI | XEQM Hub</title>
+    <meta name="theme-color" content="#020409">
+    <title>ExiomAI</title>
     <link rel="preload" href="{{ url_for('static', filename='fonts/mona-sans-latin-wdth.woff2', v='5.3.0') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32.png', v=asset_version('favicon-32.png')) }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png', v=asset_version('apple-touch-icon.png')) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=asset_version('style.css')) }}">
 </head>
 
 <body>
 
-<!-- INTRO STAGE (Task 9)
+<!-- INTRO STAGE (Task 9, the opening from Task 17)
 
      The brain is drawn from the network itself: every point is
      a node, every line a link, and the pulses travel real paths
-     through the graph. Scrolling dives into the core node and
-     the chat opens out of it.
+     through the graph. An opening in the near hemisphere leads
+     down a tunnel to the core. Scrolling flies through the
+     opening, down the tunnel, and the chat opens out of the
+     core; the chat's background is that tunnel's inside.
 
      Shown by CSS from the first paint so the chat never flashes
      first. The script takes it over, or removes it; if the
      script never runs, a CSS fail-safe fades it out. -->
 
-<section id="stage" class="stage" aria-label="EXIOM AI introduction">
+<!-- Icons (Task 16), drawn once and used by reference. -->
+
+<svg class="sr-only" aria-hidden="true" focusable="false">
+    <symbol id="i-discord" viewBox="0 0 24 24">
+        <path fill="currentColor" fill-rule="evenodd" d="M19.6 5.6a16.6 16.6 0 0 0-4.2-1.3l-.5 1.1a15.4 15.4 0 0 0-5.8 0l-.5-1.1a16.6 16.6 0 0 0-4.2 1.3C1.7 9.6 1 13.5 1.3 17.4a16.8 16.8 0 0 0 5.1 2.6l1.1-1.7c-.6-.2-1.2-.5-1.7-.9l.4-.3a11.9 11.9 0 0 0 11.6 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.7a16.8 16.8 0 0 0 5.1-2.6c.4-4.5-.7-8.4-3.1-11.8zM8.7 15c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2zm6.6 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2z"/>
+    </symbol>
+    <symbol id="i-youtube" viewBox="0 0 24 24">
+        <path fill="currentColor" fill-rule="evenodd" d="M22 8.2a3 3 0 0 0-2.1-2.1C18 5.6 12 5.6 12 5.6s-6 0-7.9.5A3 3 0 0 0 2 8.2c-.3 1.2-.4 2.5-.4 3.8s.1 2.6.4 3.8a3 3 0 0 0 2.1 2.1c1.9.5 7.9.5 7.9.5s6 0 7.9-.5a3 3 0 0 0 2.1-2.1c.3-1.2.4-2.5.4-3.8s-.1-2.6-.4-3.8zM10 15.2V8.8l5.2 3.2z"/>
+    </symbol>
+    <symbol id="i-telegram" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M21.4 3.7 2.9 10.9c-1 .4-.9 1.8.1 2.1l4.6 1.4 1.8 5.6c.2.7 1.1.9 1.6.4l2.6-2.4 4.8 3.5c.6.4 1.4.1 1.6-.6l3-15c.2-.9-.7-1.6-1.6-1.2zM9.8 14.4l8.2-7.2-6.6 8.5-.3 3.1z"/>
+    </symbol>
+    <symbol id="i-web" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/>
+        </g>
+    </symbol>
+    <symbol id="i-explorer" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+            <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+            <circle cx="17" cy="17" r="3"/>
+            <path d="m19.2 19.2 1.8 1.8"/>
+        </g>
+    </symbol>
+    <symbol id="i-dashboard" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 17a8 8 0 1 1 16 0M12 17l4-5"/>
+            <circle cx="12" cy="17" r="1.2"/>
+        </g>
+    </symbol>
+    <symbol id="i-exchange" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 8h14l-3.5-3.5M20 16H6l3.5 3.5"/>
+    </symbol>
+    <symbol id="i-out" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8 16 16 8M9.5 8H16v6.5"/>
+    </symbol>
+</svg>
+
+
+<section id="stage" class="stage" aria-label="ExiomAI introduction">
+
+    <!-- The network behind the brain (Task 16): a drifting
+         lattice of nodes, with blocks of light running along
+         its wires. CSS only; it moves with transform. -->
+
+    <div class="stage-field" aria-hidden="true">
+        <div class="stage-grid">
+            <i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+    </div>
 
     <canvas id="brain" class="stage-canvas" aria-hidden="true"></canvas>
 
@@ -32,38 +88,67 @@
         <header class="stage-bar">
 
             <span class="brand">
-                <svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true">
-                    <circle class="brand-ring" cx="14" cy="14" r="12.5"/>
-                    <circle class="brand-core" cx="14" cy="14" r="4.5"/>
-                </svg>
-                XEQM Hub
+                <img class="brand-mark" src="{{ url_for('static', filename='logo-128.png', v=asset_version('logo-128.png')) }}" alt="" width="30" height="30">
+                ExiomAI
             </span>
 
             <span class="stage-bar-end">
                 <span class="chip">
                     <span class="chip-dot"></span>
-                    <span>AI Online</span>
+                    <span data-quip>Awake and ready to help</span>
                 </span>
-                <button id="skipIntro" class="text-button" type="button">Skip intro</button>
             </span>
 
         </header>
 
         <div class="stage-copy">
 
-            <p class="stage-title">
-                <span class="line"><span>Ask the</span></span>
-                <span class="line"><span>network.</span></span>
+            <h2 class="stage-title">
+                <span class="line line-small"><span>Welcome to</span></span>
+                <span class="line"><span>ExiomAI</span></span>
+            </h2>
+
+            <p class="stage-by">
+                by
+                <a
+                    class="maker"
+                    href="https://youtube.com/@xrypto_cryptozone"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-glow
+                >
+                    <svg class="maker-play" viewBox="0 0 20 20" aria-hidden="true">
+                        <path d="M7 5.5v9l7.5-4.5z"/>
+                    </svg>
+                    Xrypto
+                    <span class="sr-only">on YouTube (opens in a new tab)</span>
+                    <span class="maker-cue" aria-hidden="true">Click here</span>
+                </a>
             </p>
 
             <p class="stage-lede">
-                EXIOM AI answers questions about XEQM, service nodes
-                and privacy, with live numbers from the Official
-                EXIOM Explorer.
+                Crypto shouldn't make anyone feel lost. ExiomAI is
+                your one-stop guide to EXIOM: ask about XEQM, service
+                nodes or privacy in your own words, and get answers
+                anyone can follow, with live numbers from the Official
+                EXIOM Explorer. No question is too small.
             </p>
 
             <div class="stage-actions">
-                <button id="enterButton" class="button-primary" type="button">Start asking</button>
+                <button id="enterButton" class="button-primary" type="button" data-glow>
+                    <span>Start chatting</span>
+                    <span class="cta-core" aria-hidden="true"></span>
+                </button>
+                <a
+                    class="button-buy"
+                    href="https://nonkyc.io/market/XEQM_USDT"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    Buy XEQM
+                    <svg aria-hidden="true"><use href="#i-out"/></svg>
+                    <span class="sr-only">on NonKYC (opens in a new tab)</span>
+                </a>
                 <span class="stage-hint" aria-hidden="true">
                     <span class="stage-hint-line"></span>
                     or scroll to dive in
@@ -71,6 +156,66 @@
             </div>
 
         </div>
+
+        <!-- Links and small print (Task 16). The maker's links
+             wear the maker's orange, the project's wear its
+             blue. Every link opens in a new tab. -->
+
+        <footer class="stage-foot">
+
+            <div class="link-rows">
+
+                <nav class="link-row" aria-label="Xrypto, the maker of ExiomAI">
+                    <span class="link-row-name">Made by Xrypto</span>
+                    <a class="link-icon" href="https://discord.gg/fFTXSvSDgD" target="_blank" rel="noopener noreferrer" title="Discord" aria-label="Xrypto on Discord (opens in a new tab)">
+                        <svg aria-hidden="true"><use href="#i-discord"/></svg>
+                    </a>
+                    <a class="link-icon" href="https://youtube.com/@xrypto_cryptozone" target="_blank" rel="noopener noreferrer" title="YouTube" aria-label="Xrypto on YouTube (opens in a new tab)">
+                        <svg aria-hidden="true"><use href="#i-youtube"/></svg>
+                    </a>
+                    <a class="link-icon" href="https://t.me/xryptogroupcrypto" target="_blank" rel="noopener noreferrer" title="Telegram" aria-label="Xrypto on Telegram (opens in a new tab)">
+                        <svg aria-hidden="true"><use href="#i-telegram"/></svg>
+                    </a>
+                </nav>
+
+                <nav class="link-row is-project" aria-label="Official EXIOM links (open in a new tab)">
+                    <span class="link-row-name">Official EXIOM</span>
+                    <a class="link-pill" href="https://t.me/ExiomXEQM" target="_blank" rel="noopener noreferrer" title="Telegram">
+                        <svg aria-hidden="true"><use href="#i-telegram"/></svg>
+                        <span>Telegram</span>
+                    </a>
+                    <a class="link-pill" href="https://xeqmlabs.com/" target="_blank" rel="noopener noreferrer" title="Website">
+                        <svg aria-hidden="true"><use href="#i-web"/></svg>
+                        <span>Website</span>
+                    </a>
+                    <a class="link-pill" href="https://explorer.xeqmlabs.com/" target="_blank" rel="noopener noreferrer" title="Explorer">
+                        <svg aria-hidden="true"><use href="#i-explorer"/></svg>
+                        <span>Explorer</span>
+                    </a>
+                    <a class="link-pill" href="https://dashboard.xeqmlabs.com/" target="_blank" rel="noopener noreferrer" title="Dashboard">
+                        <svg aria-hidden="true"><use href="#i-dashboard"/></svg>
+                        <span>Dashboard</span>
+                    </a>
+                    <a class="link-pill" href="https://nonkyc.io/market/XEQM_USDT" target="_blank" rel="noopener noreferrer" title="Exchange">
+                        <svg aria-hidden="true"><use href="#i-exchange"/></svg>
+                        <span>Exchange</span>
+                    </a>
+                </nav>
+
+            </div>
+
+            <p class="disclaimer">
+                ExiomAI is an independent, third-party tool made by
+                Xrypto. It is not an official EXIOM product. Answers
+                are written by AI and can be wrong or out of date, so
+                check the official links before acting on them.
+                Nothing here is financial, investment or tax advice.
+                Crypto prices swing hard: do your own research and
+                only risk what you can afford to lose. Links to other
+                sites, including exchanges, are not endorsements.
+            </p>
+
+        </footer>
 
     </div>
 
@@ -81,6 +226,8 @@
 
 <div id="app" class="app">
 
+    <canvas id="chamber" class="chamber" aria-hidden="true"></canvas>
+
     <header class="app-bar" data-arrive>
 
         <h1 class="brand">
@@ -90,11 +237,8 @@
                 type="button"
                 title="Back to the intro"
             >
-                <svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true">
-                    <circle class="brand-ring" cx="14" cy="14" r="12.5"/>
-                    <circle class="brand-core" cx="14" cy="14" r="4.5"/>
-                </svg>
-                EXIOM AI
+                <img class="brand-mark" src="{{ url_for('static', filename='logo-128.png', v=asset_version('logo-128.png')) }}" alt="" width="30" height="30">
+                ExiomAI
                 <span class="sr-only">, back to the intro</span>
             </button>
         </h1>
@@ -103,23 +247,8 @@
 
             <span class="chip">
                 <span class="chip-dot"></span>
-                <span>AI Online</span>
+                <span data-quip>Awake and ready to help</span>
             </span>
-
-            <label
-                id="streamToggle"
-                class="stream-toggle"
-                title="Show answers as they are written"
-            >
-                <input
-                    id="streamSwitch"
-                    type="checkbox"
-                    aria-label="Streaming responses"
-                    checked
-                >
-                <span class="stream-track"><span class="stream-thumb"></span></span>
-                <span class="stream-name">Stream</span>
-            </label>
 
         </div>
 
@@ -149,6 +278,8 @@
                 <button
                     class="prompt"
                     type="button"
+                    data-tone="blue"
+                    data-glow
                     data-question="Explain XEQM to me simply. What is it, what does it do, and why does it exist?"
                 >
                     <strong>Explain XEQM simply</strong>
@@ -158,6 +289,8 @@
                 <button
                     class="prompt"
                     type="button"
+                    data-tone="amber"
+                    data-glow
                     data-question="Explain how EXIOM service nodes work, including staking and the role they play in the network."
                 >
                     <strong>How service nodes work</strong>
@@ -167,6 +300,8 @@
                 <button
                     class="prompt"
                     type="button"
+                    data-tone="ice"
+                    data-glow
                     data-question="Give me a current EXIOM network snapshot using live Explorer data. Include active service nodes, block height, locked supply, current APY, and daily reward per node."
                 >
                     <strong>Live network snapshot</strong>
@@ -176,6 +311,8 @@
                 <button
                     class="prompt"
                     type="button"
+                    data-tone="orange"
+                    data-glow
                     data-question="Explain how privacy works in the EXIOM ecosystem and why it matters."
                 >
                     <strong>How EXIOM keeps you private</strong>
@@ -223,7 +360,8 @@
             answer; for prices and similar it may search the
             web. Your chat lives only in this tab and is gone
             when you close it. Never share a recovery phrase,
-            private key or personal details.
+            private key or personal details. Answers can be wrong
+            and are not financial advice.
         </p>
 
     </footer>
@@ -250,11 +388,10 @@ const questionInput = document.getElementById("question");
 const answerBox = document.getElementById("answer");
 const sendButton = document.getElementById("sendButton");
 const welcome = document.getElementById("welcome");
-const streamToggle = document.getElementById("streamToggle");
-const streamSwitch = document.getElementById("streamSwitch");
 
 let conversation = [];
 let requestInProgress = false;
+let chamber = null;
 let following = true;
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -327,28 +464,48 @@ function writeSetting(key, value, area = "localStorage") {
 }
 
 
-/* Streaming is the default: it is the same answer either
-   way, it just starts sooner. Remembered across visits. */
+/* -------------------------------------------------------
+   STATUS (Task 16)
 
-const STREAMING_KEY = "exiom.streaming";
+   The status chips take turns at a light-hearted line about
+   the assistant, and own up while an answer is being
+   written. With reduced motion the line stays put.
+------------------------------------------------------- */
 
-let streamingEnabled = readSetting(STREAMING_KEY) !== "off";
+const QUIPS = [
+    "Awake and ready to help",
+    "Jargon translator: on",
+    "No question too basic",
+    "Fully caffeinated",
+    "Zero judgement, promise",
+    "Reading the chain for fun",
+    "Plain words only",
+    "Service nodes? Ask away"
+];
 
-streamSwitch.checked = streamingEnabled;
+const quipSlots = document.querySelectorAll("[data-quip]");
 
-streamSwitch.addEventListener("change", function () {
-    streamingEnabled = streamSwitch.checked;
-    writeSetting(STREAMING_KEY, streamingEnabled ? "on" : "off");
-});
+let quip = Math.floor(Math.random() * QUIPS.length);
 
-
-/* A request in flight has already committed to a
-   transport, so the switch cannot change under it. */
-
-function lockStreamToggle(locked) {
-    streamSwitch.disabled = locked;
-    streamToggle.classList.toggle("is-locked", locked);
+function showQuip(text) {
+    quipSlots.forEach(function (slot) {
+        slot.textContent = text;
+        enter(slot, { y: 6, duration: 0.4 });
+    });
 }
+
+showQuip(QUIPS[quip]);
+
+window.setInterval(function () {
+
+    if (requestInProgress || document.hidden || reduceMotion.matches) {
+        return;
+    }
+
+    quip = (quip + 1) % QUIPS.length;
+    showQuip(QUIPS[quip]);
+
+}, 6000);
 
 
 /* -------------------------------------------------------
@@ -383,6 +540,24 @@ questionInput.addEventListener("keydown", function (event) {
     }
 
 });
+
+/* Pointer light on the start button and the suggestions:
+   the CSS draws a glow at --mx, --my. */
+
+document.addEventListener("pointermove", function (event) {
+
+    const target = event.target instanceof Element && event.target.closest("[data-glow]");
+
+    if (!target) {
+        return;
+    }
+
+    const box = target.getBoundingClientRect();
+
+    target.style.setProperty("--mx", `${event.clientX - box.left}px`);
+    target.style.setProperty("--my", `${event.clientY - box.top}px`);
+
+}, { passive: true });
 
 sendButton.addEventListener("click", function () {
 
@@ -425,7 +600,7 @@ async function readJSON(response) {
 function serverError(data) {
 
     const error = new Error(
-        data.answer || "EXIOM AI couldn't complete that request."
+        data.answer || "ExiomAI couldn't complete that request."
     );
 
     error.errorType = data.error_type || "unknown";
@@ -436,30 +611,11 @@ function serverError(data) {
 
 
 /* -------------------------------------------------------
-   TRANSPORTS
+   TRANSPORT
 
-   Both return the same payload shape, so an answer is
-   rendered identically however it arrived.
+   Answers always stream (Task 16): the same answer, it just
+   starts sooner. The server still offers /ask.
 ------------------------------------------------------- */
-
-async function askOnce(body) {
-
-    const response = await fetch("/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-    });
-
-    const data = await readJSON(response);
-
-    if (!response.ok) {
-        throw serverError(data);
-    }
-
-    return data;
-
-}
-
 
 async function askStreaming(body, aiMessage) {
 
@@ -668,7 +824,7 @@ async function askStreaming(body, aiMessage) {
 
 const AI_HEAD =
     '<div class="msg-head">' +
-    '<span class="msg-mark" aria-hidden="true"></span>EXIOM AI' +
+    '<span class="msg-mark" aria-hidden="true"></span>ExiomAI' +
     "</div>";
 
 
@@ -772,11 +928,15 @@ async function askQuestion() {
     startConversation();
 
     requestInProgress = true;
+    showQuip("Thinking it through…");
+
+    if (chamber) {
+        chamber.think(true);
+    }
 
     sendButton.disabled = true;
     questionInput.disabled = true;
 
-    lockStreamToggle(true);
 
     questionInput.value = "";
     fitComposer();
@@ -809,9 +969,7 @@ async function askQuestion() {
 
     try {
 
-        const data = streamingEnabled
-            ? await askStreaming(body, aiMessage)
-            : await askOnce(body);
+        const data = await askStreaming(body, aiMessage);
 
         const answer = String(data.answer || "I couldn't generate a response.");
 
@@ -826,15 +984,15 @@ async function askQuestion() {
 
     } catch (error) {
 
-        console.error("EXIOM AI request failed:", error);
+        console.error("ExiomAI request failed:", error);
 
         let message =
             error.message ||
-            "EXIOM AI couldn't answer that right now. Please try again.";
+            "ExiomAI couldn't answer that right now. Please try again.";
 
         if (!error.errorType) {
             message =
-                "Couldn't connect to EXIOM AI. " +
+                "Couldn't connect to ExiomAI. " +
                 "Check your connection and try again.";
         }
 
@@ -849,11 +1007,15 @@ async function askQuestion() {
     } finally {
 
         requestInProgress = false;
+        showQuip(QUIPS[quip]);
+
+        if (chamber) {
+            chamber.think(false);
+        }
 
         sendButton.disabled = false;
         questionInput.disabled = false;
 
-        lockStreamToggle(false);
 
         questionInput.focus({ preventScroll: true });
 
@@ -1091,13 +1253,76 @@ document.querySelectorAll("[data-question]").forEach(button => {
 
    A point cloud in the shape of a brain, built from the
    network: each point is a node, each line a link to its
-   nearest neighbours, and mint pulses travel real paths
-   through that graph. As the dive begins, the pulses lean
-   towards the core node the camera is flying into.
+   nearest neighbours, and ice pulses travel real paths
+   through that graph. An opening in the near hemisphere
+   (Task 17) funnels down to the core, and pulses pour into
+   it; the camera flies through the opening to the core.
 
-   Plain 2D canvas: under a thousand sprites and one stroke
+   Plain 2D canvas: under two thousand sprites and one stroke
    per brightness band a frame, driven by gsap.ticker.
 ------------------------------------------------------- */
+
+const BLUE = "61,139,255";
+const ORANGE = "255,122,26";
+const AMBER = "255,178,63";
+const ICE = "143,230,255";
+const WHITE = "243,246,252";
+
+const clamp01 = value => value < 0 ? 0 : value > 1 ? 1 : value;
+
+/* Glow sprites: drawing an image is far cheaper than a
+   gradient per point. */
+
+function sprite(rgb) {
+
+    const sheet = document.createElement("canvas");
+    sheet.width = sheet.height = 64;
+
+    const g = sheet.getContext("2d");
+    const glow = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+
+    glow.addColorStop(0, `rgba(${rgb},1)`);
+    glow.addColorStop(0.16, `rgba(${rgb},0.9)`);
+    glow.addColorStop(0.4, `rgba(${rgb},0.2)`);
+    glow.addColorStop(1, `rgba(${rgb},0)`);
+
+    g.fillStyle = glow;
+    g.fillRect(0, 0, 64, 64);
+
+    return sheet;
+
+}
+
+/* Links in brightness bands: one stroke per band. */
+
+function strokeBands(ctx, list, alphaOf, xs, ys, rgb, strength) {
+
+    for (let band = 0; band < 3; band++) {
+
+        const low = band / 3;
+        const high = (band + 1) / 3;
+
+        ctx.beginPath();
+
+        for (let k = 0; k < list.length; k += 2) {
+
+            const a = list[k];
+            const b = list[k + 1];
+            const alpha = alphaOf(a, b);
+
+            if (alpha > low && alpha <= high) {
+                ctx.moveTo(xs[a], ys[a]);
+                ctx.lineTo(xs[b], ys[b]);
+            }
+
+        }
+
+        ctx.strokeStyle = `rgba(${rgb},${(high * strength).toFixed(3)})`;
+        ctx.stroke();
+
+    }
+
+}
 
 function createBrain(canvas) {
 
@@ -1107,14 +1332,31 @@ function createBrain(canvas) {
         return null;
     }
 
-    const IRIS = "139,156,255";
-    const MINT = "93,242,208";
-
     const compact = Math.min(window.innerWidth, window.innerHeight) < 600;
     const count =
         compact ? 820 :
         (navigator.hardwareConcurrency || 4) <= 4 ? 1000 :
         1300;
+
+    /* The opening (Task 17): a mouth in the near hemisphere,
+       its tissue parted into a raised lip, and a funnel of
+       rings behind it narrowing down to the core, which sits
+       in the fissure at the centre of the mind. */
+
+    const MOUTH_X = -0.12;
+    const MOUTH_Y = 0.36;
+    const MOUTH_Z = -0.8;
+    const MOUTH_R = 0.24;
+    const TUNNEL_DEPTH = 0.74;
+
+    /* How far the tunnel's far end sits from straight behind
+       the mouth: tilted along the line of sight, so from the
+       intro you look straight down it. */
+
+    const TILT_X = -0.1;
+    const TILT_Y = 0.26;
+    const RINGS = compact ? 11 : 15;
+    const SPOKES = compact ? 18 : 24;
 
     /* Seeded, so the same brain appears on every visit. */
 
@@ -1129,11 +1371,13 @@ function createBrain(canvas) {
 
 
     /* Home (the brain) and scatter (where each point starts,
-       so the brain condenses out of a wider cloud). The core
-       is the last entry. */
+       so the brain condenses out of a wider cloud). The brain
+       comes first, then the tunnel ring by ring from the lip
+       inwards, and the core is the last entry. */
 
-    const CORE = count;
-    const total = count + 1;
+    const FIRST = count;
+    const CORE = count + RINGS * SPOKES;
+    const total = CORE + 1;
 
     const hx = new Float32Array(total);
     const hy = new Float32Array(total);
@@ -1143,6 +1387,7 @@ function createBrain(canvas) {
     const sz = new Float32Array(total);
     const delay = new Float32Array(total);
     const size = new Float32Array(total);
+    const depth = new Float32Array(total);
 
     function folds(x, y, z) {
         return 0.055 *
@@ -1208,40 +1453,128 @@ function createBrain(canvas) {
 
         }
 
-        const spread = 2.2 + random() * 2.6;
+        p[1] += 0.1;
 
-        hx[i] = p[0];
-        hy[i] = p[1] + 0.1;
-        hz[i] = p[2];
-        sx[i] = p[0] * spread + (random() - 0.5) * 2;
-        sy[i] = p[1] * spread + (random() - 0.5) * 2;
-        sz[i] = p[2] * spread + (random() - 0.5) * 2;
-        delay[i] = random();
-        size[i] = 0.75 + random() * random() * 1.9;
+        /* The mouth: a shaft cut clean through, and the near
+           surface around it pushed outwards and lifted, so
+           the tissue crowds into a lip. */
+
+        const along = Math.max(0, (p[2] - MOUTH_Z) / TUNNEL_DEPTH);
+        const dx = p[0] - MOUTH_X - TILT_X * along;
+        const dy = p[1] - MOUTH_Y - TILT_Y * along;
+        const reach = Math.hypot(dx, dy);
+
+        if (reach < MOUTH_R * 0.92) {
+            continue;
+        }
+
+        if (reach < MOUTH_R * 1.9 && p[2] < -0.45) {
+            const near = 1 - (reach - MOUTH_R * 0.92) / (MOUTH_R * 0.98);
+            const pushed = MOUTH_R * 1.02 + (reach - MOUTH_R * 0.92) * (0.88 / 0.98);
+            p[0] = MOUTH_X + dx / reach * pushed;
+            p[1] = MOUTH_Y + dy / reach * pushed;
+            p[2] -= 0.07 * near * near;
+        }
+
+        place(i, p, 0.75 + random() * random() * 1.9);
 
         i += 1;
 
     }
 
-    /* The core sits on the near hemisphere's outer surface,
-       facing the camera. */
+    function place(i, p, grain) {
 
-    hx[CORE] = sx[CORE] = -0.12;
-    hy[CORE] = sy[CORE] = 0.4;
-    hz[CORE] = sz[CORE] = -0.78;
+        const spread = 2.2 + random() * 2.6;
+
+        hx[i] = p[0];
+        hy[i] = p[1];
+        hz[i] = p[2];
+        sx[i] = p[0] * spread + (random() - 0.5) * 2;
+        sy[i] = p[1] * spread + (random() - 0.5) * 2;
+        sz[i] = p[2] * spread + (random() - 0.5) * 2;
+        delay[i] = random();
+        size[i] = grain;
+
+    }
+
+    /* The tunnel: rings from the lip (depth 0) down to the
+       core (depth 1), twisted into a helix and narrowing. */
+
+    for (let ring = 0; ring < RINGS; ring++) {
+
+        const t = ring / (RINGS - 1);
+        const radius = MOUTH_R * (1 - 0.64 * t ** 0.85);
+
+        for (let spoke = 0; spoke < SPOKES; spoke++) {
+
+            const i = FIRST + ring * SPOKES + spoke;
+            const a = (spoke + (random() - 0.5) * 0.5) / SPOKES * Math.PI * 2 + ring * 0.21;
+            const r = radius * (0.96 + random() * 0.08);
+
+            place(i, [
+                MOUTH_X + TILT_X * t + Math.cos(a) * r,
+                MOUTH_Y + TILT_Y * t + Math.sin(a) * r,
+                MOUTH_Z + 0.03 + t * TUNNEL_DEPTH + (random() - 0.5) * 0.02
+            ], ring === 0 ? 1.9 + random() * 0.6 : 0.8 + random() * 0.9);
+
+            depth[i] = t;
+
+        }
+
+    }
+
+    place(CORE, [MOUTH_X + TILT_X, MOUTH_Y + TILT_Y, MOUTH_Z + 0.06 + TUNNEL_DEPTH], 1);
+    depth[CORE] = 1;
 
 
-    /* Links: each node to its three nearest neighbours within
-       reach; the core to its eight nearest, as a hub. */
+    /* Links: each brain node to its three nearest neighbours
+       within reach; the tunnel as a mesh (around each ring,
+       and spoke by spoke inwards to the core); and the lip
+       sewn into the brain around it. */
 
     const edges = [];
+    const tunnelEdges = [];
     const links = Array.from({ length: total }, () => []);
     const linked = new Set();
 
-    for (let a = 0; a < total; a++) {
+    function link(a, b, list) {
 
-        const want = a === CORE ? 8 : 3;
-        const reach = a === CORE ? 0.08 : 0.03;
+        const key = Math.min(a, b) * total + Math.max(a, b);
+
+        if (!linked.has(key)) {
+            linked.add(key);
+            list.push(a, b);
+            links[a].push(b);
+            links[b].push(a);
+        }
+
+    }
+
+    for (let a = 0; a < count; a++) {
+        for (const [, b] of nearest(a, 3, 0.03)) {
+            link(a, b, edges);
+        }
+    }
+
+    for (let ring = 0; ring < RINGS; ring++) {
+        for (let spoke = 0; spoke < SPOKES; spoke++) {
+
+            const a = FIRST + ring * SPOKES + spoke;
+
+            link(a, FIRST + ring * SPOKES + (spoke + 1) % SPOKES, tunnelEdges);
+            link(a, ring < RINGS - 1 ? a + SPOKES : CORE, tunnelEdges);
+
+        }
+    }
+
+    for (let spoke = 0; spoke < SPOKES; spoke++) {
+        for (const [, b] of nearest(FIRST + spoke, 2, 0.03)) {
+            link(FIRST + spoke, b, edges);
+        }
+    }
+
+    function nearest(a, want, reach) {
+
         const best = [];
 
         for (let b = 0; b < count; b++) {
@@ -1268,18 +1601,7 @@ function createBrain(canvas) {
 
         }
 
-        for (const [, b] of best) {
-
-            const key = Math.min(a, b) * total + Math.max(a, b);
-
-            if (!linked.has(key)) {
-                linked.add(key);
-                edges.push(a, b);
-                links[a].push(b);
-                links[b].push(a);
-            }
-
-        }
+        return best;
 
     }
 
@@ -1289,9 +1611,14 @@ function createBrain(canvas) {
     const view = { form: 0, zoom: 0 };
     const pulses = [];
 
+    /* Two in five start on the lip, so a steady stream of
+       signals pours down the tunnel: the opening draws you in. */
+
     function newPulse() {
 
-        const a = Math.floor(Math.random() * count);
+        const a = Math.random() < 0.4
+            ? FIRST + Math.floor(Math.random() * SPOKES)
+            : Math.floor(Math.random() * count);
         const next = links[a];
 
         return next.length
@@ -1318,9 +1645,10 @@ function createBrain(canvas) {
         const options = links[pulse.b];
         let next = options[Math.floor(Math.random() * options.length)];
 
-        /* Lean towards the core, more so as the dive starts. */
+        /* Lean towards the core, more so as the dive starts;
+           inside the tunnel, always. */
 
-        if (Math.random() < 0.25 + view.zoom) {
+        if (pulse.b >= FIRST || Math.random() < 0.25 + view.zoom) {
             let nearest = Infinity;
             for (const option of options) {
                 const d =
@@ -1341,32 +1669,25 @@ function createBrain(canvas) {
     }
 
 
-    /* Glow sprites: drawing an image is far cheaper than a
-       gradient per point. */
+    const blueDot = sprite(BLUE);
+    const orangeDot = sprite(ORANGE);
+    const amberDot = sprite(AMBER);
+    const iceDot = sprite(ICE);
+    const whiteDot = sprite(WHITE);
 
-    function sprite(rgb) {
+    /* Every third brain node glows orange, so the mind is
+       lit in both of its colours. The lip burns amber, the
+       tunnel runs orange into ice as it nears the core. */
 
-        const sheet = document.createElement("canvas");
-        sheet.width = sheet.height = 64;
+    const dots = new Array(CORE);
 
-        const g = sheet.getContext("2d");
-        const glow = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-
-        glow.addColorStop(0, `rgba(${rgb},1)`);
-        glow.addColorStop(0.16, `rgba(${rgb},0.9)`);
-        glow.addColorStop(0.4, `rgba(${rgb},0.2)`);
-        glow.addColorStop(1, `rgba(${rgb},0)`);
-
-        g.fillStyle = glow;
-        g.fillRect(0, 0, 64, 64);
-
-        return sheet;
-
+    for (let i = 0; i < CORE; i++) {
+        dots[i] =
+            i < FIRST ? (i % 3 ? blueDot : orangeDot) :
+            depth[i] === 0 ? amberDot :
+            depth[i] < 0.5 ? orangeDot :
+            i % 2 ? iceDot : blueDot;
     }
-
-    const irisDot = sprite(IRIS);
-    const mintDot = sprite(MINT);
-    const whiteDot = sprite("238,241,255");
 
 
     /* Projection. */
@@ -1382,6 +1703,8 @@ function createBrain(canvas) {
     const CAMERA_DISTANCE = 3.3;
     const NEAR = 0.05;
 
+    const linkAlpha = (a, b) => Math.min(pa[a], pa[b]);
+
     let width = 0;
     let height = 0;
     let ratio = 1;
@@ -1394,9 +1717,6 @@ function createBrain(canvas) {
         canvas.height = Math.round(height * ratio);
     }
 
-    const clamp01 = value => value < 0 ? 0 : value > 1 ? 1 : value;
-
-
     function render(time, deltaMs) {
 
         if (!width || !height) {
@@ -1408,30 +1728,53 @@ function createBrain(canvas) {
         const form = view.form;
 
         /* Wide screens put the brain right of the copy;
-           narrow ones above it. The dive recentres it. */
+           narrow ones above it (higher on phones, where the
+           copy is tall). The dive recentres it. */
 
         const wide = width > 900 && width > height;
         const ox = wide ? width * 0.64 : width * 0.5;
-        const oy = wide ? height * 0.47 : height * (height > width ? 0.36 : 0.45);
+        const oy = wide ? height * 0.47 : height * (height > width ? (width < 600 ? 0.26 : 0.36) : 0.45);
         const cx = ox + (width / 2 - ox) * e;
         const cy = oy + (height / 2 - oy) * e;
         const focal = Math.min(wide ? width * 0.5 : width, height) * 1.15;
 
-        const yaw = -0.08 + Math.sin(time * 0.17) * 0.42 * (1 - e);
+        /* A gentler sway than a closed brain could take, so the
+           mouth keeps facing the viewer. */
+
+        const yaw = -0.1 + Math.sin(time * 0.17) * 0.3 * (1 - e);
         const pitch = 0.12 + Math.sin(time * 0.11) * 0.06 * (1 - e);
         const cyaw = Math.cos(yaw);
         const syaw = Math.sin(yaw);
         const cpitch = Math.cos(pitch);
         const spitch = Math.sin(pitch);
 
+        /* The tunnel swallows: a swell runs down it, and it
+           twists to and fro, the deeper rings further. */
+
+        const twist = Math.sin(time * 0.4) * 0.9;
+
         for (let i = 0; i < total; i++) {
 
             let k = clamp01(form * 1.6 - delay[i] * 0.6);
             k = k * k * (3 - 2 * k);
 
-            const x = sx[i] + (hx[i] - sx[i]) * k;
-            const y = sy[i] + (hy[i] - sy[i]) * k;
+            let x = sx[i] + (hx[i] - sx[i]) * k;
+            let y = sy[i] + (hy[i] - sy[i]) * k;
             const z = sz[i] + (hz[i] - sz[i]) * k;
+
+            if (i >= FIRST && i < CORE) {
+                const t = depth[i];
+                const swell = 1 + 0.07 * Math.sin(time * 1.8 - t * 6);
+                const c = Math.cos(twist * t);
+                const s = Math.sin(twist * t);
+                const ax = MOUTH_X + TILT_X * t;
+                const ay = MOUTH_Y + TILT_Y * t;
+                const dx = x - ax;
+                const dy = y - ay;
+                x = ax + (dx * c - dy * s) * swell;
+                y = ay + (dx * s + dy * c) * swell;
+            }
+
             const z1 = z * cyaw - x * syaw;
 
             rx[i] = x * cyaw + z * syaw;
@@ -1440,11 +1783,31 @@ function createBrain(canvas) {
 
         }
 
-        /* The camera flies to just in front of the core. */
+        /* The camera flies to the mouth, through it, and down
+           the tunnel to just in front of the core. The mouth
+           is four fifths of the way; the path eases out, so
+           the flight slows as it lands. */
 
-        const camX = rx[CORE] * e;
-        const camY = ry[CORE] * e;
-        const camZ = -CAMERA_DISTANCE + (rz[CORE] - 0.08 + CAMERA_DISTANCE) * e;
+        let mouthX = 0;
+        let mouthY = 0;
+        let mouthZ = 0;
+
+        for (let i = FIRST; i < FIRST + SPOKES; i++) {
+            mouthX += rx[i] / SPOKES;
+            mouthY += ry[i] / SPOKES;
+            mouthZ += rz[i] / SPOKES;
+        }
+
+        const travel = 1 - (1 - e) ** 1.76;
+        const toward = clamp01(travel / 0.8);
+        const down = clamp01((travel - 0.8) / 0.2);
+
+        const camX = mouthX * toward + (rx[CORE] - mouthX) * down;
+        const camY = mouthY * toward + (ry[CORE] - mouthY) * down;
+        const camZ =
+            -CAMERA_DISTANCE +
+            (mouthZ + CAMERA_DISTANCE) * toward +
+            (rz[CORE] - 0.1 - mouthZ) * down;
         const presence = 0.2 + 0.8 * form;
 
         /* Looking at the core: its screen offset is eased out
@@ -1473,11 +1836,13 @@ function createBrain(canvas) {
             ps[i] = s;
 
             /* Near side bright, far side dim; anything about to
-               pass the camera fades rather than smearing. */
+               pass the camera fades rather than smearing. The
+               tunnel's rings are close together, so they fade
+               late and stream past the camera. */
 
             pa[i] =
                 (0.2 + 0.8 * clamp01(1.25 - (rz[i] + 1) * 0.55)) *
-                clamp01((dz - NEAR) / 0.45) *
+                clamp01((dz - NEAR) / (i >= FIRST ? 0.1 : 0.45)) *
                 presence;
 
             if (px[i] < -80 || px[i] > width + 80 || py[i] < -80 || py[i] > height + 80) {
@@ -1491,36 +1856,35 @@ function createBrain(canvas) {
         ctx.globalAlpha = 1;
         ctx.lineWidth = 0.6 + e;
 
-        /* Links, in three brightness bands: three strokes. */
-
-        for (let band = 0; band < 3; band++) {
-
-            const low = band / 3;
-            const high = (band + 1) / 3;
-
-            ctx.beginPath();
-
-            for (let k = 0; k < edges.length; k += 2) {
-
-                const a = edges[k];
-                const b = edges[k + 1];
-                const alpha = Math.min(pa[a], pa[b]);
-
-                if (alpha > low && alpha <= high) {
-                    ctx.moveTo(px[a], py[a]);
-                    ctx.lineTo(px[b], py[b]);
-                }
-
-            }
-
-            ctx.strokeStyle = `rgba(${IRIS},${(high * 0.36).toFixed(3)})`;
-            ctx.stroke();
-
-        }
+        strokeBands(ctx, edges, linkAlpha, px, py, BLUE, 0.36);
+        strokeBands(ctx, tunnelEdges, linkAlpha, px, py, ORANGE, 0.5);
 
         ctx.globalCompositeOperation = "lighter";
 
-        for (let i = 0; i < count; i++) {
+        /* Light welling up from inside the opening. */
+
+        const mid = FIRST + (RINGS >> 1) * SPOKES;
+        let glowX = 0;
+        let glowY = 0;
+        let glowS = 0;
+        let seen = 0;
+
+        for (let i = mid; i < mid + SPOKES; i++) {
+            if (pa[i] > 0) {
+                glowX += px[i];
+                glowY += py[i];
+                glowS += ps[i];
+                seen += 1;
+            }
+        }
+
+        if (seen) {
+            const d = Math.min(glowS / seen * MOUTH_R * 4.2, Math.max(width, height) * 2);
+            ctx.globalAlpha = 0.34 * presence * (1 - e);
+            ctx.drawImage(orangeDot, glowX / seen - d / 2, glowY / seen - d / 2, d, d);
+        }
+
+        for (let i = 0; i < CORE; i++) {
 
             if (pa[i] < 0.02) {
                 continue;
@@ -1529,7 +1893,7 @@ function createBrain(canvas) {
             const d = Math.min(Math.max(size[i] * ps[i] * 0.026, 2.2), 90);
 
             ctx.globalAlpha = pa[i];
-            ctx.drawImage(irisDot, px[i] - d / 2, py[i] - d / 2, d, d);
+            ctx.drawImage(dots[i], px[i] - d / 2, py[i] - d / 2, d, d);
 
         }
 
@@ -1554,7 +1918,7 @@ function createBrain(canvas) {
 
             ctx.globalAlpha = alpha;
             ctx.drawImage(
-                mintDot,
+                iceDot,
                 px[a] + (px[b] - px[a]) * t - d / 2,
                 py[a] + (py[b] - py[a]) * t - d / 2,
                 d,
@@ -1563,17 +1927,21 @@ function createBrain(canvas) {
 
         }
 
-        /* The core: a steady heartbeat, then the light the
-           chat opens out of. */
+        /* The core: a steady heartbeat at the end of the
+           tunnel, then the light the chat opens out of. */
 
         if (form > 0.3) {
 
             const beat = 1 + Math.sin(time * 2.6) * 0.14 * (1 - e);
-            const bloom = e ** 3 * Math.max(width, height) * 1.4;
-            const d = Math.min(ps[CORE] * 0.16 * beat + bloom, Math.max(width, height) * 3);
+            const bloom = clamp01((e - 0.8) / 0.2) ** 2 * Math.max(width, height) * 1.6;
+            /* Held small until the bloom, so the rings ahead
+               stay visible as the camera flies down to it. */
+
+            const glow = Math.min(ps[CORE] * 0.2, Math.min(width, height) * 0.1);
+            const d = Math.min(glow * beat + bloom, Math.max(width, height) * 3);
 
             ctx.globalAlpha = clamp01((form - 0.3) * 2);
-            ctx.drawImage(mintDot, px[CORE] - d / 2, py[CORE] - d / 2, d, d);
+            ctx.drawImage(iceDot, px[CORE] - d / 2, py[CORE] - d / 2, d, d);
             ctx.drawImage(whiteDot, px[CORE] - d / 4, py[CORE] - d / 4, d / 2, d / 2);
 
         }
@@ -1589,10 +1957,337 @@ function createBrain(canvas) {
 
 
 /* -------------------------------------------------------
+   THE CHAMBER (Task 17)
+
+   The chat's background is the inside of the tunnel the dive
+   flew down, slowed to a drift: rings of neurons on folded
+   walls stream gently past, each in its own fluorescent hue
+   like a Brainbow micrograph, and signals run down the walls
+   to the core glowing at the far end. It answers the
+   conversation: a question sends a volley of signals inwards,
+   and the core burns brighter while the answer is thought.
+
+   The middle stays quiet so text over it reads cleanly. One
+   still frame when motion is off. Any error hides the canvas,
+   leaving the CSS light behind it.
+------------------------------------------------------- */
+
+function createChamber(canvas) {
+
+    const ctx = canvas && canvas.getContext("2d");
+
+    if (!ctx) {
+        return null;
+    }
+
+    const compact = Math.min(window.innerWidth, window.innerHeight) < 600;
+    const RINGS = compact ? 22 : 30;
+    const SPOKES = compact ? 16 : 22;
+    const DEPTH = 8;
+    const NEAREST = 0.35;
+    const GAP = DEPTH / RINGS;
+    const STRENGTH = compact ? 0.7 : 1;
+    const FRAME = compact ? 1 / 30 : 1 / 45;
+    const total = RINGS * SPOKES;
+
+    /* Brainbow: every neuron its own hue, blue most, amber
+       rarest. */
+
+    const hues = [BLUE, BLUE, BLUE, ORANGE, ORANGE, ICE, ICE, AMBER].map(sprite);
+    const coreDot = sprite(ICE);
+    const whiteDot = sprite(WHITE);
+
+    const ringOf = new Uint16Array(total);
+    const angle = new Float32Array(total);
+    const slip = new Float32Array(total);
+    const grain = new Float32Array(total);
+    const inward = new Uint16Array(total);
+    const tint = new Array(total);
+    const links = [];
+
+    for (let i = 0; i < total; i++) {
+
+        const ring = Math.floor(i / SPOKES);
+        const spoke = i % SPOKES;
+
+        ringOf[i] = ring;
+        angle[i] = (spoke + Math.random() * 0.7) / SPOKES * Math.PI * 2 + ring * 0.37;
+        slip[i] = (Math.random() - 0.5) * GAP * 0.8;
+        grain[i] = 0.8 + Math.random() * Math.random() * 3;
+        tint[i] = hues[Math.floor(Math.random() * hues.length)];
+        inward[i] = ((ring + 1) % RINGS) * SPOKES + spoke;
+
+        /* Sparse, so the walls read as tissue, not a grid. */
+
+        if (Math.random() < 0.7) {
+            links.push(i, ring * SPOKES + (spoke + 1) % SPOKES);
+        }
+
+        if (Math.random() < 0.85) {
+            links.push(i, inward[i]);
+        }
+
+    }
+
+    const px = new Float32Array(total);
+    const py = new Float32Array(total);
+    const pz = new Float32Array(total);
+    const ps = new Float32Array(total);
+    const pa = new Float32Array(total);
+
+    /* A link whose far end has wrapped round to the back
+       would cut across the whole view: drop it. */
+
+    const linkAlpha = (a, b) => Math.abs(pz[a] - pz[b]) > DEPTH / 2 ? 0 : Math.min(pa[a], pa[b]);
+
+    const pulses = Array.from({ length: compact ? 10 : 16 }, () => ({ a: 0, t: 1, speed: 1 }));
+
+    function launch(pulse) {
+        pulse.a = Math.floor(Math.random() * total);
+        pulse.t = 0;
+        pulse.speed = 0.5 + Math.random() * 0.9;
+    }
+
+    let width = 0;
+    let height = 0;
+    let offset = 0;
+    let excite = 0;
+    let thinking = false;
+    let aimX = 0;
+    let aimY = 0;
+    let lookX = 0;
+    let lookY = 0;
+    let last = -1;
+
+    function resize() {
+        const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
+        width = canvas.clientWidth;
+        height = canvas.clientHeight;
+        canvas.width = Math.round(width * ratio);
+        canvas.height = Math.round(height * ratio);
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        if (!motion()) {
+            draw(0, 0);
+        }
+    }
+
+    function draw(time, dt) {
+
+        if (!width || !height) {
+            return;
+        }
+
+        excite += ((thinking ? 1 : 0) - excite) * clamp01(dt * (thinking ? 1.6 : 0.5));
+        offset += dt * (0.22 + 0.6 * excite);
+        lookX += (aimX - lookX) * clamp01(dt * 2);
+        lookY += (aimY - lookY) * clamp01(dt * 2);
+
+        const spin = time * 0.025;
+        const cx = width / 2 - lookX * width * 0.03;
+        const cy = height * 0.46 - lookY * height * 0.03;
+        /* The tube takes the viewport's shape, so its walls
+           run along every edge. */
+
+        const focal = Math.min(width, height) * 0.42;
+        const stretch = Math.min(width / height, 2.2);
+        const reach = Math.hypot(width, height) / 2;
+
+        for (let i = 0; i < total; i++) {
+
+            const ring = ringOf[i];
+            const z = ((ring * GAP + slip[i] - offset) % DEPTH + DEPTH) % DEPTH + NEAREST;
+            const a = angle[i] + spin;
+
+            /* The wall folds like cortex. */
+
+            const r = 1 + 0.16 * Math.sin(3 * a + z * 0.8 + ring);
+            const s = focal / z;
+
+            px[i] = cx + Math.cos(a) * r * s * (stretch > 1 ? stretch : 1);
+            py[i] = cy + Math.sin(a) * r * s / (stretch < 1 ? stretch : 1);
+            pz[i] = z;
+            ps[i] = s;
+
+            let calm = clamp01((Math.hypot(px[i] - cx, py[i] - cy) / reach - 0.16) / 0.4);
+            calm = 0.3 + 0.7 * calm * calm * (3 - 2 * calm);
+
+            pa[i] =
+                clamp01((DEPTH + NEAREST - z) / 2.6) *
+                clamp01((z - NEAREST) / 1.1) *
+                calm *
+                STRENGTH;
+
+        }
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.globalAlpha = 1;
+        ctx.lineWidth = 1;
+
+        strokeBands(ctx, links, linkAlpha, px, py, BLUE, 0.42);
+
+        ctx.globalCompositeOperation = "lighter";
+
+        for (let i = 0; i < total; i++) {
+
+            if (pa[i] < 0.02) {
+                continue;
+            }
+
+            const d = Math.min(Math.max(grain[i] * ps[i] * 0.03, 2), 40);
+
+            ctx.globalAlpha = pa[i];
+            ctx.drawImage(tint[i], px[i] - d / 2, py[i] - d / 2, d, d);
+
+        }
+
+        /* Signals run inwards, towards the core; faster, and
+           relaunched sooner, while the answer is thought. */
+
+        for (const pulse of pulses) {
+
+            pulse.t += dt * pulse.speed * (1 + 1.6 * excite);
+
+            const b = inward[pulse.a];
+
+            if (pulse.t >= 1 || pz[b] < pz[pulse.a]) {
+                if (pulse.t >= 1 && pz[b] > pz[pulse.a] && Math.random() < 0.8) {
+                    pulse.a = b;
+                    pulse.t = 0;
+                } else {
+                    launch(pulse);
+                }
+                continue;
+            }
+
+            const alpha = Math.min(pa[pulse.a], pa[b]);
+
+            if (alpha < 0.02) {
+                continue;
+            }
+
+            const t = pulse.t;
+            const d = Math.min((ps[pulse.a] + (ps[b] - ps[pulse.a]) * t) * 0.07, 60);
+
+            ctx.globalAlpha = alpha;
+            ctx.drawImage(
+                coreDot,
+                px[pulse.a] + (px[b] - px[pulse.a]) * t - d / 2,
+                py[pulse.a] + (py[b] - py[pulse.a]) * t - d / 2,
+                d,
+                d
+            );
+
+        }
+
+        /* The core at the end of the tunnel. */
+
+        const beat = 1 + Math.sin(time * 2.6) * 0.12;
+        const d = Math.min(width, height) * 0.09 * (1 + 0.8 * excite) * beat;
+
+        ctx.globalAlpha = (0.5 + 0.4 * excite) * STRENGTH;
+        ctx.drawImage(coreDot, cx - d / 2, cy - d / 2, d, d);
+        ctx.drawImage(whiteDot, cx - d / 6, cy - d / 6, d / 3, d / 3);
+
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 1;
+
+    }
+
+    /* Nothing to draw while the intro covers the chat: the
+       chat shows only once the reveal has begun. */
+
+    function frame(time) {
+
+        if (root.classList.contains("is-intro") && !(parseFloat(app.style.getPropertyValue("--reveal")) > 0)) {
+            last = -1;
+            return;
+        }
+
+        const dt = last < 0 ? 0 : time - last;
+
+        if (last >= 0 && dt < FRAME) {
+            return;
+        }
+
+        last = time;
+
+        try {
+            draw(time, Math.min(dt, 0.1));
+        } catch (error) {
+            console.error("Chamber failed:", error);
+            gsap.ticker.remove(frame);
+            window.removeEventListener("resize", resize);
+            canvas.hidden = true;
+        }
+
+    }
+
+    function sync() {
+        if (gsap) {
+            gsap.ticker.remove(frame);
+        }
+        last = -1;
+        if (motion()) {
+            gsap.ticker.add(frame);
+        } else {
+            draw(0, 0);
+        }
+    }
+
+    window.addEventListener("resize", resize);
+
+    window.addEventListener("pointermove", function (event) {
+        if (finePointer.matches) {
+            aimX = event.clientX / window.innerWidth * 2 - 1;
+            aimY = event.clientY / window.innerHeight * 2 - 1;
+        }
+    }, { passive: true });
+
+    if (reduceMotion.addEventListener) {
+        reduceMotion.addEventListener("change", sync);
+    }
+
+    resize();
+    sync();
+
+    return {
+
+        /* A question sets the chamber thinking, and fires a
+           volley of signals from the walls nearest the
+           viewer. */
+
+        think(on) {
+            thinking = on;
+            if (on) {
+                for (const pulse of pulses) {
+                    launch(pulse);
+                    pulse.a = ((Math.floor(offset / GAP) + 1 + Math.floor(Math.random() * 3)) % RINGS) * SPOKES +
+                        Math.floor(Math.random() * SPOKES);
+                }
+            }
+        }
+
+    };
+
+}
+
+try {
+    chamber = createChamber(document.getElementById("chamber"));
+} catch (error) {
+    console.error("Chamber failed:", error);
+}
+
+if (!chamber) {
+    document.getElementById("chamber").hidden = true;
+}
+
+
+/* -------------------------------------------------------
    THE DIVE (Task 9)
 
    Scrolling (wheel or touch) scrubs a paused timeline:
-   the camera flies into the core, the intro copy falls away
+   the camera flies through the opening and down the tunnel
+   to the core, the intro copy falls away
    and the chat opens out of the core as a growing circle of
    light that clears to the chat.
    Let go early and it settles back; go past a small
@@ -1667,7 +2362,7 @@ function buildIntro() {
 
 
     const dive = gsap.timeline({ paused: true, onComplete: finish })
-        .to(view, { zoom: 1, duration: 1, ease: "power1.in" }, 0)
+        .to(view, { zoom: 1, duration: 1, ease: "sine.inOut" }, 0)
         .to(".stage-ui", {
             y: -48,
             autoAlpha: 0,
@@ -1675,15 +2370,15 @@ function buildIntro() {
             duration: 0.32,
             ease: "power2.in"
         }, 0)
-        .to(app, { "--reveal": "75%", duration: 0.24, ease: "power2.in" }, 0.76)
-        .fromTo(app, { "--flash": 1 }, { "--flash": 0, duration: 0.3, ease: "power1.in" }, 0.76)
+        .to(app, { "--reveal": "75%", duration: 0.24, ease: "power2.in" }, 0.8)
+        .fromTo(app, { "--flash": 1 }, { "--flash": 0, duration: 0.3, ease: "power1.in" }, 0.8)
         .from(arrivals, {
             y: 26,
             autoAlpha: 0,
             duration: 0.2,
             stagger: 0.025,
             ease: "power3.out"
-        }, 0.84);
+        }, 0.88);
 
 
     const scrub = { progress: 0 };
@@ -1790,7 +2485,7 @@ function buildIntro() {
                     stagger: 0.09,
                     ease: "expo.out"
                 }, 0.3)
-                .from(".stage-bar, .stage-lede, .stage-actions", {
+                .from(".stage-bar, .stage-by, .stage-lede, .stage-actions, .stage-foot", {
                     y: 14,
                     autoAlpha: 0,
                     duration: 0.9,
@@ -1905,7 +2600,7 @@ function buildIntro() {
             skip();
         } else if (
             ["ArrowDown", "PageDown", " ", "Enter"].includes(event.key) &&
-            !event.target.closest("button")
+            !event.target.closest("button, a")
         ) {
             event.preventDefault();
             commit();
@@ -1914,7 +2609,6 @@ function buildIntro() {
     }
 
     enterButton.addEventListener("click", commit);
-    document.getElementById("skipIntro").addEventListener("click", skip);
 
     return { show };
 

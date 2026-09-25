@@ -8,7 +8,7 @@
 # classifiable without any AI call at all:
 #
 # - greetings and thanks
-# - questions about EXIOM AI itself (a fixed, documented
+# - questions about ExiomAI itself (a fixed, documented
 #   answer that must never be improvised)
 # - explicit requests for one verified Explorer value
 #
@@ -57,7 +57,7 @@ CREATOR_URL = "https://youtube.com/@xrypto_cryptozone"
 
 
 IDENTITY_ANSWER = (
-    "I'm EXIOM AI 👋 an assistant built to explain EXIOM and "
+    "I'm ExiomAI 👋 an assistant built to explain EXIOM and "
     "its coin XEQM in plain language.\n\n"
     "I was independently developed by **Xrypto** "
     f"({CREATOR_URL}). I'm not developed, operated, or "
@@ -70,14 +70,14 @@ CREATOR_ANSWER = (
     "I was independently developed by **Xrypto** 🛠️\n\n"
     f"You can find Xrypto here: {CREATOR_URL}\n\n"
     "Just to be clear: I'm not developed, operated, or "
-    "endorsed by XEQM Labs. EXIOM AI is an independent "
+    "endorsed by XEQM Labs. ExiomAI is an independent "
     "community project."
 )
 
 
 GREETING_ANSWERS = (
-    "Hey! 👋 I'm EXIOM AI. Ask me anything about EXIOM or XEQM.",
-    "Hello! 😄 EXIOM AI here — what would you like to know "
+    "Hey! 👋 I'm ExiomAI. Ask me anything about EXIOM or XEQM.",
+    "Hello! 😄 ExiomAI here — what would you like to know "
     "about EXIOM or XEQM?",
     "Hey there! 👋 I'm your EXIOM/XEQM guy. What's on your mind?",
 )
@@ -101,7 +101,7 @@ GREETING_PHRASES = {
     "hiya", "sup", "whats up", "what s up", "wassup", "gm",
     "good morning", "good afternoon", "good evening",
     "hi there", "hello there", "hey there", "greetings",
-    "hi exiom", "hello exiom", "hey exiom", "hi exiom ai",
+    "hi exiom", "hello exiom", "hey exiom", "hi exiom ai", "hi exiomai", "hello exiomai", "hey exiomai",
     "hello exiom ai", "hey exiom ai", "hey ai", "hello ai",
 }
 
@@ -122,7 +122,7 @@ FAREWELL_PHRASES = {
 
 
 # ---------------------------------------------------------
-# EXIOM AI IDENTITY QUESTIONS
+# ExiomAI IDENTITY QUESTIONS
 # ---------------------------------------------------------
 #
 # The documented answer to these is fixed: Xrypto, with the
@@ -134,9 +134,9 @@ FAREWELL_PHRASES = {
 
 # Only explicit self-references are listed. A bare "this"
 # or "it" may easily refer to EXIOM itself rather than to
-# EXIOM AI, and answering those deterministically would be
+# ExiomAI, and answering those deterministically would be
 # wrong rather than merely cheap.
-_SELF = r"(you|exiom ai|this ai|this bot|this assistant|this chatbot)"
+_SELF = r"(you|exiom ?ai|this ai|this bot|this assistant|this chatbot)"
 
 
 CREATOR_PATTERNS = (
@@ -163,7 +163,7 @@ _IDENTITY_TAIL = r"( exactly| really| anyway| then)?$"
 IDENTITY_PATTERNS = (
     r"^who (are|r) (you|u)" + _IDENTITY_TAIL,
     r"^what (are|r) (you|u)" + _IDENTITY_TAIL,
-    r"^(what|who) (is|s) exiom ai" + _IDENTITY_TAIL,
+    r"^(what|who) (is|s) exiom ?ai" + _IDENTITY_TAIL,
     r"\bare you (an? )?(official|independent)\b",
     r"\bare you (part of|affiliated with|owned by|related to|"
     r"run by|made by) (xeqm ?labs|xeqm|exiom|the exiom team|"

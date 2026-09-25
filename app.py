@@ -215,7 +215,7 @@ def internal_error(_error):
     return json_error(
         {
             "answer":
-                "EXIOM AI hit an unexpected problem. "
+                "ExiomAI hit an unexpected problem. "
                 "Please try again.",
             "error_type": "unknown"
         },
@@ -538,7 +538,7 @@ def budget_exceeded_payload(decision):
     if decision.reason.startswith("global"):
 
         message = (
-            "EXIOM AI has hit its daily capacity \U0001F605 "
+            "ExiomAI has hit its daily capacity \U0001F605 "
             "Please try again a little later."
         )
 
@@ -577,7 +577,7 @@ def api_error_payload(error):
     """
 
     print(
-        "EXIOM AI provider error:",
+        "ExiomAI provider error:",
         type(error).__name__,
         security.redact_secrets(error)
     )
@@ -586,7 +586,7 @@ def api_error_payload(error):
 
         return {
             "answer":
-                "EXIOM AI is getting a little too much attention "
+                "ExiomAI is getting a little too much attention "
                 "right now \U0001F605 Please try again shortly.",
             "error_type": "rate_limit"
         }, 429, {}
@@ -604,7 +604,7 @@ def api_error_payload(error):
 
         return {
             "answer":
-                "EXIOM AI couldn't reach the AI service right now. "
+                "ExiomAI couldn't reach the AI service right now. "
                 "Please try again shortly.",
             "error_type": "connection"
         }, 503, {}
@@ -623,7 +623,7 @@ def api_error_payload(error):
 
     return {
         "answer":
-            "EXIOM AI hit an unexpected problem. "
+            "ExiomAI hit an unexpected problem. "
             "Please try again.",
         "error_type": "unknown"
     }, 500, {}
@@ -787,7 +787,7 @@ def usage_page():
 # ---------------------------------------------------------
 
 STATIC_SYSTEM_PROMPT = f"""
-You are EXIOM AI, an independent third-party assistant
+You are ExiomAI, an independent third-party assistant
 developed for the EXIOM/XEQM community.
 
 You were independently developed by Xrypto.
@@ -811,7 +811,7 @@ PERSONALITY
 
 Be useful first, but have personality.
 
-EXIOM AI should feel:
+ExiomAI should feel:
 
 - friendly
 - approachable
@@ -961,7 +961,7 @@ from the Official EXIOM Explorer.
 
 Do not claim you personally browsed or opened the Explorer.
 
-The information is provided by EXIOM AI's backend.
+The information is provided by ExiomAI's backend.
 
 
 ============================================================
@@ -1375,7 +1375,7 @@ def answer_pipeline(
     # DETERMINISTIC FAST PATH
     # -----------------------------------------------------
     #
-    # Greetings, thanks, EXIOM AI identity questions and
+    # Greetings, thanks, ExiomAI identity questions and
     # explicit requests for one verified Explorer value are
     # answered here, with no AI call at all.
     #

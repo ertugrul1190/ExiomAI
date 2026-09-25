@@ -1,11 +1,13 @@
 /* =========================================================
-   XEQM Hub (Task 8)
+   ExiomAI (Task 8, recoloured in Task 16, chat set inside
+   the brain in Task 17)
 
-   One family, Mona Sans, used across its width axis:
-   expanded for display, normal for reading. The palette is a
-   deep indigo field lit by two signals: iris for the mind
-   (EXIOM AI, links, focus) and mint only for what is live
-   (the chain, pulses, the core).
+   One family, Mona Sans, used across its width and weight:
+   heavy and expanded for display, normal for reading. The
+   palette is "signal fire": black, lit by
+   blue (the mind), orange and amber (the energy, and the
+   one gradient every action wears) and ice only for what is
+   live (the chain, pulses, the core, focus).
 
    Shared by templates/index.html and templates/usage.html.
    ========================================================= */
@@ -21,18 +23,28 @@
 }
 
 :root {
-    --deep: #060A1F;
-    --raised: #0C1331;
-    --ink: #EEF1FF;
-    --muted: #8E97C4;
-    --iris: #8B9CFF;
-    --mint: #5DF2D0;
-    --danger: #FF9DB0;
+    --deep: #020409;
+    --raised: #0B1322;
+    --ink: #F3F6FC;
+    --muted: #98A8C4;
+    --blue: #3D8BFF;
+    --orange: #FF7A1A;
+    --amber: #FFB23F;
+    --ice: #8FE6FF;
+    --danger: #FF7B72;
+    --on-hot: #1A0B00;
 
-    --iris-rgb: 139, 156, 255;
-    --mint-rgb: 93, 242, 208;
-    --line: rgba(var(--iris-rgb), 0.14);
-    --wash: rgba(var(--iris-rgb), 0.07);
+    --blue-rgb: 61, 139, 255;
+    --orange-rgb: 255, 122, 26;
+    --amber-rgb: 255, 178, 63;
+    --ice-rgb: 143, 230, 255;
+    --line: rgba(var(--blue-rgb), 0.16);
+    --wash: rgba(var(--blue-rgb), 0.08);
+    --glass: rgba(243, 246, 252, 0.06);
+    --glass-edge: rgba(243, 246, 252, 0.12);
+
+    --hot: linear-gradient(100deg, #FF5B14, var(--orange) 45%, var(--amber));
+    --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
     --font: "Mona Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     --gutter: clamp(16px, 4vw, 48px);
@@ -82,19 +94,19 @@ button {
 }
 
 a {
-    color: var(--iris);
+    color: var(--blue);
     text-underline-offset: 0.18em;
     text-decoration-thickness: 1px;
 }
 
 :focus-visible {
-    outline: 2px solid var(--mint);
+    outline: 2px solid var(--ice);
     outline-offset: 3px;
     border-radius: 6px;
 }
 
 ::selection {
-    background: rgba(var(--iris-rgb), 0.35);
+    background: rgba(var(--orange-rgb), 0.4);
 }
 
 .sr-only {
@@ -140,20 +152,10 @@ a {
 }
 
 .brand-mark {
-    width: 26px;
-    height: 26px;
+    width: 30px;
+    height: 30px;
     flex: none;
-}
-
-.brand-ring {
-    fill: none;
-    stroke: var(--iris);
-    stroke-opacity: 0.55;
-    stroke-width: 1.5;
-}
-
-.brand-core {
-    fill: var(--mint);
+    border-radius: 50%;
 }
 
 /* The chat's logo leads home to the intro (Task 9). Disabled
@@ -176,17 +178,13 @@ a {
     cursor: default;
 }
 
-.brand-ring,
-.brand-core {
-    transition: stroke-opacity 0.25s ease, filter 0.25s ease;
+.brand-mark {
+    transition: filter 0.25s ease, transform 0.4s var(--spring);
 }
 
-.brand-button:enabled:hover .brand-ring {
-    stroke-opacity: 1;
-}
-
-.brand-button:enabled:hover .brand-core {
-    filter: drop-shadow(0 0 4px var(--mint));
+.brand-button:enabled:hover .brand-mark {
+    filter: drop-shadow(0 0 6px rgba(var(--blue-rgb), 0.8));
+    transform: rotate(-12deg);
 }
 
 .chip {
@@ -194,9 +192,11 @@ a {
     align-items: center;
     gap: 8px;
     padding: 6px 12px;
-    border: 1px solid var(--line);
+    border: 1px solid var(--glass-edge);
     border-radius: 999px;
-    background: rgba(6, 10, 31, 0.55);
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     color: var(--ink);
     font-size: 0.8125rem;
     font-variant-numeric: tabular-nums;
@@ -207,7 +207,7 @@ a {
 }
 
 a.chip:hover {
-    border-color: rgba(var(--mint-rgb), 0.45);
+    border-color: rgba(var(--ice-rgb), 0.45);
 }
 
 .chip-dot,
@@ -216,8 +216,8 @@ a.chip:hover {
     height: 7px;
     flex: none;
     border-radius: 50%;
-    background: var(--mint);
-    box-shadow: 0 0 10px rgba(var(--mint-rgb), 0.8);
+    background: var(--ice);
+    box-shadow: 0 0 10px rgba(var(--ice-rgb), 0.8);
     animation: beat 2.4s ease-in-out infinite;
 }
 
@@ -235,35 +235,145 @@ a.chip:hover {
     50% { opacity: 0.35; }
 }
 
+
+
+/* The start button: the page's main action, so the only
+   thing that moves on its own besides the brain. A colour
+   wheel turns behind it; the pointer lights it from where it
+   is (--mx, --my, set by the script). */
+
+@property --spin {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+
 .button-primary {
-    padding: 14px 24px;
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    padding: 10px 10px 10px 40px;
     border: 0;
     border-radius: 999px;
-    background: var(--ink);
-    color: var(--deep);
-    font-size: 0.9375rem;
-    font-weight: 600;
-    font-stretch: 110%;
+    background: var(--hot);
+    color: var(--on-hot);
+    font-size: clamp(1.25rem, 1.7vw, 1.5rem);
+    font-weight: 800;
+    font-stretch: 118%;
+    letter-spacing: -0.01em;
     line-height: 1;
-    transition: background-color 0.2s ease, box-shadow 0.3s ease;
+    box-shadow: 0 14px 44px -10px rgba(var(--orange-rgb), 0.7);
+    transition: transform 0.45s var(--spring), box-shadow 0.3s ease;
+}
+
+.button-primary::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    z-index: -1;
+    border-radius: inherit;
+    background: conic-gradient(
+        from var(--spin),
+        var(--orange), var(--amber), var(--ice), var(--blue), var(--orange)
+    );
+    filter: blur(16px);
+    opacity: 0.7;
+    animation: spin 5s linear infinite;
+    transition: opacity 0.3s ease, inset 0.3s ease;
+}
+
+/* The face, with the pointer's light on it. Inside the
+   button's own stacking context a negative layer paints over
+   the button's background, so the face is a layer too, laid
+   after the wheel; without it the wheel washes the face. */
+
+@property --light {
+    syntax: "<number>";
+    inherits: false;
+    initial-value: 0;
+}
+
+.button-primary::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background:
+        radial-gradient(
+            120px circle at var(--mx, 50%) var(--my, 50%),
+            rgba(255, 255, 255, var(--light)),
+            transparent 70%
+        ),
+        var(--hot);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    transition: --light 0.25s ease;
+    pointer-events: none;
+}
+
+.button-primary > * {
+    position: relative;
+    z-index: 1;
 }
 
 .button-primary:hover {
-    background: #FFFFFF;
-    box-shadow: 0 0 0 6px rgba(var(--iris-rgb), 0.16), 0 0 40px rgba(var(--iris-rgb), 0.35);
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 20px 60px -10px rgba(var(--orange-rgb), 0.9);
 }
 
-.text-button {
-    padding: 6px 4px;
-    border: 0;
-    background: none;
-    color: var(--muted);
-    font-size: 0.8125rem;
-    transition: color 0.2s ease;
+.button-primary:hover::before {
+    inset: -8px;
+    opacity: 1;
 }
 
-.text-button:hover {
-    color: var(--ink);
+.button-primary:hover::after {
+    --light: 0.35;
+}
+
+.button-primary:active {
+    transform: scale(0.97);
+    transition-duration: 0.1s;
+}
+
+.button-primary:focus-visible {
+    outline-offset: 6px;
+}
+
+/* The opening you dive into, riding inside the button: a
+   dark mouth with a amber lip and the core deep inside. */
+
+.cta-core {
+    display: grid;
+    place-items: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #0E1A33, var(--on-hot) 70%);
+    box-shadow:
+        inset 0 0 0 2px rgba(var(--amber-rgb), 0.85),
+        inset 0 0 10px 3px rgba(var(--orange-rgb), 0.55);
+    transition: transform 0.45s var(--spring);
+}
+
+.cta-core::before {
+    content: "";
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--ice);
+    box-shadow: 0 0 0 5px rgba(var(--ice-rgb), 0.18), 0 0 16px var(--ice);
+    animation: beat 2.4s ease-in-out infinite;
+}
+
+.button-primary:hover .cta-core {
+    transform: rotate(90deg) scale(1.08);
+}
+
+@keyframes spin {
+    to { --spin: 360deg; }
 }
 
 
@@ -282,7 +392,9 @@ a.chip:hover {
     z-index: 20;
     overflow: hidden;
     background:
-        radial-gradient(60% 55% at 64% 46%, rgba(var(--iris-rgb), 0.13), transparent 70%),
+        radial-gradient(50% 55% at 64% 47%, rgba(var(--blue-rgb), 0.24), transparent 70%),
+        radial-gradient(45% 50% at 0% 100%, rgba(var(--orange-rgb), 0.16), transparent 70%),
+        radial-gradient(40% 40% at 0% 0%, rgba(var(--blue-rgb), 0.1), transparent 70%),
         var(--deep);
     touch-action: none;
     animation: stage-failsafe 0.6s ease 8s forwards;
@@ -306,11 +418,81 @@ a.chip:hover {
     height: 100%;
 }
 
+/* The network behind the brain (Task 16): a lattice of nodes
+   drifting one cell diagonally and looping, with blocks of
+   light running along its wires. Transform only, so it costs
+   only the compositor; the mask keeps the copy's side quiet. */
+
+.stage-field {
+    --cell: 64px;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    -webkit-mask-image: radial-gradient(ellipse 80% 75% at 62% 47%, #000 25%, transparent 100%);
+    mask-image: radial-gradient(ellipse 80% 75% at 62% 47%, #000 25%, transparent 100%);
+}
+
+.stage-grid {
+    position: absolute;
+    inset: calc(-1 * var(--cell)) calc(-1 * var(--cell)) 0 0;
+    background:
+        radial-gradient(circle, rgba(var(--ice-rgb), 0.5) 1px, transparent 1.8px) 0 0 / var(--cell) var(--cell),
+        linear-gradient(rgba(var(--blue-rgb), 0.08) 1px, transparent 1px) 0 calc(var(--cell) / 2) / var(--cell) var(--cell),
+        linear-gradient(90deg, rgba(var(--blue-rgb), 0.08) 1px, transparent 1px) calc(var(--cell) / 2) 0 / var(--cell) var(--cell);
+    animation: lattice 16s linear infinite;
+}
+
+.stage-grid > i {
+    position: absolute;
+    top: calc(var(--row, 3) * var(--cell) + var(--cell) / 2);
+    left: 0;
+    width: 180px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(var(--orange-rgb), 0.9) 85%, var(--amber));
+    box-shadow: 0 0 10px rgba(var(--orange-rgb), 0.7);
+    animation: run-x var(--time, 9s) linear var(--delay, 0s) infinite;
+}
+
+.stage-grid > i:nth-child(1) { --row: 2; --time: 8s; --delay: -2s; }
+.stage-grid > i:nth-child(2) { --row: 6; --time: 11s; --delay: -7s; }
+.stage-grid > i:nth-child(3) { --row: 10; --time: 9s; --delay: -4s; }
+
+/* The rest run down the columns. */
+
+.stage-grid > i:nth-child(n + 4) {
+    top: 0;
+    left: calc(var(--col, 12) * var(--cell) + var(--cell) / 2);
+    width: 1px;
+    height: 150px;
+    background: linear-gradient(transparent, rgba(var(--ice-rgb), 0.85) 85%, #FFFFFF);
+    box-shadow: 0 0 10px rgba(var(--ice-rgb), 0.6);
+    animation-name: run-y;
+}
+
+.stage-grid > i:nth-child(4) { --col: 9; --time: 10s; --delay: -1s; }
+.stage-grid > i:nth-child(5) { --col: 15; --time: 7s; --delay: -5s; }
+.stage-grid > i:nth-child(6) { --col: 19; --time: 12s; --delay: -9s; }
+
+@keyframes lattice {
+    to { transform: translate3d(var(--cell), var(--cell), 0); }
+}
+
+@keyframes run-x {
+    from { transform: translateX(-180px); }
+    to { transform: translateX(calc(100vw + 2 * var(--cell))); }
+}
+
+@keyframes run-y {
+    from { transform: translateY(-150px); }
+    to { transform: translateY(calc(100vh + 2 * var(--cell))); }
+}
+
 .stage-ui {
     position: relative;
+    z-index: 0;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     height: 100%;
     padding:
         max(20px, env(safe-area-inset-top))
@@ -331,22 +513,27 @@ a.chip:hover {
     gap: 12px;
 }
 
-.stage-bar button,
-.stage-actions {
+.stage-actions,
+.maker,
+.stage-foot a {
     pointer-events: auto;
 }
 
+/* Wide screens centre the copy beside the brain; narrow ones
+   keep it under the brain, at the foot of the screen. */
+
 .stage-copy {
-    max-width: 40rem;
+    max-width: min(46rem, 50vw);
+    margin-block: auto;
 }
 
 .stage-title {
-    margin: 0 0 24px;
-    font-size: clamp(3.25rem, 10.5vw, 9.5rem);
-    font-weight: 300;
+    margin: 0 0 20px;
+    font-size: clamp(3.25rem, min(8vw, 13vh), 8.5rem);
+    font-weight: 800;
     font-stretch: 125%;
-    letter-spacing: -0.045em;
-    line-height: 0.9;
+    letter-spacing: -0.04em;
+    line-height: 0.92;
 }
 
 .stage-title .line {
@@ -359,19 +546,216 @@ a.chip:hover {
     display: block;
 }
 
-.stage-lede {
-    max-width: 34ch;
-    margin: 0 0 32px;
+.stage-title .line-small {
+    margin-bottom: 0.08em;
+    font-size: 0.34em;
+    font-weight: 600;
+    font-stretch: 112%;
+    letter-spacing: -0.01em;
+}
+
+/* Gradient type, only where the browser can clip it to the
+   glyphs; anywhere else the title stays plain ink. */
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+
+    .stage-title .line > span,
+    .welcome-title {
+        background: linear-gradient(100deg, var(--ink) 20%, #A9CCFF 60%, var(--blue) 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+}
+
+@media (forced-colors: active) {
+
+    .chamber,
+    .stage-field,
+    .maker-cue {
+        display: none;
+    }
+
+    .stage-title .line > span,
+    .welcome-title {
+        background: none;
+        -webkit-text-fill-color: currentColor;
+    }
+
+}
+
+/* "by Xrypto": the maker's name links to their YouTube
+   channel, dressed as a play button that invites the click:
+   a ring ripples out of it and a "Click here" tag points at
+   it. Hover fills it; the tag steps aside. */
+
+.stage-by {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 28px;
     color: var(--muted);
-    font-size: clamp(1rem, 1.4vw, 1.125rem);
-    line-height: 1.55;
+    font-size: 1.0625rem;
+}
+
+.maker {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px 6px 6px;
+    border: 1px solid rgba(var(--orange-rgb), 0.6);
+    border-radius: 999px;
+    background: rgba(var(--orange-rgb), 0.12);
+    color: var(--amber);
+    font-weight: 750;
+    font-stretch: 115%;
+    text-decoration: none;
+    transition: transform 0.4s var(--spring), background-color 0.2s ease, color 0.2s ease;
+}
+
+.maker::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border: 1px solid var(--orange);
+    border-radius: inherit;
+    animation: ripple 2.4s ease-out infinite;
+    pointer-events: none;
+}
+
+.maker-play {
+    width: 26px;
+    height: 26px;
+    padding: 4px;
+    border-radius: 50%;
+    background: var(--hot);
+    fill: var(--on-hot);
+    transition: transform 0.4s var(--spring);
+}
+
+.maker-cue {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 14px);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--ink);
+    color: var(--deep);
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-stretch: 100%;
+    white-space: nowrap;
+    transform: translateY(-50%);
+    animation: nudge 1.1s ease-in-out infinite alternate;
+    transition: opacity 0.2s ease;
+}
+
+.maker-cue::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -3px;
+    width: 8px;
+    height: 8px;
+    background: inherit;
+    transform: translateY(-50%) rotate(45deg);
+}
+
+.maker:hover {
+    background: var(--orange);
+    color: var(--on-hot);
+    transform: translateY(-2px) scale(1.05);
+}
+
+.maker:hover .maker-play {
+    transform: scale(1.12);
+    background: var(--on-hot);
+    fill: var(--amber);
+}
+
+.maker:hover .maker-cue {
+    opacity: 0;
+}
+
+.maker:active {
+    transform: scale(0.95);
+    transition-duration: 0.1s;
+}
+
+@keyframes ripple {
+    from { transform: scale(1); opacity: 0.9; }
+    to { transform: scale(1.3, 1.6); opacity: 0; }
+}
+
+@keyframes nudge {
+    from { transform: translate(0, -50%); }
+    to { transform: translate(-6px, -50%); }
+}
+
+.stage-lede {
+    max-width: 40ch;
+    margin: 0 0 36px;
+    color: var(--muted);
+    font-size: clamp(1.0625rem, 1.35vw, 1.25rem);
+    line-height: 1.6;
 }
 
 .stage-actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 20px;
+    gap: 28px;
+}
+
+/* Buy XEQM: the second action, so glass, not fire. */
+
+.button-buy {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 60px;
+    padding: 0 22px 0 26px;
+    border: 1.5px solid rgba(var(--ice-rgb), 0.5);
+    border-radius: 999px;
+    background: rgba(var(--blue-rgb), 0.14);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    color: var(--ink);
+    font-size: 1.0625rem;
+    font-weight: 700;
+    font-stretch: 112%;
+    text-decoration: none;
+    transition: transform 0.4s var(--spring), background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.button-buy svg {
+    width: 18px;
+    height: 18px;
+    color: var(--ice);
+    transition: transform 0.4s var(--spring);
+}
+
+.button-buy:hover {
+    border-color: var(--blue);
+    background: var(--blue);
+    transform: translateY(-2px);
+}
+
+.button-buy:hover svg {
+    color: var(--ink);
+    transform: translate(2px, -2px);
+}
+
+.button-buy:active {
+    transform: scale(0.97);
+    transition-duration: 0.1s;
+}
+
+.button-buy:focus-visible {
+    border-radius: 999px;
+    outline-offset: 4px;
 }
 
 .stage-hint {
@@ -394,13 +778,116 @@ a.chip:hover {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(transparent, var(--mint), transparent);
+    background: linear-gradient(transparent, var(--ice), transparent);
     animation: hint-drop 2s ease-in-out infinite;
 }
 
 @keyframes hint-drop {
     from { transform: translateY(-100%); }
     to { transform: translateY(100%); }
+}
+
+
+/* The foot of the landing: the maker's links, the project's
+   links, and the small print. Wide screens put the small
+   print beside the links; narrow ones under them. */
+
+.stage-foot {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: end;
+    gap: 16px 48px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+}
+
+.link-rows {
+    display: grid;
+    gap: 10px;
+}
+
+.link-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.link-row-name {
+    min-width: 8.5em;
+    color: var(--muted);
+    font-size: 0.8125rem;
+}
+
+.link-icon,
+.link-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    height: 36px;
+    border-radius: 999px;
+    text-decoration: none;
+    transition: transform 0.35s var(--spring), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.link-icon svg,
+.link-pill svg {
+    width: 18px;
+    height: 18px;
+    flex: none;
+}
+
+.link-icon {
+    width: 36px;
+    border: 1px solid rgba(var(--orange-rgb), 0.5);
+    background: rgba(var(--orange-rgb), 0.1);
+    color: var(--amber);
+}
+
+.link-icon:hover {
+    border-color: var(--orange);
+    background: var(--orange);
+    color: var(--on-hot);
+    transform: translateY(-2px);
+}
+
+.link-pill {
+    padding: 0 13px 0 10px;
+    border: 1px solid rgba(var(--blue-rgb), 0.45);
+    background: rgba(var(--blue-rgb), 0.1);
+    color: var(--ink);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.link-pill svg {
+    color: var(--ice);
+}
+
+.link-pill:hover {
+    border-color: var(--blue);
+    background: rgba(var(--blue-rgb), 0.3);
+    transform: translateY(-2px);
+}
+
+.link-icon:active,
+.link-pill:active {
+    transform: scale(0.94);
+    transition-duration: 0.1s;
+}
+
+.link-icon:focus-visible,
+.link-pill:focus-visible {
+    border-radius: 999px;
+}
+
+.disclaimer {
+    max-width: 68ch;
+    margin: 0 0 0 auto;
+    color: var(--muted);
+    font-size: 0.71875rem;
+    line-height: 1.55;
 }
 
 
@@ -413,11 +900,45 @@ a.chip:hover {
 
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     height: 100vh;
     height: 100dvh;
     background:
-        radial-gradient(70% 45% at 50% 0%, rgba(var(--iris-rgb), 0.12), transparent 70%),
+        radial-gradient(130% 100% at 50% 46%, transparent 50%, rgba(0, 1, 4, 0.85) 100%),
         var(--deep);
+}
+
+/* Inside the tunnel (Task 17): the light of the core at the
+   far end, orange round ice, breathing slowly. The canvas
+   above it draws the walls. Transform only, so the breath
+   costs the compositor and nothing else. */
+
+.app::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+        radial-gradient(14% 12% at 50% 46%, rgba(var(--ice-rgb), 0.16), transparent 70%),
+        radial-gradient(36% 32% at 50% 46%, rgba(var(--orange-rgb), 0.2), transparent 72%),
+        radial-gradient(70% 60% at 50% 46%, rgba(var(--blue-rgb), 0.16), transparent 75%);
+    pointer-events: none;
+    animation: breathe 7s ease-in-out infinite alternate;
+}
+
+@keyframes breathe {
+    to { transform: scale(1.12); }
+}
+
+.chamber {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
 }
 
 /* During the dive the chat sits above the stage, visible
@@ -445,9 +966,9 @@ a.chip:hover {
     inset: 0;
     background: radial-gradient(
         circle at 50% 50%,
-        rgba(238, 241, 255, 0.95),
-        rgba(var(--mint-rgb), 0.55) 30%,
-        rgba(var(--iris-rgb), 0.25) 55%,
+        #FFFFFF 6%,
+        rgba(var(--ice-rgb), 0.5) 28%,
+        rgba(var(--orange-rgb), 0.3) 52%,
         transparent 75%
     );
     opacity: var(--flash, 0);
@@ -460,6 +981,9 @@ a.chip:hover {
     gap: 12px;
     padding: max(12px, env(safe-area-inset-top)) var(--gutter) 12px;
     border-bottom: 1px solid var(--line);
+    background: rgba(2, 4, 9, 0.35);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
 }
 
 .app-bar-end {
@@ -470,66 +994,6 @@ a.chip:hover {
 }
 
 
-/* Streaming switch */
-
-.stream-toggle {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--muted);
-    font-size: 0.8125rem;
-    cursor: pointer;
-    user-select: none;
-}
-
-.stream-toggle input {
-    position: absolute;
-    opacity: 0;
-    width: 1px;
-    height: 1px;
-}
-
-.stream-track {
-    position: relative;
-    width: 34px;
-    height: 20px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--wash);
-    transition: background-color 0.25s ease, border-color 0.25s ease;
-}
-
-.stream-thumb {
-    position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--muted);
-    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease;
-}
-
-.stream-toggle input:checked + .stream-track {
-    border-color: rgba(var(--iris-rgb), 0.5);
-    background: rgba(var(--iris-rgb), 0.22);
-}
-
-.stream-toggle input:checked + .stream-track .stream-thumb {
-    transform: translateX(14px);
-    background: var(--ink);
-}
-
-.stream-toggle input:focus-visible + .stream-track {
-    outline: 2px solid var(--mint);
-    outline-offset: 3px;
-}
-
-.stream-toggle.is-locked {
-    opacity: 0.5;
-    cursor: default;
-}
 
 
 /* Conversation log */
@@ -539,7 +1003,7 @@ a.chip:hover {
     overscroll-behavior: contain;
     padding: 8px max(var(--gutter), (100% - var(--column)) / 2) 32px;
     scrollbar-width: thin;
-    scrollbar-color: rgba(var(--iris-rgb), 0.25) transparent;
+    scrollbar-color: rgba(var(--blue-rgb), 0.25) transparent;
 }
 
 .log:focus-visible {
@@ -553,10 +1017,10 @@ a.chip:hover {
 .welcome-title {
     margin: 0 0 12px;
     font-size: clamp(2rem, 5.2vw, 3.25rem);
-    font-weight: 300;
-    font-stretch: 120%;
+    font-weight: 780;
+    font-stretch: 122%;
     letter-spacing: -0.035em;
-    line-height: 1.02;
+    line-height: 1.04;
 }
 
 .welcome-lede {
@@ -565,50 +1029,108 @@ a.chip:hover {
     color: var(--muted);
 }
 
+/* Suggestions: glass tiles, each in its topic's colour. The
+   live snapshot is ice because it is the one that reads the
+   chain; its dot beats like the other live signals. */
+
 .prompts {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
-    border-top: 1px solid var(--line);
+    gap: 12px;
 }
 
 .prompt {
+    --tone: var(--blue-rgb);
+
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     display: grid;
     align-content: start;
-    gap: 4px;
-    padding: 18px 16px 18px 0;
-    border: 0;
-    border-bottom: 1px solid var(--line);
-    background: none;
+    gap: 6px;
+    padding: 18px 20px 20px;
+    border: 1px solid rgba(var(--tone), 0.22);
+    border-radius: 20px;
+    background:
+        linear-gradient(155deg, rgba(var(--tone), 0.16), rgba(var(--tone), 0.03) 65%),
+        var(--glass);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
     text-align: left;
-    transition: color 0.2s ease, padding-left 0.3s ease;
+    transition:
+        transform 0.45s var(--spring),
+        border-color 0.25s ease,
+        box-shadow 0.3s ease;
+}
+
+.prompt[data-tone="orange"] { --tone: var(--orange-rgb); }
+.prompt[data-tone="amber"] { --tone: var(--amber-rgb); }
+.prompt[data-tone="ice"] { --tone: var(--ice-rgb); }
+
+/* The pointer's light (--mx, --my, set by the script). */
+
+.prompt::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(
+        260px circle at var(--mx, 50%) var(--my, 0%),
+        rgba(var(--tone), 0.3),
+        transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .prompt strong {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     font-size: 1rem;
-    font-weight: 550;
-    font-stretch: 105%;
+    font-weight: 650;
+    font-stretch: 108%;
+}
+
+.prompt strong::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: 50%;
+    background: rgb(var(--tone));
+    box-shadow: 0 0 10px rgb(var(--tone));
+    transition: transform 0.45s var(--spring);
+}
+
+.prompt[data-tone="ice"] strong::before {
+    animation: beat 2.4s ease-in-out infinite;
 }
 
 .prompt small {
+    padding-left: 18px;
     color: var(--muted);
     font-size: 0.875rem;
     line-height: 1.45;
 }
 
 .prompt:hover {
-    padding-left: 10px;
-    color: var(--iris);
+    transform: translateY(-3px);
+    border-color: rgba(var(--tone), 0.6);
+    box-shadow: 0 18px 44px -20px rgba(var(--tone), 0.9);
+}
+
+.prompt:hover::before {
+    opacity: 1;
 }
 
 .prompt:hover strong::before {
-    content: "";
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    margin: 0 10px 0.15em -16px;
-    border-radius: 50%;
-    background: var(--mint);
-    box-shadow: 0 0 8px var(--mint);
+    transform: scale(1.6);
+}
+
+.prompt:active {
+    transform: scale(0.98);
+    transition-duration: 0.1s;
 }
 
 
@@ -626,9 +1148,10 @@ a.chip:hover {
 .bubble {
     max-width: min(85%, 36rem);
     padding: 12px 16px;
-    border: 1px solid rgba(var(--iris-rgb), 0.22);
-    border-radius: 18px 18px 6px 18px;
-    background: rgba(var(--iris-rgb), 0.12);
+    border-radius: 20px 20px 6px 20px;
+    background: linear-gradient(135deg, #2563EB, #1B3FA8);
+    box-shadow: 0 12px 32px -14px rgba(var(--orange-rgb), 0.7);
+    color: #FFFFFF;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
@@ -649,8 +1172,8 @@ a.chip:hover {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--iris);
-    box-shadow: 0 0 10px rgba(var(--iris-rgb), 0.9);
+    background: var(--hot);
+    box-shadow: 0 0 10px rgba(var(--orange-rgb), 0.9);
 }
 
 .live-badge {
@@ -658,9 +1181,9 @@ a.chip:hover {
     align-items: center;
     gap: 6px;
     padding: 2px 9px;
-    border: 1px solid rgba(var(--mint-rgb), 0.3);
+    border: 1px solid rgba(var(--ice-rgb), 0.3);
     border-radius: 999px;
-    color: var(--mint);
+    color: var(--ice);
     font-weight: 500;
     font-stretch: 100%;
 }
@@ -707,7 +1230,7 @@ a.chip:hover {
 }
 
 .msg-body li::marker {
-    color: var(--iris);
+    color: var(--blue);
 }
 
 .msg-body strong {
@@ -734,7 +1257,7 @@ a.chip:hover {
     margin-left: 3px;
     vertical-align: -0.15em;
     border-radius: 2px;
-    background: var(--iris);
+    background: var(--hot);
     animation: caret 1s steps(1) infinite;
 }
 
@@ -786,7 +1309,7 @@ a.chip:hover {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--iris);
+    background: var(--blue);
     opacity: 0.3;
     animation: fire 1.2s ease-in-out infinite;
 }
@@ -797,8 +1320,8 @@ a.chip:hover {
 @keyframes fire {
     30% {
         opacity: 1;
-        background: var(--mint);
-        box-shadow: 0 0 10px var(--mint);
+        background: var(--orange);
+        box-shadow: 0 0 12px var(--orange);
     }
 }
 
@@ -818,18 +1341,22 @@ a.chip:hover {
     align-items: flex-end;
     gap: 8px;
     padding: 7px 7px 7px 20px;
-    border: 1px solid rgba(var(--iris-rgb), 0.22);
-    border-radius: 24px;
-    background: var(--raised);
+    border: 1px solid transparent;
+    border-radius: 26px;
+    background:
+        linear-gradient(var(--raised), var(--raised)) padding-box,
+        linear-gradient(100deg, rgba(var(--blue-rgb), 0.4), rgba(var(--orange-rgb), 0.4), rgba(var(--amber-rgb), 0.3)) border-box;
     box-shadow: 0 18px 50px -20px rgba(0, 0, 0, 0.8);
-    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    transition: box-shadow 0.3s ease;
 }
 
 .composer:focus-within {
-    border-color: rgba(var(--iris-rgb), 0.55);
+    background:
+        linear-gradient(var(--raised), var(--raised)) padding-box,
+        linear-gradient(100deg, var(--blue), var(--orange), var(--amber)) border-box;
     box-shadow:
-        0 0 0 4px rgba(var(--iris-rgb), 0.12),
-        0 18px 50px -20px rgba(0, 0, 0, 0.8);
+        0 0 0 5px rgba(var(--orange-rgb), 0.12),
+        0 18px 60px -18px rgba(var(--orange-rgb), 0.55);
 }
 
 .composer textarea {
@@ -863,17 +1390,20 @@ a.chip:hover {
     flex: none;
     border: 0;
     border-radius: 50%;
-    background: var(--ink);
-    color: var(--deep);
-    transition: background-color 0.2s ease, opacity 0.2s ease;
+    background: var(--hot);
+    color: var(--on-hot);
+    box-shadow: 0 6px 20px -6px rgba(var(--orange-rgb), 0.8);
+    transition: transform 0.4s var(--spring), box-shadow 0.25s ease, opacity 0.2s ease;
 }
 
-.send-button:hover {
-    background: var(--mint);
+.send-button:enabled:hover {
+    transform: translateY(-2px) rotate(-8deg);
+    box-shadow: 0 10px 28px -6px rgba(var(--orange-rgb), 1);
 }
 
 .send-button:disabled {
     opacity: 0.35;
+    box-shadow: none;
     cursor: default;
 }
 
@@ -901,18 +1431,102 @@ a.chip:hover {
    SMALL SCREENS
    --------------------------------------------------------- */
 
+@media (max-width: 900px), (orientation: portrait) {
+
+    .stage-copy {
+        max-width: 40rem;
+        margin-block: auto 0;
+    }
+
+    /* The copy rises into the brain here; a dusk behind it
+       keeps it readable. */
+
+    .stage-ui::before {
+        content: "";
+        position: absolute;
+        inset: 25% 0 0;
+        z-index: -1;
+        background: linear-gradient(transparent, rgba(2, 4, 9, 0.9) 32%);
+        pointer-events: none;
+    }
+
+    .stage-foot {
+        grid-template-columns: minmax(0, 1fr);
+        margin-top: 24px;
+    }
+
+    .disclaimer {
+        margin: 0;
+    }
+
+}
+
 @media (max-width: 600px) {
 
     .stage-hint {
         display: none;
     }
 
-    .stage-lede {
-        margin-bottom: 24px;
+    .stage-by {
+        margin-bottom: 18px;
+        font-size: 1rem;
     }
 
-    .stage-actions .button-primary {
+    .stage-lede {
+        margin-bottom: 24px;
+        font-size: 1rem;
+    }
+
+    .stage-actions {
+        gap: 10px;
+    }
+
+    .stage-actions .button-primary,
+    .button-buy {
         width: 100%;
+        justify-content: space-between;
+        padding-left: 28px;
+    }
+
+    .button-buy {
+        min-height: 52px;
+    }
+
+    /* Icons only on phones; the names stay for screen
+       readers and show as tooltips. */
+
+    .link-pill {
+        width: 36px;
+        padding: 0;
+    }
+
+    .link-pill span {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+
+    .link-row-name {
+        min-width: 7.5em;
+        font-size: 0.75rem;
+    }
+
+    .stage-foot {
+        gap: 12px;
+        margin-top: 18px;
+        padding-top: 14px;
+    }
+
+    .disclaimer {
+        font-size: 0.65625rem;
+    }
+
+    .cta-core {
+        width: 52px;
+        height: 52px;
     }
 
     .app-bar {
@@ -923,10 +1537,6 @@ a.chip:hover {
         gap: 10px;
     }
 
-    .stream-name {
-        display: none;
-    }
-
     .welcome-lede {
         margin-bottom: 24px;
     }
@@ -934,6 +1544,45 @@ a.chip:hover {
     .privacy-note {
         font-size: 0.6875rem;
         text-align: left;
+    }
+
+}
+
+/* Touch screens keep :hover after a tap; don't leave a tile
+   lifted or lit once the finger is gone. */
+
+@media (hover: none) {
+
+    .prompt:hover,
+    .button-primary:hover,
+    .send-button:enabled:hover {
+        transform: none;
+    }
+
+    .prompt:hover::before {
+        opacity: 0;
+    }
+
+    .button-primary:hover::after {
+        --light: 0;
+    }
+
+    .maker:hover,
+    .button-buy:hover,
+    .link-icon:hover,
+    .link-pill:hover {
+        transform: none;
+    }
+
+}
+
+/* Short phones can't hold the whole landing; the lede goes
+   first (the chat's welcome says the same). */
+
+@media (max-width: 600px) and (max-height: 799px) {
+
+    .stage-lede {
+        display: none;
     }
 
 }

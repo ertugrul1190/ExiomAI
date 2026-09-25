@@ -3,7 +3,7 @@
 This file records important cases where official EXIOM/XEQM information
 changed, conflicted, or requires status-sensitive interpretation.
 
-EXIOM AI must not silently combine contradictory claims.
+ExiomAI must not silently combine contradictory claims.
 
 ---
 
@@ -206,7 +206,7 @@ registration procedure must be used.
 
 ## Resolution
 
-EXIOM AI must not invent operational steps.
+ExiomAI must not invent operational steps.
 
 Procedural instructions require verified EXIOM-specific documentation.
 
@@ -238,7 +238,7 @@ dates, and platform designs can change.
 
 ## Resolution
 
-EXIOM AI should use the whitepaper as authoritative technical design
+ExiomAI should use the whitepaper as authoritative technical design
 documentation while preserving its draft status.
 
 When production implementation later differs from the draft, production

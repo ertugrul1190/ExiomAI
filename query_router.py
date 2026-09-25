@@ -74,7 +74,7 @@ def build_router_prompt(fact_registry):
     """
 
     return f"""
-You are the semantic router for EXIOM AI.
+You are the semantic router for ExiomAI.
 
 Your ONLY job is to decide how the user's latest message
 should be handled.
@@ -95,7 +95,7 @@ relevant | unrelated | mixed
 
 RELEVANT means the message concerns:
 
-- EXIOM, XEQM, or EXIOM AI itself
+- EXIOM, XEQM, or ExiomAI itself
 - cryptocurrency/blockchain concepts reasonably useful for
   understanding EXIOM
 - a follow-up to an EXIOM conversation
@@ -147,7 +147,7 @@ relationship, process, implication or interpretation.
 
 GENERAL:
 A relevant EXIOM/XEQM question that fits neither category
-above. Questions about EXIOM AI itself — its creator,
+above. Questions about ExiomAI itself — its creator,
 identity, ownership, purpose, or relationship to
 XEQM/XEQMLabs — normally use GENERAL.
 
@@ -197,7 +197,7 @@ and that changes over time:
 - recent EXIOM/XEQMLabs announcements or news
 
 Otherwise "search" is false: concepts, explanations, how
-EXIOM works, EXIOM AI itself, anything an Explorer fact
+EXIOM works, ExiomAI itself, anything an Explorer fact
 answers, and every unrelated message.
 
 "Exiom coin price" → search true

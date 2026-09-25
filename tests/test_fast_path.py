@@ -76,6 +76,7 @@ def test_greeting_variants_are_deterministic():
 @pytest.mark.parametrize("question", [
     "Who made you?",
     "who built EXIOM AI",
+    "who built ExiomAI",
     "Who is your developer?",
     "who is behind this assistant",
     "Are you made by XEQMLabs?",
@@ -94,6 +95,7 @@ def test_creator_questions_use_the_documented_answer(question):
     "who are you",
     "What are you?",
     "what is EXIOM AI",
+    "what is ExiomAI",
     "are you official?",
 ])
 def test_identity_questions_state_independence(question):

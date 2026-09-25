@@ -305,7 +305,7 @@ function App() {
         userMessage,
         {
           role: 'assistant',
-          content: 'EXIOM AI could not connect. Please try again.',
+          content: 'ExiomAI could not connect. Please try again.',
         },
       ])
 
@@ -355,7 +355,7 @@ function App() {
       <header>
         <div className="brand">
           <span className="brand-mark">X</span>
-          <span>EXIOM AI</span>
+          <span>ExiomAI</span>
         </div>
 
         <a className="creator" href="#" onClick={(e) => e.preventDefault()}>
@@ -398,7 +398,7 @@ function App() {
                 <span className="status-dot" />
 
                 <div>
-                  <strong>EXIOM AI</strong>
+                  <strong>ExiomAI</strong>
                   <span>ONLINE</span>
                 </div>
               </div>

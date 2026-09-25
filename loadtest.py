@@ -1,5 +1,5 @@
 """
-Concurrency / load test for a running EXIOM AI server.
+Concurrency / load test for a running ExiomAI server.
 
     python loadtest.py --url http://127.0.0.1:8000 \\
         --concurrency 20 --requests 200

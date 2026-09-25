@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>EXIOM AI Usage</title>
+    <title>ExiomAI Usage</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32.png', v=asset_version('favicon-32.png')) }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png', v=asset_version('apple-touch-icon.png')) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=asset_version('style.css')) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='usage.css', v=asset_version('usage.css')) }}">
 </head>
@@ -16,11 +18,8 @@
 
     <header class="topbar">
         <div class="brand">
-            <svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true">
-                <circle class="brand-ring" cx="14" cy="14" r="12.5"/>
-                <circle class="brand-core" cx="14" cy="14" r="4.5"/>
-            </svg>
-            <span>EXIOM AI usage</span>
+            <img class="brand-mark" src="{{ url_for('static', filename='logo-128.png', v=asset_version('logo-128.png')) }}" alt="" width="30" height="30">
+            <span>ExiomAI usage</span>
         </div>
         <button id="refresh" class="usage-button" type="button" hidden>Refresh</button>
     </header>

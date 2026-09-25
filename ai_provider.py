@@ -233,7 +233,7 @@ UNSUPPORTED_OPTION_MARKERS = (
 # ---------------------------------------------------------
 
 OFF_TOPIC_PROMPT = """
-You are EXIOM AI.
+You are ExiomAI.
 
 The user's latest request is clearly unrelated to EXIOM/XEQM.
 
@@ -724,7 +724,7 @@ class AIProvider:
 
 
     # -----------------------------------------------------
-    # NORMAL EXIOM AI RESPONSE
+    # NORMAL ExiomAI RESPONSE
     # -----------------------------------------------------
 
     def generate(
@@ -902,7 +902,7 @@ class AIProvider:
 
 
     # -----------------------------------------------------
-    # STREAMED EXIOM AI RESPONSE
+    # STREAMED ExiomAI RESPONSE
     # -----------------------------------------------------
 
     def stream_generate(

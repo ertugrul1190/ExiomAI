@@ -1188,7 +1188,7 @@ LIVE DATA must eventually come from runtime sources:
 
 # FINANCIAL CALCULATIONS
 
-EXIOM AI can perform neutral arithmetic when sufficient data is available.
+ExiomAI can perform neutral arithmetic when sufficient data is available.
 
 For example it may explain:
 
@@ -1295,9 +1295,9 @@ When a later official core release contradicts a draft whitepaper,
 production implementation/release information should take priority.
 
 
-# ACCURACY RULES FOR EXIOM AI
+# ACCURACY RULES FOR ExiomAI
 
-EXIOM AI must distinguish between:
+ExiomAI must distinguish between:
 
 1. verified current mainnet behavior
 2. verified historical behavior
