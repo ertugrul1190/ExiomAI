@@ -8,9 +8,9 @@
     padding: 9px 16px;
     border: 0;
     border-radius: 10px;
-    background: white;
-    color: #070a10;
-    font-weight: bold;
+    background: var(--ink);
+    color: var(--deep);
+    font-weight: 600;
     cursor: pointer;
 }
 
@@ -25,15 +25,15 @@
 .usage-panel input {
     flex: 1 1 220px;
     padding: 9px 12px;
-    border: 1px solid rgba(255,255,255,0.15);
+    border: 1px solid var(--line);
     border-radius: 10px;
-    background: rgba(255,255,255,0.04);
+    background: var(--raised);
     color: inherit;
 }
 
 .usage-message {
     min-height: 1.2em;
-    color: #9da8b8;
+    color: var(--muted);
     font-size: 14px;
 }
 
@@ -45,14 +45,14 @@
 
 .usage-card {
     padding: 16px;
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid var(--line);
     border-radius: 14px;
-    background: rgba(255,255,255,0.03);
+    background: var(--wash);
 }
 
 .usage-card span {
     display: block;
-    color: #9da8b8;
+    color: var(--muted);
     font-size: 12px;
 }
 
@@ -78,7 +78,7 @@
 .usage-table th,
 .usage-table td {
     padding: 9px 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid var(--line);
     text-align: right;
     white-space: nowrap;
 }
@@ -89,13 +89,13 @@
 }
 
 .usage-table th {
-    color: #9da8b8;
+    color: var(--muted);
     font-weight: normal;
 }
 
 .usage-note {
     margin: 20px 0 40px;
-    color: #9da8b8;
+    color: var(--muted);
     font-size: 13px;
     line-height: 1.5;
 }

@@ -34,8 +34,14 @@ def test_page_carries_a_nonce_csp_that_matches_its_only_script(client):
 
     nonce = re.search(r"'nonce-([^']+)'", csp).group(1)
 
+    scripts = re.findall(r"<script\b[^>]*>", html)
+
+    # One inline script (the app) and the self-hosted GSAP file
+    # (Task 9); every one carries this response's nonce.
     assert f'<script nonce="{nonce}">' in html
-    assert html.count("<script") == 1
+    assert len(scripts) == 2
+    assert all(f'nonce="{nonce}"' in tag for tag in scripts)
+    assert all("//" not in tag for tag in scripts)
     assert "'unsafe-inline'" not in csp
     assert "frame-ancestors 'none'" in csp
     assert "object-src 'none'" in csp

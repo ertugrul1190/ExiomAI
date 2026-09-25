@@ -28,9 +28,10 @@ import time
 # RESPONSE HEADERS
 # ---------------------------------------------------------
 #
-# The page has exactly one inline script, which carries the
-# nonce. Nothing else may execute: no inline handlers, no
-# third-party origins, no framing.
+# Every script on the page carries the nonce: the one inline
+# script and the self-hosted GSAP file (Task 9). Nothing else
+# may execute: no inline handlers, no third-party origins, no
+# framing. Fonts are self-hosted for the same reason.
 # ---------------------------------------------------------
 
 def new_nonce():

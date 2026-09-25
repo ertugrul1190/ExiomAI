@@ -1,496 +1,402 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XEQM Hub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#060A1F">
+    <title>EXIOM AI | XEQM Hub</title>
+    <link rel="preload" href="{{ url_for('static', filename='fonts/mona-sans-latin-wdth.woff2', v='5.3.0') }}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=asset_version('style.css')) }}">
 </head>
 
 <body>
 
-<div class="container">
+<!-- INTRO STAGE (Task 9)
 
-    <header class="topbar">
+     The brain is drawn from the network itself: every point is
+     a node, every line a link, and the pulses travel real paths
+     through the graph. Scrolling dives into the core node and
+     the chat opens out of it.
 
-        <div class="brand">
-            <span class="brand-mark">X</span>
-            <span>XEQM HUB</span>
+     Shown by CSS from the first paint so the chat never flashes
+     first. The script takes it over, or removes it; if the
+     script never runs, a CSS fail-safe fades it out. -->
+
+<section id="stage" class="stage" aria-label="EXIOM AI introduction">
+
+    <canvas id="brain" class="stage-canvas" aria-hidden="true"></canvas>
+
+    <div class="stage-ui">
+
+        <header class="stage-bar">
+
+            <span class="brand">
+                <svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true">
+                    <circle class="brand-ring" cx="14" cy="14" r="12.5"/>
+                    <circle class="brand-core" cx="14" cy="14" r="4.5"/>
+                </svg>
+                XEQM Hub
+            </span>
+
+            <span class="stage-bar-end">
+                <span class="chip">
+                    <span class="chip-dot"></span>
+                    <span>AI Online</span>
+                </span>
+                <button id="skipIntro" class="text-button" type="button">Skip intro</button>
+            </span>
+
+        </header>
+
+        <div class="stage-copy">
+
+            <p class="stage-title">
+                <span class="line"><span>Ask the</span></span>
+                <span class="line"><span>network.</span></span>
+            </p>
+
+            <p class="stage-lede">
+                EXIOM AI answers questions about XEQM, service nodes
+                and privacy, with live numbers from the Official
+                EXIOM Explorer.
+            </p>
+
+            <div class="stage-actions">
+                <button id="enterButton" class="button-primary" type="button">Start asking</button>
+                <span class="stage-hint" aria-hidden="true">
+                    <span class="stage-hint-line"></span>
+                    or scroll to dive in
+                </span>
+            </div>
+
         </div>
 
-        <div class="status">
-            <span class="status-dot"></span>
-            XEQM AI ONLINE
+    </div>
+
+</section>
+
+
+<!-- THE ASSISTANT -->
+
+<div id="app" class="app">
+
+    <header class="app-bar" data-arrive>
+
+        <h1 class="brand">
+            <button
+                id="homeButton"
+                class="brand-button"
+                type="button"
+                title="Back to the intro"
+            >
+                <svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true">
+                    <circle class="brand-ring" cx="14" cy="14" r="12.5"/>
+                    <circle class="brand-core" cx="14" cy="14" r="4.5"/>
+                </svg>
+                EXIOM AI
+                <span class="sr-only">, back to the intro</span>
+            </button>
+        </h1>
+
+        <div class="app-bar-end">
+
+            <span class="chip">
+                <span class="chip-dot"></span>
+                <span>AI Online</span>
+            </span>
+
+            <label
+                id="streamToggle"
+                class="stream-toggle"
+                title="Show answers as they are written"
+            >
+                <input
+                    id="streamSwitch"
+                    type="checkbox"
+                    aria-label="Streaming responses"
+                    checked
+                >
+                <span class="stream-track"><span class="stream-thumb"></span></span>
+                <span class="stream-name">Stream</span>
+            </label>
+
         </div>
 
     </header>
 
 
-    <main>
+    <main
+        id="answer"
+        class="log"
+        role="log"
+        aria-label="Conversation"
+        tabindex="0"
+    >
 
-        <section class="intro">
+        <div id="welcome" class="welcome">
 
-            <div class="badge">XEQM ECOSYSTEM ASSISTANT</div>
+            <h2 class="welcome-title" data-arrive>What do you want to know?</h2>
 
-            <h1>
-                Understand XEQM.<br>
-                Simply.
-            </h1>
-
-            <p>
-                Ask questions, understand the technology and explore
-                the XEQM ecosystem without the technical headache.
+            <p class="welcome-lede" data-arrive>
+                Ask about XEQM, EXIOM, service nodes, privacy or the
+                wider ecosystem. Network numbers come live from the
+                Explorer.
             </p>
 
-        </section>
-
-
-        <!-- LIVE EXIOM NETWORK -->
-
-        <section class="live-network-bar">
-
-            <div class="live-network-label">
-                <span class="live-data-dot"></span>
-                <span>LIVE NETWORK</span>
-            </div>
-
-            <div class="live-stat">
-
-                <span class="live-stat-label">
-                    BLOCK HEIGHT
-                </span>
-
-                <strong
-                    id="liveBlockHeight"
-                    class="live-stat-value"
-                >
-                    Loading...
-                </strong>
-
-            </div>
-
-            <div
-                id="liveNetworkState"
-                class="live-network-state"
-            >
-                Connecting to Explorer...
-            </div>
-
-        </section>
-
-
-        <!-- AI ASSISTANT -->
-
-        <section class="assistant-card">
-
-            <div class="assistant-header">
-
-                <div class="assistant-identity">
-                    <strong>XEQM AI</strong>
-                    <span>Beginner-friendly ecosystem guide</span>
-                </div>
-
-                <label
-                    id="streamToggle"
-                    class="stream-toggle"
-                    title="Streaming responses"
-                >
-
-                    <input
-                        id="streamSwitch"
-                        type="checkbox"
-                        aria-label="Streaming responses"
-                        checked
-                    >
-
-                    <span class="stream-track">
-                        <span class="stream-thumb"></span>
-                    </span>
-
-                    <span class="stream-name">STREAMING</span>
-
-                </label>
-
-            </div>
-
-
-            <div id="answer" class="answer-area">
-
-                <div
-                    id="welcomeMessage"
-                    class="welcome-message"
-                >
-
-                    <strong>Welcome to XEQM AI.</strong>
-
-                    <br><br>
-
-                    Ask me anything about XEQM, EXIOM, service nodes,
-                    privacy or the ecosystem.
-
-                </div>
-
-            </div>
-
-
-            <!-- SUGGESTIONS -->
-
-            <div
-                id="suggestions"
-                class="suggestions"
-            >
+            <div class="prompts" data-arrive>
 
                 <button
-                    class="suggestion-card xeqm-card"
+                    class="prompt"
+                    type="button"
                     data-question="Explain XEQM to me simply. What is it, what does it do, and why does it exist?"
                 >
-
-                    <span class="suggestion-icon">✦</span>
-
-                    <span class="suggestion-content">
-
-                        <strong>
-                            Explain XEQM Simply
-                        </strong>
-
-                        <small>
-                            What it is, what it does & why it exists
-                        </small>
-
-                    </span>
-
-                    <span class="suggestion-arrow">→</span>
-
+                    <strong>Explain XEQM simply</strong>
+                    <small>What it is, what it does and why it exists</small>
                 </button>
 
-
                 <button
-                    class="suggestion-card node-card"
+                    class="prompt"
+                    type="button"
                     data-question="Explain how EXIOM service nodes work, including staking and the role they play in the network."
                 >
-
-                    <span class="suggestion-icon">◈</span>
-
-                    <span class="suggestion-content">
-
-                        <strong>
-                            Understand Service Nodes
-                        </strong>
-
-                        <small>
-                            Staking, rewards & network role
-                        </small>
-
-                    </span>
-
-                    <span class="suggestion-arrow">→</span>
-
+                    <strong>How service nodes work</strong>
+                    <small>Staking, rewards and their role in the network</small>
                 </button>
 
-
                 <button
-                    class="suggestion-card network-card"
+                    class="prompt"
+                    type="button"
                     data-question="Give me a current EXIOM network snapshot using live Explorer data. Include active service nodes, block height, locked supply, current APY, and daily reward per node."
                 >
-
-                    <span class="suggestion-icon">▥</span>
-
-                    <span class="suggestion-content">
-
-                        <strong>
-                            View Live Network Stats
-                        </strong>
-
-                        <small>
-                            Current nodes, blocks, supply & APY
-                        </small>
-
-                    </span>
-
-                    <span class="suggestion-arrow">→</span>
-
+                    <strong>Live network snapshot</strong>
+                    <small>Active nodes, block height, locked supply and APY</small>
                 </button>
 
-
                 <button
-                    class="suggestion-card privacy-card"
+                    class="prompt"
+                    type="button"
                     data-question="Explain how privacy works in the EXIOM ecosystem and why it matters."
                 >
-
-                    <span class="suggestion-icon">◇</span>
-
-                    <span class="suggestion-content">
-
-                        <strong>
-                            Explore EXIOM Privacy
-                        </strong>
-
-                        <small>
-                            Privacy technology & why it matters
-                        </small>
-
-                    </span>
-
-                    <span class="suggestion-arrow">→</span>
-
+                    <strong>How EXIOM keeps you private</strong>
+                    <small>Ring signatures, stealth addresses and why they matter</small>
                 </button>
 
             </div>
 
-
-            <!-- CHAT -->
-
-            <div class="chat-box">
-
-                <input
-                    id="question"
-                    type="text"
-                    placeholder="Ask anything about XEQM..."
-                    autocomplete="off"
-                    aria-describedby="privacyNote"
-                >
-
-                <button
-                    id="sendButton"
-                    class="send-button"
-                >
-                    Ask
-                </button>
-
-            </div>
-
-            <!-- PRIVACY NOTICE (Task 13) -->
-
-            <p id="privacyNote" class="privacy-note">
-                Questions are sent to an AI service to write the
-                answer; for prices and similar it may search the
-                web. Your chat lives only in this tab and is gone
-                when you close it. Never share a recovery phrase,
-                private key or personal details.
-            </p>
-
-        </section>
+        </div>
 
     </main>
+
+
+    <footer class="dock" data-arrive>
+
+        <div class="composer">
+
+            <textarea
+                id="question"
+                rows="1"
+                placeholder="Ask anything about XEQM"
+                autocomplete="off"
+                aria-label="Your question"
+                aria-describedby="privacyNote"
+                enterkeyhint="send"
+            ></textarea>
+
+            <button
+                id="sendButton"
+                class="send-button"
+                type="button"
+                aria-label="Ask"
+            >
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M10 16V4M5 9l5-5 5 5"/>
+                </svg>
+            </button>
+
+        </div>
+
+        <!-- PRIVACY NOTICE (Task 13) -->
+
+        <p id="privacyNote" class="privacy-note">
+            Questions are sent to an AI service to write the
+            answer; for prices and similar it may search the
+            web. Your chat lives only in this tab and is gone
+            when you close it. Never share a recovery phrase,
+            private key or personal details.
+        </p>
+
+    </footer>
 
 </div>
 
 
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', filename='vendor/gsap-3.15.0.min.js', v=asset_version('vendor/gsap-3.15.0.min.js')) }}"></script>
+
 <script nonce="{{ csp_nonce }}">
+(function () {
 
-let conversation = [];
-let requestInProgress = false;
-let chatStarted = false;
-
-
-const questionInput =
-    document.getElementById("question");
-
-const answerBox =
-    document.getElementById("answer");
-
-const sendButton =
-    document.getElementById("sendButton");
-
-const welcomeMessage =
-    document.getElementById("welcomeMessage");
-
-const suggestions =
-    document.getElementById("suggestions");
-
-const liveBlockHeight =
-    document.getElementById("liveBlockHeight");
-
-const liveNetworkState =
-    document.getElementById("liveNetworkState");
-
-const streamToggle =
-    document.getElementById("streamToggle");
-
-const streamSwitch =
-    document.getElementById("streamSwitch");
+"use strict";
 
 
 /* -------------------------------------------------------
-   STREAMING PREFERENCE
-
-   Remembered across visits. Streaming is the default: it
-   is the same answer either way, it just starts sooner.
+   ELEMENTS AND STATE
 ------------------------------------------------------- */
 
-const STREAMING_KEY = "exiom.streaming";
+const root = document.documentElement;
+const stage = document.getElementById("stage");
+const app = document.getElementById("app");
+const questionInput = document.getElementById("question");
+const answerBox = document.getElementById("answer");
+const sendButton = document.getElementById("sendButton");
+const welcome = document.getElementById("welcome");
+const streamToggle = document.getElementById("streamToggle");
+const streamSwitch = document.getElementById("streamSwitch");
+
+let conversation = [];
+let requestInProgress = false;
+let following = true;
+
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const finePointer = window.matchMedia("(pointer: fine)");
 
 
-/* Storage can be blocked (private browsing, strict privacy
-   settings) and then throws. The toggle must never take the
-   whole page down with it: it just stops being remembered. */
+/* -------------------------------------------------------
+   MOTION (Task 9)
 
-function readSetting(key) {
+   GSAP is a self-hosted file (static/vendor). If it fails to
+   load, the page loses its motion, never its function: every
+   animation checks motion() first, which is false without
+   GSAP or when the visitor asks for reduced motion.
+------------------------------------------------------- */
 
+const gsap = window.gsap;
+const Observer = window.Observer;
+
+if (gsap && Observer) {
+    gsap.registerPlugin(Observer);
+}
+
+function motion() {
+    return Boolean(gsap) && !reduceMotion.matches;
+}
+
+
+/* A new element eases up into place. The inline styles are
+   cleared afterwards, so nothing lingers on the element. */
+
+function enter(element, vars) {
+
+    if (!motion() || !element) {
+        return;
+    }
+
+    gsap.from(element, Object.assign({
+        y: 14,
+        autoAlpha: 0,
+        duration: 0.5,
+        ease: "power3.out",
+        clearProps: "transform,opacity,visibility"
+    }, vars));
+
+}
+
+
+/* -------------------------------------------------------
+   SETTINGS
+
+   Storage can be blocked (private browsing, strict privacy
+   settings) and then throws. A setting must never take the
+   page down with it: it just stops being remembered.
+------------------------------------------------------- */
+
+function readSetting(key, area = "localStorage") {
     try {
-        return window.localStorage.getItem(key);
+        return window[area].getItem(key);
     } catch (error) {
         return null;
     }
-
 }
 
-
-function writeSetting(key, value) {
-
+function writeSetting(key, value, area = "localStorage") {
     try {
-        window.localStorage.setItem(key, value);
+        window[area].setItem(key, value);
     } catch (error) {
         /* Not remembered; the choice still applies now. */
     }
-
 }
 
 
-let streamingEnabled =
-    readSetting(
-        STREAMING_KEY
-    ) !== "off";
+/* Streaming is the default: it is the same answer either
+   way, it just starts sooner. Remembered across visits. */
 
+const STREAMING_KEY = "exiom.streaming";
+
+let streamingEnabled = readSetting(STREAMING_KEY) !== "off";
 
 streamSwitch.checked = streamingEnabled;
 
-
-streamSwitch.addEventListener(
-    "change",
-    function() {
-
-        streamingEnabled =
-            streamSwitch.checked;
-
-        writeSetting(
-            STREAMING_KEY,
-            streamingEnabled ? "on" : "off"
-        );
-
-    }
-);
+streamSwitch.addEventListener("change", function () {
+    streamingEnabled = streamSwitch.checked;
+    writeSetting(STREAMING_KEY, streamingEnabled ? "on" : "off");
+});
 
 
 /* A request in flight has already committed to a
    transport, so the switch cannot change under it. */
 
 function lockStreamToggle(locked) {
-
     streamSwitch.disabled = locked;
-
-    streamToggle.classList.toggle(
-        "is-locked",
-        locked
-    );
-
+    streamToggle.classList.toggle("is-locked", locked);
 }
 
 
 /* -------------------------------------------------------
-   LIVE NETWORK
+   COMPOSER
+
+   Enter sends, Shift+Enter starts a new line. The box grows
+   with the question up to a ceiling, then scrolls.
 ------------------------------------------------------- */
 
-async function loadLiveNetworkStats() {
+const COMPOSER_MAX_HEIGHT = 180;
 
-    try {
+function fitComposer() {
+    questionInput.style.height = "auto";
+    questionInput.style.height =
+        Math.min(questionInput.scrollHeight, COMPOSER_MAX_HEIGHT) + "px";
+}
 
-        const response =
-            await fetch("/api/network-stats");
+questionInput.addEventListener("input", fitComposer);
 
-        if (!response.ok) {
-            throw new Error(
-                "Explorer data unavailable"
-            );
-        }
+questionInput.addEventListener("keydown", function (event) {
 
-        const data =
-            await response.json();
+    /* Never send while an input method is still composing a
+       character (Chinese, Japanese, Korean keyboards). */
 
+    if (
+        event.key === "Enter" &&
+        !event.shiftKey &&
+        !event.isComposing
+    ) {
+        event.preventDefault();
+        askQuestion();
+    }
 
-        const blockHeight =
-            data.facts?.block_height?.value;
+});
 
+sendButton.addEventListener("click", function () {
 
-        if (
-            blockHeight !== undefined &&
-            blockHeight !== null &&
-            blockHeight !== ""
-        ) {
-
-            const numericHeight =
-                Number(blockHeight);
-
-            liveBlockHeight.textContent =
-                Number.isFinite(numericHeight)
-                    ? numericHeight.toLocaleString()
-                    : String(blockHeight);
-
-        } else {
-
-            liveBlockHeight.textContent =
-                "Unavailable";
-
-        }
-
-
-        if (
-            data.connection_state === "connected"
-        ) {
-
-            liveNetworkState.textContent =
-                "Official EXIOM Explorer";
-
-        } else {
-
-            liveNetworkState.textContent =
-                "Explorer unavailable";
-
-        }
-
-    } catch (error) {
-
-        console.error(
-            "Live network component failed:",
-            error
+    if (motion()) {
+        gsap.fromTo(
+            sendButton,
+            { scale: 0.86 },
+            { scale: 1, duration: 0.5, ease: "back.out(3)", clearProps: "transform" }
         );
-
-        liveBlockHeight.textContent =
-            "Unavailable";
-
-        liveNetworkState.textContent =
-            "Explorer unavailable";
-
     }
 
-}
+    askQuestion();
 
-
-loadLiveNetworkStats();
-
-
-/* -------------------------------------------------------
-   ENTER TO SEND
-------------------------------------------------------- */
-
-questionInput.addEventListener(
-    "keydown",
-    function(event) {
-
-        if (
-            event.key === "Enter" &&
-            !event.shiftKey
-        ) {
-
-            event.preventDefault();
-
-            askQuestion();
-
-        }
-
-    }
-);
+});
 
 
 /* -------------------------------------------------------
@@ -498,21 +404,9 @@ questionInput.addEventListener(
 ------------------------------------------------------- */
 
 function startConversation() {
-
-    if (chatStarted) {
-        return;
+    if (welcome.isConnected) {
+        welcome.remove();
     }
-
-    chatStarted = true;
-
-    if (welcomeMessage) {
-        welcomeMessage.remove();
-    }
-
-    if (suggestions) {
-        suggestions.style.display = "none";
-    }
-
 }
 
 
@@ -521,33 +415,20 @@ function startConversation() {
 ------------------------------------------------------- */
 
 async function readJSON(response) {
-
     try {
-
         return await response.json();
-
     } catch {
-
         return {};
-
     }
-
 }
-
 
 function serverError(data) {
 
-    const error =
-        new Error(
-            data.answer ||
-            "EXIOM AI couldn't complete that request."
-        );
+    const error = new Error(
+        data.answer || "EXIOM AI couldn't complete that request."
+    );
 
-
-    error.errorType =
-        data.error_type ||
-        "unknown";
-
+    error.errorType = data.error_type || "unknown";
 
     return error;
 
@@ -563,31 +444,17 @@ function serverError(data) {
 
 async function askOnce(body) {
 
-    const response =
-        await fetch("/ask", {
+    const response = await fetch("/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    });
 
-            method: "POST",
-
-            headers: {
-                "Content-Type":
-                    "application/json"
-            },
-
-            body: JSON.stringify(body)
-
-        });
-
-
-    const data =
-        await readJSON(response);
-
+    const data = await readJSON(response);
 
     if (!response.ok) {
-
         throw serverError(data);
-
     }
-
 
     return data;
 
@@ -596,42 +463,21 @@ async function askOnce(body) {
 
 async function askStreaming(body, aiMessage) {
 
-    const response =
-        await fetch("/ask/stream", {
-
-            method: "POST",
-
-            headers: {
-                "Content-Type":
-                    "application/json"
-            },
-
-            body: JSON.stringify(body)
-
-        });
-
+    const response = await fetch("/ask/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    });
 
     /* Anything refused before the stream opened is still an
        ordinary JSON error, so it keeps its status code. */
 
-    if (
-        !response.ok ||
-        !response.body
-    ) {
-
-        throw serverError(
-            await readJSON(response)
-        );
-
+    if (!response.ok || !response.body) {
+        throw serverError(await readJSON(response));
     }
 
-
-    const reader =
-        response.body.getReader();
-
-    const decoder =
-        new TextDecoder();
-
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
 
     let buffer = "";
     let answer = "";
@@ -652,10 +498,9 @@ async function askStreaming(body, aiMessage) {
     let pendingFrame = 0;
     let finishReveal;
 
-    const revealed =
-        new Promise(resolve => {
-            finishReveal = resolve;
-        });
+    const revealed = new Promise(resolve => {
+        finishReveal = resolve;
+    });
 
 
     function tick(now) {
@@ -665,90 +510,54 @@ async function askStreaming(body, aiMessage) {
         /* Capped so a tab returning from the background
            doesn't dump everything in one frame. */
 
-        const seconds =
-            lastTime
-                ? Math.min((now - lastTime) / 1000, 0.1)
-                : 1 / 60;
+        const seconds = lastTime
+            ? Math.min((now - lastTime) / 1000, 0.1)
+            : 1 / 60;
 
         lastTime = now;
 
-
-        const backlog =
-            answer.length - shown;
+        const backlog = answer.length - shown;
 
         if (backlog > 0) {
-
             shown = Math.min(
                 answer.length,
                 shown +
-                    (
-                        REVEAL_CHARS_PER_SECOND +
-                        backlog * REVEAL_CATCH_UP
-                    ) * seconds
+                    (REVEAL_CHARS_PER_SECOND + backlog * REVEAL_CATCH_UP) *
+                    seconds
             );
-
         } else {
-
             shown = answer.length;
-
         }
-
 
         let visible = Math.floor(shown);
 
         /* Never split an emoji's surrogate pair. */
 
-        if (
-            /[\uDC00-\uDFFF]/.test(
-                answer.charAt(visible)
-            )
-        ) {
+        if (/[\uDC00-\uDFFF]/.test(answer.charAt(visible))) {
             visible += 1;
         }
 
-
         if (visible !== rendered) {
-
             rendered = visible;
-
-            renderStreamingAnswer(
-                aiMessage,
-                answer.slice(0, visible)
-            );
-
+            renderStreamingAnswer(aiMessage, answer.slice(0, visible));
         }
-
 
         followStream();
 
-
-        if (
-            networkDone &&
-            rendered >= answer.length
-        ) {
-
+        if (networkDone && rendered >= answer.length) {
             finishReveal();
-
             return;
-
         }
 
-
-        pendingFrame =
-            requestAnimationFrame(tick);
+        pendingFrame = requestAnimationFrame(tick);
 
     }
 
 
     function startReveal() {
-
         if (!pendingFrame) {
-
-            pendingFrame =
-                requestAnimationFrame(tick);
-
+            pendingFrame = requestAnimationFrame(tick);
         }
-
     }
 
 
@@ -757,7 +566,6 @@ async function askStreaming(body, aiMessage) {
         if (frame.type === "delta") {
 
             answer += frame.text;
-
             startReveal();
 
         } else if (frame.type === "message") {
@@ -766,11 +574,8 @@ async function askStreaming(body, aiMessage) {
                arrives whole; it is typed out like any
                other. */
 
-            answer =
-                String(frame.answer || "");
-
+            answer = String(frame.answer || "");
             payload = frame;
-
             startReveal();
 
         } else if (frame.type === "done") {
@@ -782,10 +587,9 @@ async function askStreaming(body, aiMessage) {
             /* The stream broke after text was already on
                screen, so the failure arrives in-band. */
 
-            answer =
-                answer
-                    ? answer + "\n\n" + frame.answer
-                    : String(frame.answer || "");
+            answer = answer
+                ? answer + "\n\n" + frame.answer
+                : String(frame.answer || "");
 
             startReveal();
 
@@ -798,69 +602,41 @@ async function askStreaming(body, aiMessage) {
 
         for (;;) {
 
-            const { done, value } =
-                await reader.read();
-
+            const { done, value } = await reader.read();
 
             if (done) {
                 break;
             }
 
-
-            buffer +=
-                decoder.decode(
-                    value,
-                    { stream: true }
-                );
-
+            buffer += decoder.decode(value, { stream: true });
 
             /* A frame is complete only once its blank line
                arrives; whatever follows the last one stays
                buffered. */
 
-            const frames =
-                buffer.split("\n\n");
+            const frames = buffer.split("\n\n");
 
             buffer = frames.pop();
 
-
             for (const frame of frames) {
 
-                const line =
-                    frame
-                        .split("\n")
-                        .find(
-                            part =>
-                                part.startsWith("data: ")
-                        );
-
+                const line = frame
+                    .split("\n")
+                    .find(part => part.startsWith("data: "));
 
                 if (!line) {
                     continue;
                 }
 
-
                 try {
-
-                    handleFrame(
-                        JSON.parse(
-                            line.slice(6)
-                        )
-                    );
-
+                    handleFrame(JSON.parse(line.slice(6)));
                 } catch (error) {
-
-                    console.error(
-                        "Bad stream frame:",
-                        error
-                    );
-
+                    console.error("Bad stream frame:", error);
                 }
 
             }
 
         }
-
 
         /* The network is finished, but the reader may still
            be catching up; the final answer is drawn only once
@@ -881,12 +657,7 @@ async function askStreaming(body, aiMessage) {
 
     }
 
-
-    return Object.assign(
-        {},
-        payload,
-        { answer: answer }
-    );
+    return Object.assign({}, payload, { answer: answer });
 
 }
 
@@ -895,24 +666,42 @@ async function askStreaming(body, aiMessage) {
    RENDERING
 ------------------------------------------------------- */
 
+const AI_HEAD =
+    '<div class="msg-head">' +
+    '<span class="msg-mark" aria-hidden="true"></span>EXIOM AI' +
+    "</div>";
+
+
+function addMessage(kind, html) {
+
+    const message = document.createElement("article");
+
+    message.className = "msg msg-" + kind;
+    message.innerHTML = html;
+
+    answerBox.appendChild(message);
+
+    enter(message);
+
+    return message;
+
+}
+
+
+/* Only the body is redrawn while typing; the header stays
+   put, so it never flickers. */
+
 function renderStreamingAnswer(aiMessage, text) {
 
-    aiMessage.classList.remove(
-        "thinking-message"
-    );
+    let body = aiMessage.querySelector(".is-streaming");
 
+    if (!body) {
+        aiMessage.innerHTML =
+            AI_HEAD + '<div class="msg-body is-streaming"></div>';
+        body = aiMessage.lastElementChild;
+    }
 
-    aiMessage.innerHTML = `
-
-        <strong>XEQM AI</strong>
-
-        <div class="message-content is-streaming">
-
-            ${formatAnswer(text)}
-
-        </div>
-
-    `;
+    body.innerHTML = formatAnswer(text);
 
 }
 
@@ -920,101 +709,46 @@ function renderStreamingAnswer(aiMessage, text) {
 function renderAnswer(aiMessage, data, answer) {
 
     /* An answer that was just typed out is already on
-       screen; replaying the bullets' fade-in would blink
-       them. */
+       screen; fading it in again would blink it. */
 
-    const typedClass =
-        aiMessage.querySelector(".is-streaming")
-            ? " is-typed"
-            : "";
-
+    const typed = Boolean(aiMessage.querySelector(".is-streaming"));
 
     const sourceHTML =
-
-        data.source ===
-        "Official EXIOM Explorer"
-
-            ? `
-
-                <div class="response-source">
-
-                    <span>Source</span>
-
-                    <a
-                        href="https://explorer.xeqmlabs.com/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        Official EXIOM Explorer ↗
-                    </a>
-
-                </div>
-
-            `
-
+        data.source === "Official EXIOM Explorer"
+            ? `<p class="msg-source">Source:
+                   <a href="https://explorer.xeqmlabs.com/"
+                      target="_blank"
+                      rel="noopener noreferrer">Official EXIOM Explorer ↗</a>
+               </p>`
             : data.source
-
-                ? `
-
-                    <div class="response-source">
-
-                        <span>Source</span>
-
-                        ${escapeHTML(
-                            data.source
-                        )}
-
-                    </div>
-
-                `
-
+                ? `<p class="msg-source">Source: ${escapeHTML(data.source)}</p>`
                 : "";
 
-
-    const liveBadgeHTML =
-
+    const liveHTML =
         data.route === "live"
-
-            ? `
-
-                <div class="live-data-badge">
-
-                    <span
-                        class="live-data-dot"
-                    ></span>
-
-                    LIVE EXPLORER DATA
-
-                </div>
-
-            `
-
+            ? '<span class="live-badge"><span class="live-dot"></span>Live Explorer data</span>'
             : "";
 
+    aiMessage.innerHTML =
+        AI_HEAD.replace("</div>", liveHTML + "</div>") +
+        `<div class="msg-body">${formatAnswer(answer)}</div>` +
+        sourceHTML;
 
-    aiMessage.innerHTML = `
+    aiMessage.setAttribute("aria-busy", "false");
 
-        <strong>XEQM AI</strong>
-
-        ${liveBadgeHTML}
-
-        <div class="message-content${typedClass}">
-
-            ${formatAnswer(
-                answer
-            )}
-
-        </div>
-
-        ${sourceHTML}
-
-    `;
-
-
-    aiMessage.classList.remove(
-        "thinking-message"
-    );
-
+    if (!typed && motion()) {
+        gsap.from(
+            Array.from(aiMessage.querySelector(".msg-body").children).slice(0, 14),
+            {
+                y: 8,
+                autoAlpha: 0,
+                duration: 0.45,
+                stagger: 0.035,
+                ease: "power2.out",
+                clearProps: "transform,opacity,visibility"
+            }
+        );
+    }
 
     if (following) {
         scrollToBottom();
@@ -1029,20 +763,13 @@ function renderAnswer(aiMessage, data, answer) {
 
 async function askQuestion() {
 
-    const question =
-        questionInput.value.trim();
+    const question = questionInput.value.trim();
 
-
-    if (
-        question === "" ||
-        requestInProgress
-    ) {
+    if (question === "" || requestInProgress) {
         return;
     }
 
-
     startConversation();
-
 
     requestInProgress = true;
 
@@ -1052,47 +779,24 @@ async function askQuestion() {
     lockStreamToggle(true);
 
     questionInput.value = "";
+    fitComposer();
 
-
-    const userMessage =
-        document.createElement("div");
-
-    userMessage.className =
-        "user-message";
-
-    userMessage.innerHTML = `
-        <strong>You</strong>
-        <div>${escapeHTML(question)}</div>
-    `;
-
-    answerBox.appendChild(
-        userMessage
+    addMessage(
+        "user",
+        `<span class="sr-only">You:</span><div class="bubble">${escapeHTML(question)}</div>`
     );
 
-
-    const aiMessage =
-        document.createElement("div");
-
-    aiMessage.className =
-        "ai-message thinking-message";
-
-    aiMessage.innerHTML = `
-        <strong>XEQM AI</strong>
-
-        <div class="thinking-text">
-            Thinking
-        </div>
-    `;
-
-    answerBox.appendChild(
-        aiMessage
+    const aiMessage = addMessage(
+        "ai",
+        AI_HEAD +
+        '<div class="thinking"><span class="synapse" aria-hidden="true"><i></i><i></i><i></i></span>Thinking</div>'
     );
 
+    aiMessage.setAttribute("aria-busy", "true");
 
     following = true;
 
     scrollToBottom();
-
 
     /* The server keeps only the last 8 turns
        (MAX_CONVERSATION_MESSAGES in app.py) and bounds the
@@ -1103,100 +807,44 @@ async function askQuestion() {
         conversation: conversation.slice(-8)
     };
 
-
     try {
 
-        const data =
-            streamingEnabled
-                ? await askStreaming(
-                    body,
-                    aiMessage
-                )
-                : await askOnce(body);
+        const data = streamingEnabled
+            ? await askStreaming(body, aiMessage)
+            : await askOnce(body);
 
+        const answer = String(data.answer || "I couldn't generate a response.");
 
-        const answer =
-            String(
-                data.answer ||
-                "I couldn't generate a response."
-            );
+        conversation.push({ role: "user", content: question });
+        conversation.push({ role: "assistant", content: answer });
 
-
-        conversation.push({
-            role: "user",
-            content: question
-        });
-
-
-        conversation.push({
-            role: "assistant",
-            content: answer
-        });
-
-
-        if (
-            conversation.length > 20
-        ) {
-
-            conversation =
-                conversation.slice(-20);
-
+        if (conversation.length > 20) {
+            conversation = conversation.slice(-20);
         }
 
-
-        renderAnswer(
-            aiMessage,
-            data,
-            answer
-        );
-
+        renderAnswer(aiMessage, data, answer);
 
     } catch (error) {
 
-        console.error(
-            "EXIOM AI request failed:",
-            error
-        );
-
+        console.error("EXIOM AI request failed:", error);
 
         let message =
             error.message ||
             "EXIOM AI couldn't answer that right now. Please try again.";
 
-
         if (!error.errorType) {
-
             message =
                 "Couldn't connect to EXIOM AI. " +
                 "Check your connection and try again.";
-
         }
 
+        aiMessage.innerHTML =
+            AI_HEAD +
+            `<div class="msg-body error-message">${escapeHTML(message)}</div>`;
 
-        aiMessage.innerHTML = `
-
-            <strong>XEQM AI</strong>
-
-            <div
-                class="message-content error-message"
-            >
-
-                ${escapeHTML(
-                    message
-                )}
-
-            </div>
-
-        `;
-
-
-        aiMessage.classList.remove(
-            "thinking-message"
-        );
-
+        aiMessage.setAttribute("aria-busy", "false");
 
         scrollToBottom();
-
 
     } finally {
 
@@ -1207,7 +855,7 @@ async function askQuestion() {
 
         lockStreamToggle(false);
 
-        questionInput.focus();
+        questionInput.focus({ preventScroll: true });
 
     }
 
@@ -1230,12 +878,10 @@ const HTML_ESCAPES = {
 };
 
 function escapeHTML(text) {
-
     return String(text).replace(
         /[&<>"']/g,
-        (character) => HTML_ESCAPES[character]
+        character => HTML_ESCAPES[character]
     );
-
 }
 
 
@@ -1245,228 +891,89 @@ function escapeHTML(text) {
 
 function formatInline(text) {
 
-    let formatted =
-        escapeHTML(text);
-
+    let formatted = escapeHTML(text);
 
     /* One pass for both link forms, so a URL already inside a
        Markdown link is never linked twice. Web-search answers
        cite their sources as [site](url). */
 
-    formatted =
-        formatted.replace(
+    formatted = formatted.replace(
+        /\[([^\]\n]+)\]\((https?:\/\/[^\s)<]+)\)|(https?:\/\/[^\s<]+)/g,
+        (match, label, labelledUrl, bareUrl) => {
+            const url = labelledUrl || bareUrl;
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label || url}</a>`;
+        }
+    );
 
-            /\[([^\]\n]+)\]\((https?:\/\/[^\s)<]+)\)|(https?:\/\/[^\s<]+)/g,
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
 
-            (match, label, labelledUrl, bareUrl) => {
-
-                const url = labelledUrl || bareUrl;
-
-                return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label || url}</a>`;
-
-            }
-
-        );
-
-
-    formatted =
-        formatted.replace(
-
-            /\*\*(.*?)\*\*/g,
-
-            "<strong>$1</strong>"
-
-        );
-
-
-    formatted =
-        formatted.replace(
-
-            /`([^`\n]+)`/g,
-
-            "<code>$1</code>"
-
-        );
-
+    formatted = formatted.replace(/`([^`\n]+)`/g, "<code>$1</code>");
 
     return formatted;
 
 }
 
 
-function formatAnswer(text) {
+const HEADINGS = [
+    [/^###\s+/, "h4"],
+    [/^##\s+/, "h3"],
+    [/^#\s+/, "h2"]
+];
 
-    const lines =
-        String(text).split("\n");
+const LISTS = [
+    [/^[-*]\s+/, "ul"],
+    [/^\d+[.)]\s+/, "ol"]
+];
+
+
+function formatAnswer(text) {
 
     let output = "";
     let listType = null;
 
-
     function closeList() {
-
-        if (listType === "ul") {
-            output += "</ul>";
+        if (listType) {
+            output += `</${listType}>`;
         }
-
-        if (listType === "ol") {
-            output += "</ol>";
-        }
-
         listType = null;
-
     }
 
+    lines:
+    for (const rawLine of String(text).split("\n")) {
 
-    for (
-        const rawLine of lines
-    ) {
-
-        const line =
-            rawLine.trim();
-
+        const line = rawLine.trim();
 
         if (line === "") {
-
             closeList();
-
-            output +=
-                '<div class="answer-space"></div>';
-
+            output += '<div class="answer-space"></div>';
             continue;
-
         }
 
-
-        if (
-            /^###\s+/.test(line)
-        ) {
-
-            closeList();
-
-            output +=
-                `<h4>${formatInline(
-                    line.replace(
-                        /^###\s+/,
-                        ""
-                    )
-                )}</h4>`;
-
-            continue;
-
-        }
-
-
-        if (
-            /^##\s+/.test(line)
-        ) {
-
-            closeList();
-
-            output +=
-                `<h3>${formatInline(
-                    line.replace(
-                        /^##\s+/,
-                        ""
-                    )
-                )}</h3>`;
-
-            continue;
-
-        }
-
-
-        if (
-            /^#\s+/.test(line)
-        ) {
-
-            closeList();
-
-            output +=
-                `<h2>${formatInline(
-                    line.replace(
-                        /^#\s+/,
-                        ""
-                    )
-                )}</h2>`;
-
-            continue;
-
-        }
-
-
-        if (
-            /^[-*]\s+/.test(line)
-        ) {
-
-            if (
-                listType !== "ul"
-            ) {
-
+        for (const [pattern, tag] of HEADINGS) {
+            if (pattern.test(line)) {
                 closeList();
-
-                output += "<ul>";
-
-                listType = "ul";
-
+                output += `<${tag}>${formatInline(line.replace(pattern, ""))}</${tag}>`;
+                continue lines;
             }
-
-
-            output +=
-                `<li>${formatInline(
-                    line.replace(
-                        /^[-*]\s+/,
-                        ""
-                    )
-                )}</li>`;
-
-            continue;
-
         }
 
-
-        if (
-            /^\d+[.)]\s+/.test(
-                line
-            )
-        ) {
-
-            if (
-                listType !== "ol"
-            ) {
-
-                closeList();
-
-                output += "<ol>";
-
-                listType = "ol";
-
+        for (const [pattern, tag] of LISTS) {
+            if (pattern.test(line)) {
+                if (listType !== tag) {
+                    closeList();
+                    output += `<${tag}>`;
+                    listType = tag;
+                }
+                output += `<li>${formatInline(line.replace(pattern, ""))}</li>`;
+                continue lines;
             }
-
-
-            output +=
-                `<li>${formatInline(
-                    line.replace(
-                        /^\d+[.)]\s+/,
-                        ""
-                    )
-                )}</li>`;
-
-            continue;
-
         }
-
 
         closeList();
 
-
-        output +=
-            `<p>${formatInline(
-                line
-            )}</p>`;
+        output += `<p>${formatInline(line)}</p>`;
 
     }
-
 
     closeList();
 
@@ -1476,13 +983,9 @@ function formatAnswer(text) {
 
 
 /* -------------------------------------------------------
-   SCROLL
-------------------------------------------------------- */
-
-/* -------------------------------------------------------
    FOLLOWING THE STREAM
 
-   While an answer is typed out the box glides along with
+   While an answer is typed out the log glides along with
    it, a fraction of the remaining distance each frame, so
    new lines ease into view rather than jumping. Scrolling
    up to read back stops the following; returning to the
@@ -1493,85 +996,46 @@ const REVEAL_CHARS_PER_SECOND = 55;
 const REVEAL_CATCH_UP = 0.6;
 const FOLLOW_EASING = 0.2;
 
-const reduceMotion =
-    window.matchMedia(
-        "(prefers-reduced-motion: reduce)"
-    );
-
-let following = true;
-
-
 function stopFollowing() {
-
     following = false;
-
 }
 
-
-answerBox.addEventListener(
-    "wheel",
-    function(event) {
-
-        if (event.deltaY < 0) {
-            stopFollowing();
-        }
-
-    },
-    { passive: true }
-);
-
-answerBox.addEventListener(
-    "touchmove",
-    stopFollowing,
-    { passive: true }
-);
-
-answerBox.addEventListener(
-    "keydown",
-    function(event) {
-
-        if (
-            ["ArrowUp", "PageUp", "Home"]
-                .includes(event.key)
-        ) {
-            stopFollowing();
-        }
-
+answerBox.addEventListener("wheel", function (event) {
+    if (event.deltaY < 0) {
+        stopFollowing();
     }
-);
+}, { passive: true });
 
-/* Grabbing the scrollbar lands on the box itself. */
+answerBox.addEventListener("touchmove", stopFollowing, { passive: true });
 
-answerBox.addEventListener(
-    "mousedown",
-    function(event) {
-
-        if (event.target === answerBox) {
-            stopFollowing();
-        }
-
+answerBox.addEventListener("keydown", function (event) {
+    if (["ArrowUp", "PageUp", "Home"].includes(event.key)) {
+        stopFollowing();
     }
-);
+});
 
-answerBox.addEventListener(
-    "scroll",
-    function() {
+/* Grabbing the scrollbar lands on the log itself. */
 
-        /* Tight, so a small scroll up isn't undone at
-           once. */
+answerBox.addEventListener("mousedown", function (event) {
+    if (event.target === answerBox) {
+        stopFollowing();
+    }
+});
 
-        const gap =
-            answerBox.scrollHeight -
-            answerBox.scrollTop -
-            answerBox.clientHeight;
+answerBox.addEventListener("scroll", function () {
 
-        if (gap < 8) {
-            following = true;
-        }
+    /* Tight, so a small scroll up isn't undone at once. */
 
-    },
-    { passive: true }
-);
+    const gap =
+        answerBox.scrollHeight -
+        answerBox.scrollTop -
+        answerBox.clientHeight;
+
+    if (gap < 8) {
+        following = true;
+    }
+
+}, { passive: true });
 
 
 function followStream() {
@@ -1580,99 +1044,921 @@ function followStream() {
         return;
     }
 
-
-    const target =
-        answerBox.scrollHeight -
-        answerBox.clientHeight;
-
-    const distance =
-        target - answerBox.scrollTop;
-
+    const target = answerBox.scrollHeight - answerBox.clientHeight;
+    const distance = target - answerBox.scrollTop;
 
     if (distance <= 1) {
         return;
     }
 
-
-    answerBox.scrollTop =
-        reduceMotion.matches
-            ? target
-            : answerBox.scrollTop +
-                Math.max(
-                    1,
-                    Math.ceil(distance * FOLLOW_EASING)
-                );
+    answerBox.scrollTop = reduceMotion.matches
+        ? target
+        : answerBox.scrollTop +
+            Math.max(1, Math.ceil(distance * FOLLOW_EASING));
 
 }
 
 
 function scrollToBottom() {
-
-    requestAnimationFrame(
-        () => {
-
-            answerBox.scrollTo({
-
-                top:
-                    answerBox.scrollHeight,
-
-                behavior:
-                    "smooth"
-
-            });
-
-        }
-    );
-
+    requestAnimationFrame(() => {
+        answerBox.scrollTo({
+            top: answerBox.scrollHeight,
+            behavior: reduceMotion.matches ? "auto" : "smooth"
+        });
+    });
 }
 
 
 /* -------------------------------------------------------
    SUGGESTIONS
+
+   Wired here rather than as inline handler attributes: the
+   CSP only runs nonced scripts, never inline handlers.
 ------------------------------------------------------- */
 
-/* Wired here rather than as inline handler attributes: the CSP
-   only runs the nonced script, never inline handlers. */
-
-sendButton.addEventListener(
-    "click",
-    askQuestion
-);
-
-
-document
-    .querySelectorAll("[data-question]")
-    .forEach((button) => {
-
-        button.addEventListener(
-            "click",
-            () => askSuggestion(
-                button.dataset.question
-            )
-        );
-
+document.querySelectorAll("[data-question]").forEach(button => {
+    button.addEventListener("click", () => {
+        if (!requestInProgress) {
+            questionInput.value = button.dataset.question;
+            askQuestion();
+        }
     });
+});
 
 
-function askSuggestion(
-    question
-) {
+/* -------------------------------------------------------
+   THE BRAIN (Task 9)
 
-    if (
-        requestInProgress
-    ) {
-        return;
+   A point cloud in the shape of a brain, built from the
+   network: each point is a node, each line a link to its
+   nearest neighbours, and mint pulses travel real paths
+   through that graph. As the dive begins, the pulses lean
+   towards the core node the camera is flying into.
+
+   Plain 2D canvas: under a thousand sprites and one stroke
+   per brightness band a frame, driven by gsap.ticker.
+------------------------------------------------------- */
+
+function createBrain(canvas) {
+
+    const ctx = canvas && canvas.getContext("2d");
+
+    if (!ctx) {
+        return null;
+    }
+
+    const IRIS = "139,156,255";
+    const MINT = "93,242,208";
+
+    const compact = Math.min(window.innerWidth, window.innerHeight) < 600;
+    const count =
+        compact ? 820 :
+        (navigator.hardwareConcurrency || 4) <= 4 ? 1000 :
+        1300;
+
+    /* Seeded, so the same brain appears on every visit. */
+
+    let seed = 9;
+
+    function random() {
+        seed = (seed + 0x6D2B79F5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     }
 
 
-    questionInput.value =
-        question;
+    /* Home (the brain) and scatter (where each point starts,
+       so the brain condenses out of a wider cloud). The core
+       is the last entry. */
+
+    const CORE = count;
+    const total = count + 1;
+
+    const hx = new Float32Array(total);
+    const hy = new Float32Array(total);
+    const hz = new Float32Array(total);
+    const sx = new Float32Array(total);
+    const sy = new Float32Array(total);
+    const sz = new Float32Array(total);
+    const delay = new Float32Array(total);
+    const size = new Float32Array(total);
+
+    function folds(x, y, z) {
+        return 0.055 *
+            Math.sin(10 * x + 4 * Math.sin(6 * z)) *
+            Math.cos(9 * y + 3 * Math.sin(7 * x));
+    }
+
+    /* A point in a thin shell under an ellipsoid's surface,
+       optionally rippled into gyri. */
+
+    function shell(cx, cy, cz, rx, ry, rz, folded) {
+
+        const u = random() * 2 - 1;
+        const a = random() * Math.PI * 2;
+        const s = Math.sqrt(1 - u * u);
+        const x = s * Math.cos(a);
+        const z = s * Math.sin(a);
+        const r = (0.84 + random() * 0.16) * (1 + (folded ? folds(x, u, z) : 0));
+
+        return [cx + x * rx * r, cy + u * ry * r, cz + z * rz * r];
+
+    }
+
+    for (let i = 0; i < count; ) {
+
+        const part = random();
+        const side = random() < 0.5 ? -1 : 1;
+        let p;
+
+        if (part < 0.66) {
+
+            /* Cerebrum: two hemispheres, a fissure between
+               them, cut flat underneath where the temporal
+               lobes take over. */
+
+            p = shell(0, 0.12, side * 0.37, 1, 0.74, 0.45, true);
+
+            if (side * p[2] < 0.035 || p[1] < -0.24) {
+                continue;
+            }
+
+        } else if (part < 0.78) {
+
+            p = shell(-0.12, -0.26, side * 0.5, 0.56, 0.26, 0.26, true);
+
+        } else if (part < 0.92) {
+
+            /* Cerebellum, with its fine horizontal folds. */
+
+            p = shell(0.64, -0.44, side * 0.27, 0.34, 0.22, 0.3, false);
+            p[1] = -0.44 + Math.round((p[1] + 0.44) * 24) / 24;
+
+        } else {
+
+            const t = random();
+            const a = random() * Math.PI * 2;
+
+            p = [
+                0.34 + t * 0.14 + Math.cos(a) * 0.09,
+                -0.38 - t * 0.6,
+                Math.sin(a) * 0.1
+            ];
+
+        }
+
+        const spread = 2.2 + random() * 2.6;
+
+        hx[i] = p[0];
+        hy[i] = p[1] + 0.1;
+        hz[i] = p[2];
+        sx[i] = p[0] * spread + (random() - 0.5) * 2;
+        sy[i] = p[1] * spread + (random() - 0.5) * 2;
+        sz[i] = p[2] * spread + (random() - 0.5) * 2;
+        delay[i] = random();
+        size[i] = 0.75 + random() * random() * 1.9;
+
+        i += 1;
+
+    }
+
+    /* The core sits on the near hemisphere's outer surface,
+       facing the camera. */
+
+    hx[CORE] = sx[CORE] = -0.12;
+    hy[CORE] = sy[CORE] = 0.4;
+    hz[CORE] = sz[CORE] = -0.78;
 
 
-    askQuestion();
+    /* Links: each node to its three nearest neighbours within
+       reach; the core to its eight nearest, as a hub. */
+
+    const edges = [];
+    const links = Array.from({ length: total }, () => []);
+    const linked = new Set();
+
+    for (let a = 0; a < total; a++) {
+
+        const want = a === CORE ? 8 : 3;
+        const reach = a === CORE ? 0.08 : 0.03;
+        const best = [];
+
+        for (let b = 0; b < count; b++) {
+
+            if (b === a) {
+                continue;
+            }
+
+            const dx = hx[a] - hx[b];
+            const dy = hy[a] - hy[b];
+            const dz = hz[a] - hz[b];
+            const d = dx * dx + dy * dy + dz * dz;
+
+            if (d > reach || (best.length === want && d >= best[want - 1][0])) {
+                continue;
+            }
+
+            if (best.length === want) {
+                best.pop();
+            }
+
+            best.push([d, b]);
+            best.sort((p, q) => p[0] - q[0]);
+
+        }
+
+        for (const [, b] of best) {
+
+            const key = Math.min(a, b) * total + Math.max(a, b);
+
+            if (!linked.has(key)) {
+                linked.add(key);
+                edges.push(a, b);
+                links[a].push(b);
+                links[b].push(a);
+            }
+
+        }
+
+    }
+
+
+    /* Pulses: signals walking the graph. */
+
+    const view = { form: 0, zoom: 0 };
+    const pulses = [];
+
+    function newPulse() {
+
+        const a = Math.floor(Math.random() * count);
+        const next = links[a];
+
+        return next.length
+            ? { a, b: next[Math.floor(Math.random() * next.length)], t: 0, speed: 1.4 + Math.random() * 1.8 }
+            : null;
+
+    }
+
+    for (let k = 0; k < (compact ? 34 : 56); k++) {
+        const pulse = newPulse();
+        if (pulse) {
+            pulse.t = Math.random();
+            pulses.push(pulse);
+        }
+    }
+
+    function stepPulse(pulse) {
+
+        if (pulse.b === CORE || Math.random() < 0.06) {
+            Object.assign(pulse, newPulse() || pulse, { t: 0 });
+            return;
+        }
+
+        const options = links[pulse.b];
+        let next = options[Math.floor(Math.random() * options.length)];
+
+        /* Lean towards the core, more so as the dive starts. */
+
+        if (Math.random() < 0.25 + view.zoom) {
+            let nearest = Infinity;
+            for (const option of options) {
+                const d =
+                    (hx[option] - hx[CORE]) ** 2 +
+                    (hy[option] - hy[CORE]) ** 2 +
+                    (hz[option] - hz[CORE]) ** 2;
+                if (d < nearest) {
+                    nearest = d;
+                    next = option;
+                }
+            }
+        }
+
+        pulse.a = pulse.b;
+        pulse.b = next;
+        pulse.t = 0;
+
+    }
+
+
+    /* Glow sprites: drawing an image is far cheaper than a
+       gradient per point. */
+
+    function sprite(rgb) {
+
+        const sheet = document.createElement("canvas");
+        sheet.width = sheet.height = 64;
+
+        const g = sheet.getContext("2d");
+        const glow = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+
+        glow.addColorStop(0, `rgba(${rgb},1)`);
+        glow.addColorStop(0.16, `rgba(${rgb},0.9)`);
+        glow.addColorStop(0.4, `rgba(${rgb},0.2)`);
+        glow.addColorStop(1, `rgba(${rgb},0)`);
+
+        g.fillStyle = glow;
+        g.fillRect(0, 0, 64, 64);
+
+        return sheet;
+
+    }
+
+    const irisDot = sprite(IRIS);
+    const mintDot = sprite(MINT);
+    const whiteDot = sprite("238,241,255");
+
+
+    /* Projection. */
+
+    const rx = new Float32Array(total);
+    const ry = new Float32Array(total);
+    const rz = new Float32Array(total);
+    const px = new Float32Array(total);
+    const py = new Float32Array(total);
+    const ps = new Float32Array(total);
+    const pa = new Float32Array(total);
+
+    const CAMERA_DISTANCE = 3.3;
+    const NEAR = 0.05;
+
+    let width = 0;
+    let height = 0;
+    let ratio = 1;
+
+    function resize() {
+        ratio = Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 2);
+        width = canvas.clientWidth;
+        height = canvas.clientHeight;
+        canvas.width = Math.round(width * ratio);
+        canvas.height = Math.round(height * ratio);
+    }
+
+    const clamp01 = value => value < 0 ? 0 : value > 1 ? 1 : value;
+
+
+    function render(time, deltaMs) {
+
+        if (!width || !height) {
+            return;
+        }
+
+        const dt = Math.min(deltaMs / 1000, 0.05);
+        const e = view.zoom;
+        const form = view.form;
+
+        /* Wide screens put the brain right of the copy;
+           narrow ones above it. The dive recentres it. */
+
+        const wide = width > 900 && width > height;
+        const ox = wide ? width * 0.64 : width * 0.5;
+        const oy = wide ? height * 0.47 : height * (height > width ? 0.36 : 0.45);
+        const cx = ox + (width / 2 - ox) * e;
+        const cy = oy + (height / 2 - oy) * e;
+        const focal = Math.min(wide ? width * 0.5 : width, height) * 1.15;
+
+        const yaw = -0.08 + Math.sin(time * 0.17) * 0.42 * (1 - e);
+        const pitch = 0.12 + Math.sin(time * 0.11) * 0.06 * (1 - e);
+        const cyaw = Math.cos(yaw);
+        const syaw = Math.sin(yaw);
+        const cpitch = Math.cos(pitch);
+        const spitch = Math.sin(pitch);
+
+        for (let i = 0; i < total; i++) {
+
+            let k = clamp01(form * 1.6 - delay[i] * 0.6);
+            k = k * k * (3 - 2 * k);
+
+            const x = sx[i] + (hx[i] - sx[i]) * k;
+            const y = sy[i] + (hy[i] - sy[i]) * k;
+            const z = sz[i] + (hz[i] - sz[i]) * k;
+            const z1 = z * cyaw - x * syaw;
+
+            rx[i] = x * cyaw + z * syaw;
+            ry[i] = y * cpitch - z1 * spitch;
+            rz[i] = y * spitch + z1 * cpitch;
+
+        }
+
+        /* The camera flies to just in front of the core. */
+
+        const camX = rx[CORE] * e;
+        const camY = ry[CORE] * e;
+        const camZ = -CAMERA_DISTANCE + (rz[CORE] - 0.08 + CAMERA_DISTANCE) * e;
+        const presence = 0.2 + 0.8 * form;
+
+        /* Looking at the core: its screen offset is eased out
+           early in the dive, so the core is centred well
+           before the chat opens out of it. */
+
+        const coreScale = focal / (rz[CORE] - camZ);
+        const look = clamp01(e / 0.7);
+        const aim = look * look * (3 - 2 * look);
+        const lookX = (rx[CORE] - camX) * coreScale * aim;
+        const lookY = (ry[CORE] - camY) * coreScale * aim;
+
+        for (let i = 0; i < total; i++) {
+
+            const dz = rz[i] - camZ;
+
+            if (dz <= NEAR) {
+                pa[i] = 0;
+                continue;
+            }
+
+            const s = focal / dz;
+
+            px[i] = cx + (rx[i] - camX) * s - lookX;
+            py[i] = cy - (ry[i] - camY) * s + lookY;
+            ps[i] = s;
+
+            /* Near side bright, far side dim; anything about to
+               pass the camera fades rather than smearing. */
+
+            pa[i] =
+                (0.2 + 0.8 * clamp01(1.25 - (rz[i] + 1) * 0.55)) *
+                clamp01((dz - NEAR) / 0.45) *
+                presence;
+
+            if (px[i] < -80 || px[i] > width + 80 || py[i] < -80 || py[i] > height + 80) {
+                pa[i] = 0;
+            }
+
+        }
+
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+        ctx.globalAlpha = 1;
+        ctx.lineWidth = 0.6 + e;
+
+        /* Links, in three brightness bands: three strokes. */
+
+        for (let band = 0; band < 3; band++) {
+
+            const low = band / 3;
+            const high = (band + 1) / 3;
+
+            ctx.beginPath();
+
+            for (let k = 0; k < edges.length; k += 2) {
+
+                const a = edges[k];
+                const b = edges[k + 1];
+                const alpha = Math.min(pa[a], pa[b]);
+
+                if (alpha > low && alpha <= high) {
+                    ctx.moveTo(px[a], py[a]);
+                    ctx.lineTo(px[b], py[b]);
+                }
+
+            }
+
+            ctx.strokeStyle = `rgba(${IRIS},${(high * 0.36).toFixed(3)})`;
+            ctx.stroke();
+
+        }
+
+        ctx.globalCompositeOperation = "lighter";
+
+        for (let i = 0; i < count; i++) {
+
+            if (pa[i] < 0.02) {
+                continue;
+            }
+
+            const d = Math.min(Math.max(size[i] * ps[i] * 0.026, 2.2), 90);
+
+            ctx.globalAlpha = pa[i];
+            ctx.drawImage(irisDot, px[i] - d / 2, py[i] - d / 2, d, d);
+
+        }
+
+        for (const pulse of pulses) {
+
+            pulse.t += dt * pulse.speed;
+
+            if (pulse.t >= 1) {
+                stepPulse(pulse);
+            }
+
+            const a = pulse.a;
+            const b = pulse.b;
+            const alpha = Math.min(pa[a], pa[b]);
+
+            if (alpha < 0.02) {
+                continue;
+            }
+
+            const t = pulse.t;
+            const d = Math.min((ps[a] + (ps[b] - ps[a]) * t) * 0.07, 120);
+
+            ctx.globalAlpha = alpha;
+            ctx.drawImage(
+                mintDot,
+                px[a] + (px[b] - px[a]) * t - d / 2,
+                py[a] + (py[b] - py[a]) * t - d / 2,
+                d,
+                d
+            );
+
+        }
+
+        /* The core: a steady heartbeat, then the light the
+           chat opens out of. */
+
+        if (form > 0.3) {
+
+            const beat = 1 + Math.sin(time * 2.6) * 0.14 * (1 - e);
+            const bloom = e ** 3 * Math.max(width, height) * 1.4;
+            const d = Math.min(ps[CORE] * 0.16 * beat + bloom, Math.max(width, height) * 3);
+
+            ctx.globalAlpha = clamp01((form - 0.3) * 2);
+            ctx.drawImage(mintDot, px[CORE] - d / 2, py[CORE] - d / 2, d, d);
+            ctx.drawImage(whiteDot, px[CORE] - d / 4, py[CORE] - d / 4, d / 2, d / 2);
+
+        }
+
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 1;
+
+    }
+
+    return { view, render, resize };
 
 }
 
+
+/* -------------------------------------------------------
+   THE DIVE (Task 9)
+
+   Scrolling (wheel or touch) scrubs a paused timeline:
+   the camera flies into the core, the intro copy falls away
+   and the chat opens out of the core as a growing circle of
+   light that clears to the chat.
+   Let go early and it settles back; go past a small
+   threshold and it finishes the dive on its own. "Start
+   asking", Enter, Space and the arrow keys dive; Escape and
+   "Skip intro" jump straight to the chat. The logo in the
+   chat plays the dive backwards, home to the intro.
+
+   Skipped entirely, with the stage removed, when motion is
+   reduced, GSAP didn't load or the canvas is unavailable,
+   and not shown again on reload once the visitor is in the
+   chat. Any failure ends
+   the intro rather than trapping the visitor behind it.
+------------------------------------------------------- */
+
+const INTRO_KEY = "exiom.intro";
+const homeButton = document.getElementById("homeButton");
+
+let intro = null;
+
+
+function dropStage() {
+    stage.hidden = true;
+    root.classList.remove("is-intro");
+    app.inert = false;
+}
+
+/* A failed intro is never offered again in this page. */
+
+function failIntro(error) {
+    if (error) {
+        console.error("Intro failed:", error);
+    }
+    intro = null;
+    homeButton.disabled = true;
+    dropStage();
+}
+
+
+/* Built on first use: at page load, or the first time the
+   logo is used after the intro was skipped. The stage is
+   hidden rather than removed when the dive ends, so the same
+   timeline can play backwards to bring the visitor home. */
+
+function buildIntro() {
+
+    const brain = createBrain(document.getElementById("brain"));
+
+    if (!brain) {
+        return null;
+    }
+
+    const view = brain.view;
+    const arrivals = app.querySelectorAll("[data-arrive]");
+    const enterButton = document.getElementById("enterButton");
+
+    let target = 0;
+    let committed = true;
+    let open = false;
+    let load = null;
+
+
+    function frame(time, deltaMs) {
+        try {
+            brain.render(time, deltaMs);
+        } catch (error) {
+            gsap.ticker.remove(frame);
+            skip();
+            failIntro(error);
+        }
+    }
+
+
+    const dive = gsap.timeline({ paused: true, onComplete: finish })
+        .to(view, { zoom: 1, duration: 1, ease: "power1.in" }, 0)
+        .to(".stage-ui", {
+            y: -48,
+            autoAlpha: 0,
+            filter: "blur(10px)",
+            duration: 0.32,
+            ease: "power2.in"
+        }, 0)
+        .to(app, { "--reveal": "75%", duration: 0.24, ease: "power2.in" }, 0.76)
+        .fromTo(app, { "--flash": 1 }, { "--flash": 0, duration: 0.3, ease: "power1.in" }, 0.76)
+        .from(arrivals, {
+            y: 26,
+            autoAlpha: 0,
+            duration: 0.2,
+            stagger: 0.025,
+            ease: "power3.out"
+        }, 0.84);
+
+
+    const scrub = { progress: 0 };
+
+    const seek = gsap.quickTo(scrub, "progress", {
+        duration: 0.8,
+        ease: "power3",
+        onUpdate: () => dive.progress(scrub.progress)
+    });
+
+
+    const observer = Observer.create({
+        target: window,
+        type: "wheel,touch",
+        tolerance: 6,
+        preventDefault: true,
+        onChange(self) {
+
+            if (committed) {
+                return;
+            }
+
+            /* A finger drags the opposite way to a wheel, and
+               covers less distance for the same intent. */
+
+            const step = self.event && self.event.type === "wheel"
+                ? self.deltaY / 1500
+                : -self.deltaY / 420;
+
+            target = gsap.utils.clamp(0, 1, target + step);
+
+            if (target >= 0.6) {
+                commit();
+            } else {
+                seek(target);
+            }
+
+        },
+        onStopDelay: 0.25,
+        onStop() {
+
+            if (committed) {
+                return;
+            }
+
+            if (target > 0.12) {
+                commit();
+            } else {
+                target = 0;
+                seek(0);
+            }
+
+        }
+    });
+
+    observer.disable();
+
+
+    /* Ready for a dive: scrolling, keys and the button work. */
+
+    function arm() {
+        committed = false;
+        target = 0;
+        scrub.progress = 0;
+        observer.enable();
+    }
+
+
+    function show(fromChat) {
+
+        if (open) {
+            return;
+        }
+
+        open = true;
+        committed = true;
+
+        /* Live before visible, so the CSS fail-safe can never
+           fire on a reopened stage. */
+
+        stage.classList.add("is-live");
+        stage.hidden = false;
+        root.classList.add("is-intro");
+        app.inert = true;
+
+        writeSetting(INTRO_KEY, "open", "sessionStorage");
+
+        brain.resize();
+        window.addEventListener("resize", brain.resize);
+        window.addEventListener("keydown", onKey);
+        gsap.ticker.add(frame);
+
+        if (!fromChat) {
+
+            /* Page load: the brain condenses, the title rises.
+               The dive animates the wrappers, so the two never
+               fight over a property. */
+
+            load = gsap.timeline()
+                .to(view, { form: 1, duration: 2.8, ease: "power3.out" }, 0)
+                .from(".stage-title .line > span", {
+                    yPercent: 110,
+                    duration: 1.2,
+                    stagger: 0.09,
+                    ease: "expo.out"
+                }, 0.3)
+                .from(".stage-bar, .stage-lede, .stage-actions", {
+                    y: 14,
+                    autoAlpha: 0,
+                    duration: 0.9,
+                    stagger: 0.08,
+                    ease: "power3.out"
+                }, 0.7);
+
+            arm();
+            return;
+
+        }
+
+        /* Back from the chat: the dive plays backwards. The
+           chat folds into the core and the camera pulls out,
+           with the brain condensing if it never formed. */
+
+        dive.progress(1, true);
+
+        gsap.to(view, { form: 1, duration: 2.2, ease: "power3.out" });
+
+        gsap.to(dive, {
+            progress: 0,
+            duration: 1.8,
+            ease: "power2.inOut",
+            onComplete() {
+                arm();
+                enterButton.focus({ preventScroll: true });
+            }
+        });
+
+    }
+
+
+    function commit() {
+
+        if (committed) {
+            return;
+        }
+
+        committed = true;
+        observer.disable();
+        gsap.killTweensOf(scrub);
+
+        gsap.to(dive, {
+            progress: 1,
+            duration: 0.6 + (1 - dive.progress()) * 1.8,
+            ease: "power2.inOut"
+        });
+
+    }
+
+
+    function skip() {
+
+        if (!open) {
+            return;
+        }
+
+        committed = true;
+        gsap.killTweensOf([scrub, dive]);
+        dive.progress(1, true);
+        finish();
+
+    }
+
+
+    function finish() {
+
+        if (!open) {
+            return;
+        }
+
+        open = false;
+        committed = true;
+
+        observer.disable();
+        gsap.killTweensOf([scrub, dive]);
+
+        /* Completed, not just stopped: an intro skipped
+           mid-load must not leave the title half-risen for
+           the next visit home. */
+
+        if (load) {
+            load.progress(1).kill();
+            load = null;
+        }
+
+        gsap.ticker.remove(frame);
+        window.removeEventListener("resize", brain.resize);
+        window.removeEventListener("keydown", onKey);
+
+        gsap.set(arrivals, { clearProps: "transform,opacity,visibility" });
+
+        writeSetting(INTRO_KEY, "seen", "sessionStorage");
+
+        dropStage();
+
+        /* A touch keyboard popping up uninvited covers half
+           the chat, so only a mouse user gets the focus. */
+
+        if (finePointer.matches) {
+            questionInput.focus({ preventScroll: true });
+        }
+
+    }
+
+
+    function onKey(event) {
+
+        if (event.key === "Escape") {
+            event.preventDefault();
+            skip();
+        } else if (
+            ["ArrowDown", "PageDown", " ", "Enter"].includes(event.key) &&
+            !event.target.closest("button")
+        ) {
+            event.preventDefault();
+            commit();
+        }
+
+    }
+
+    enterButton.addEventListener("click", commit);
+    document.getElementById("skipIntro").addEventListener("click", skip);
+
+    return { show };
+
+}
+
+
+function openIntro(fromChat) {
+
+    try {
+
+        intro = intro || buildIntro();
+
+        if (!intro) {
+            failIntro();
+            return;
+        }
+
+        intro.show(fromChat);
+
+    } catch (error) {
+        failIntro(error);
+    }
+
+}
+
+
+/* The logo leads home, the web's convention, whenever the
+   intro can run at all. */
+
+homeButton.disabled = !(motion() && Observer);
+
+homeButton.addEventListener("click", () => openIntro(true));
+
+
+if (
+    homeButton.disabled ||
+    readSetting(INTRO_KEY, "sessionStorage") === "seen"
+) {
+    dropStage();
+} else {
+    openIntro(false);
+}
+
+})();
 </script>
 
 </body>
