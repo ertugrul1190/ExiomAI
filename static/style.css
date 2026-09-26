@@ -744,6 +744,37 @@ a.chip:hover {
     gap: 14px;
 }
 
+/* On desktop the arrow sits halfway between Start chatting
+   and the foot, whatever the window's height: the copy fills
+   the space, an equal share of it goes above the name and
+   below the button, and the arrow centres in the lower one. */
+
+@media (min-width: 901px) and (orientation: landscape) {
+
+    .stage-copy {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        margin-block: 0;
+    }
+
+    .stage-copy::before {
+        content: "";
+        flex: 1 1 auto;
+    }
+
+    .stage-actions {
+        flex: 1 1 auto;
+        align-self: flex-start;
+        gap: 0;
+    }
+
+    .stage-down {
+        margin-block: auto;
+    }
+
+}
+
 /* Buy XEQM sits at the top right (16.11), in the status
    chip's old place: blue glass, never fire. */
 
