@@ -529,3 +529,158 @@ the disclaimer is unchanged. The inline script passes
 `node --check`. Of 530 tests, 528 pass. The two that fail
 are the usage-token tests, which fail only because of a local
 `.env` token (17.7).
+
+## 16.11 Revision: signal fire again, and a cleaner landing
+
+The client's fourth round asked for eight changes.
+
+**Palette.** "Signal fire" (16.6) is back: black `#020409`,
+blue `#3D8BFF`, orange `#FF7A1A`, amber `#FFB23F` and ice
+`#8FE6FF`, with the 16.6 values for `--raised`, `--ink` and
+`--muted`. Everything 16.9 renamed is renamed back: `--teal`
+→ `--blue`, `--aqua` → `--ice`, `TEAL` → `BLUE`, `AQUA` →
+`ICE`, `data-tone="teal"`/`"aqua"` → `"blue"`/`"ice"`.
+`--deep-rgb` and `--ink-rgb` (from 16.9) stay, with the new
+values. `--cool` is deleted. The components that 16.9 moved
+off orange go back to their 16.6 look:
+
+* **Start chatting:** a `--hot` face with `--on-hot` text, an
+  orange glow, and a wheel of orange, amber, ice and blue. The
+  mouth has an amber lip and an ice core.
+* **Xrypto play button:** orange edge, fill and ripple, amber
+  name, and a `--hot` disc.
+* **Question bar:** a blue → orange → amber edge, with an
+  orange halo on focus. The teal caret and selection rules are
+  gone. The send button stays orange.
+* **Your messages:** a blue bubble (`#2563EB` → `#1B3FA8`) with
+  white text.
+* `theme-color` is `#020409` on both pages.
+
+These keep their later changes and only change colour: the
+single status line and its orange chip (chat only now), the
+Xrypto links as pills (now blue), and the Feedback and
+Support cards.
+
+**Top bar.** The landing's top left is the logo alone, at
+36px, with `alt="ExiomAI"`. The chat bar is the same, and
+its button still says "ExiomAI, back to the intro" to screen
+readers. The landing's status chip is gone. **Buy XEQM**
+takes its place at the top right, as a blue glass pill (40px,
+blue edge and wash, ink text).
+
+**The name.** ExiomAI is bigger (`--title-size` is now
+`clamp(3.25rem, min(9vw, 14vh), 9.5rem)`) and weight 900. Its
+colours move slowly through the palette: ink, pale blue, blue,
+orange, amber and back. This is a 250% gradient clipped to the
+text, animated by `background-position` over 9 seconds,
+alternating. A blurred blue and orange light (`.stage-title::after`)
+sits behind it. "Welcome to" is plain ink. The chat's
+"What do you want to know?" keeps the static 16.6 gradient.
+
+**By Xrypto.** The "Click here" tag is removed, along with its
+CSS and the `nudge` keyframes. The line is smaller: 0.9375rem,
+a 22px play disc and tighter padding.
+
+**The lede.** It is smaller (`clamp(0.9375rem, 1.05vw,
+1.0625rem)`) and closer to the name: the gap under the title
+went from 20px to 10px, and under "by Xrypto" from 28px to
+14px. The client wanted it "readable but not too boring or too
+dull". It is a light blue-white `#C9D6EC` rather than muted,
+and "No question is too small." is amber. It uses
+`text-wrap: pretty`, so no word sits alone on a line.
+
+**The arrow.** "Or scroll to dive in" is gone. In its place is
+a round blue arrow (`#stageDown`), centred directly under Start
+chatting. `.stage-actions` is now a column that centres its
+items. The arrow inside the circle sinks gently. Clicking it
+dives, the same as Start chatting. It is `tabindex="-1"` and
+`aria-hidden`, because keyboards and screen readers already
+have Start chatting and ArrowDown. On phones it is 38px and
+scrolls down to the foot instead (16.12). A first pass centred
+it on the screen above the foot; the client asked for it under
+the button.
+
+**Feedback and Support** now sit on Xrypto's line, just after
+its links (`.link-line` wraps the Xrypto row and `.foot-asks`).
+The foot is one column, and the Official EXIOM row sits under
+that line. On wide screens a card ends at its word. From 900px
+down, the words may wrap under the links, so the cards open
+from the line's left edge, where they always fit. Phones keep
+the 16.10 icon strip, with the words centred under it: both
+link groups fill the phone's width, so there is no room left on
+the line.
+
+**Verified.** Headless Chrome over CDP at 1440×900, 1366×768,
+1024×680, 820×1180, 600×900, 390×844, 375×667 and 320×568.
+Nothing overlaps, nothing scrolls sideways, and nothing is
+off screen. The arrow and Buy XEQM pass a hit test. On
+tablets and desktop, Feedback and Support share the Xrypto
+line. Every card fits the viewport. Clicking the arrow dives into the chat, which draws
+in the restored palette. There were no console errors, and the
+inline script passes `node --check`. No teal or aqua values or
+names are left in `static/` or `templates/` (grep). Of 530
+tests, 528 pass. The two that fail are the usage-token tests,
+which fail only because of a local `.env` token (17.7).
+
+## 16.12 Phones: a clean first screen
+
+The client found the phone landing cluttered: the link strip,
+Feedback and Support, and the small print all sat under Start
+chatting. They asked for that part to move "into a scrolled
+down page" on mobile.
+
+**Two parts.** At 600px or narrower, `.stage-ui` becomes a
+vertical scroll box (`overflow: hidden auto`, `overscroll-behavior:
+contain`, no scrollbar). A new `.stage-hero` wraps the top bar,
+the copy and the arrow. On phones it is at least one screen
+tall (`min-height: 100%`), so the first screen shows only the
+logo, Buy XEQM, the name, the lede, Start chatting and the
+arrow. The foot starts exactly at the bottom edge, a scroll
+below. It has its own dark ground (`--deep`, fading in from
+92%) and runs edge to edge. On wider screens `.stage-hero` is
+`display: contents`, so tablets and desktop are unchanged.
+
+**Scrolling only scrolls on phones.** A swipe on the landing
+used to scrub the dive, so the page could not scroll. On phones
+the dive's `Observer` does not exist at all, so no wheel,
+trackpad or touch input scrubs the dive there. A first pass kept
+wheel-to-dive on phones. The client saw a scroll both dive and
+scroll the page (a wheel or trackpad in a narrow window), so it
+was removed. The observer is rebuilt whenever the layout
+crosses 600px (`phoneLayout`, a `matchMedia`). `listen()`
+remembers whether the dive is armed, so a rebuilt observer
+comes back in the right state. Crossing into the phone layout
+mid-scrub settles the dive back. `.stage` and `.stage-ui` allow
+`touch-action: pan-y` there. Start chatting still dives, as do
+Enter, Space and the arrow keys. On phones the arrow scrolls
+smoothly down to the foot. Returning from the chat resets the
+scroll to the top. Tablets and desktop still dive on a swipe
+or scroll.
+
+**The foot on phones** keeps the 16.10 icon strip, with
+Feedback and Support centred under it. With a whole part of
+the page to itself, the small print now shows in full, so the
+one-line gist and its **Small print** card (16.10) are
+removed: the markup, the CSS and the Escape special case in
+the script's comment. The rule that dropped the lede on phones
+shorter than 800px is gone too, because the lede now fits
+down to 320×568. The heading's glow is kept inside the width
+on phones, so the scroll box never scrolls sideways.
+
+**Verified.** Headless Chrome over CDP at 390×844, 375×667,
+360×740, 320×568 and 600×900 (touch). The first screen holds
+the name, lede, Start chatting, the arrow and Buy XEQM. The
+foot starts at the bottom edge, and nothing scrolls sideways.
+A synthesized touch swipe and a mouse wheel each scroll the
+page (about 290px) without diving. A desktop window narrowed to
+phone width does the same. The arrow brings the whole foot, small print
+included, into view. Feedback passes a hit test there, and
+both cards fit. Start chatting still dives on phones. At 1440×900 a
+wheel dives, and at 820×1180 a touch swipe dives, as before.
+(The test clears `sessionStorage` before each load, because
+after a dive the intro is skipped on reload.) At 820×1180,
+1024×680, 1366×768 and 1440×900 the arrow is centred under
+Start chatting and the layout is as in 16.11. There were no console errors, and the inline
+script passes `node --check`. Of 530 tests, 528 pass. The two
+that fail are the usage-token tests, which fail only because
+of a local `.env` token (17.7).

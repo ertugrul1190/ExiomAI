@@ -224,3 +224,29 @@ the intro stays. The next Escape skips to the chat as
 before. Enter and Space on those buttons don't start the
 dive, because `onKey` already ignores keys that come from
 buttons and links.
+
+## 17.9 Signal fire again, and the arrow
+
+Task 16, 16.11 restores the 16.6 palette. The opening and
+chamber are back to the colours described at the top of
+17.6. The brain is blue with orange nodes, the tunnel runs
+orange into ice, the Brainbow hues are blue, orange, ice and,
+rarely, amber, and the flash clears through ice and orange.
+Only the constants changed (`BLUE`, `ICE`, and `WHITE` back to
+`243,246,252`).
+
+"Or scroll to dive in" (17.7) is now a round arrow, centred
+under Start chatting inside `.stage-actions`, so the load
+timeline raises it with the button. Clicking it runs the same
+`commit` as Start chatting.
+Buy XEQM moved from beside Start chatting to the top bar
+(16.11), so Start chatting now stands alone under the lede.
+
+On phones (Task 16, 16.12) scrolling no longer dives, because
+it scrolls the landing down to its links. There is no dive
+`Observer` in the phone layout, for the wheel or for touch. It
+is rebuilt when the layout crosses 600px, and `listen()` keeps
+its armed state. Start chatting, the keys and, on tablets
+and desktop, swipes and scrolling still dive. On phones the
+arrow scrolls to the links, and returning from the chat resets
+that scroll to the top.
