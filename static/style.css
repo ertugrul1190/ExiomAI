@@ -1,13 +1,15 @@
 /* =========================================================
-   ExiomAI (Task 8, recoloured in Task 16, chat set inside
+   ExiomAI (Task 8, recoloured in Task 16 and 16.9, chat set inside
    the brain in Task 17)
 
    One family, Mona Sans, used across its width and weight:
    heavy and expanded for display, normal for reading. The
-   palette is "signal fire": black, lit by
-   blue (the mind), orange and amber (the energy, and the
-   one gradient every action wears) and ice only for what is
-   live (the chain, pulses, the core, focus).
+   palette is "deep water" (Task 16.9): black and slate, lit
+   by teal (the mind), orange and amber (the energy) and aqua
+   only for what is live (the chain, pulses, the core, focus).
+   The start button and the question bar wear --cool (teal to
+   aqua) with an orange core; the send button and the
+   status chip stay orange.
 
    Shared by templates/index.html and templates/usage.html.
    ========================================================= */
@@ -23,27 +25,30 @@
 }
 
 :root {
-    --deep: #020409;
-    --raised: #0B1322;
-    --ink: #F3F6FC;
-    --muted: #98A8C4;
-    --blue: #3D8BFF;
+    --deep: #0B0C10;
+    --raised: #1F2833;
+    --ink: #C5C6C7;
+    --muted: #8B949E;
+    --teal: #45A29D;
     --orange: #FF7A1A;
     --amber: #FFB23F;
-    --ice: #8FE6FF;
+    --aqua: #66FCF2;
     --danger: #FF7B72;
     --on-hot: #1A0B00;
 
-    --blue-rgb: 61, 139, 255;
+    --deep-rgb: 11, 12, 16;
+    --ink-rgb: 197, 198, 199;
+    --teal-rgb: 69, 162, 157;
     --orange-rgb: 255, 122, 26;
     --amber-rgb: 255, 178, 63;
-    --ice-rgb: 143, 230, 255;
-    --line: rgba(var(--blue-rgb), 0.16);
-    --wash: rgba(var(--blue-rgb), 0.08);
-    --glass: rgba(243, 246, 252, 0.06);
-    --glass-edge: rgba(243, 246, 252, 0.12);
+    --aqua-rgb: 102, 252, 242;
+    --line: rgba(var(--teal-rgb), 0.16);
+    --wash: rgba(var(--teal-rgb), 0.08);
+    --glass: rgba(var(--ink-rgb), 0.06);
+    --glass-edge: rgba(var(--ink-rgb), 0.12);
 
     --hot: linear-gradient(100deg, #FF5B14, var(--orange) 45%, var(--amber));
+    --cool: linear-gradient(100deg, var(--teal), var(--aqua));
     --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
     --font: "Mona Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -94,13 +99,13 @@ button {
 }
 
 a {
-    color: var(--blue);
+    color: var(--teal);
     text-underline-offset: 0.18em;
     text-decoration-thickness: 1px;
 }
 
 :focus-visible {
-    outline: 2px solid var(--ice);
+    outline: 2px solid var(--aqua);
     outline-offset: 3px;
     border-radius: 6px;
 }
@@ -183,7 +188,7 @@ a {
 }
 
 .brand-button:enabled:hover .brand-mark {
-    filter: drop-shadow(0 0 6px rgba(var(--blue-rgb), 0.8));
+    filter: drop-shadow(0 0 6px rgba(var(--teal-rgb), 0.8));
     transform: rotate(-12deg);
 }
 
@@ -207,7 +212,7 @@ a {
 }
 
 a.chip:hover {
-    border-color: rgba(var(--ice-rgb), 0.45);
+    border-color: rgba(var(--aqua-rgb), 0.45);
 }
 
 .chip-dot,
@@ -216,9 +221,20 @@ a.chip:hover {
     height: 7px;
     flex: none;
     border-radius: 50%;
-    background: var(--ice);
-    box-shadow: 0 0 10px rgba(var(--ice-rgb), 0.8);
+    background: var(--aqua);
+    box-shadow: 0 0 10px rgba(var(--aqua-rgb), 0.8);
     animation: beat 2.4s ease-in-out infinite;
+}
+
+.chip.is-status {
+    border-color: rgba(var(--aqua-rgb), 0.5);
+    background: rgba(var(--aqua-rgb), 0.12);
+    color: var(--aqua);
+}
+
+.chip-dot {
+    background: var(--orange);
+    box-shadow: 0 0 10px rgba(var(--orange-rgb), 0.8);
 }
 
 .chip.is-offline {
@@ -254,18 +270,19 @@ a.chip:hover {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 22px;
-    padding: 10px 10px 10px 40px;
+    gap: 0.8em;
+    padding: 0.36em 0.36em 0.36em 1.3em;
     border: 0;
     border-radius: 999px;
-    background: var(--hot);
-    color: var(--on-hot);
-    font-size: clamp(1.25rem, 1.7vw, 1.5rem);
+    background: var(--cool);
+    color: var(--deep);
+    font-size: 1.5rem;
+    font-size: max(1.25rem, calc(0.36 * var(--title-size)));
     font-weight: 800;
     font-stretch: 118%;
     letter-spacing: -0.01em;
     line-height: 1;
-    box-shadow: 0 14px 44px -10px rgba(var(--orange-rgb), 0.7);
+    box-shadow: 0 14px 44px -10px rgba(var(--aqua-rgb), 0.55);
     transition: transform 0.45s var(--spring), box-shadow 0.3s ease;
 }
 
@@ -277,7 +294,7 @@ a.chip:hover {
     border-radius: inherit;
     background: conic-gradient(
         from var(--spin),
-        var(--orange), var(--amber), var(--ice), var(--blue), var(--orange)
+        var(--aqua), var(--teal), var(--ink), var(--teal), var(--aqua)
     );
     filter: blur(16px);
     opacity: 0.7;
@@ -308,7 +325,7 @@ a.chip:hover {
             rgba(255, 255, 255, var(--light)),
             transparent 70%
         ),
-        var(--hot);
+        var(--cool);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
     transition: --light 0.25s ease;
     pointer-events: none;
@@ -321,7 +338,7 @@ a.chip:hover {
 
 .button-primary:hover {
     transform: translateY(-2px) scale(1.03);
-    box-shadow: 0 20px 60px -10px rgba(var(--orange-rgb), 0.9);
+    box-shadow: 0 20px 60px -10px rgba(var(--aqua-rgb), 0.8);
 }
 
 .button-primary:hover::before {
@@ -343,28 +360,28 @@ a.chip:hover {
 }
 
 /* The opening you dive into, riding inside the button: a
-   dark mouth with a amber lip and the core deep inside. */
+   dark mouth with a teal lip and the core deep inside. */
 
 .cta-core {
     display: grid;
     place-items: center;
-    width: 60px;
-    height: 60px;
+    width: 2.1em;
+    height: 2.1em;
     border-radius: 50%;
-    background: radial-gradient(circle, #0E1A33, var(--on-hot) 70%);
+    background: radial-gradient(circle, var(--raised), var(--deep) 70%);
     box-shadow:
-        inset 0 0 0 2px rgba(var(--amber-rgb), 0.85),
-        inset 0 0 10px 3px rgba(var(--orange-rgb), 0.55);
+        inset 0 0 0 2px rgba(var(--teal-rgb), 0.9),
+        inset 0 0 10px 3px rgba(var(--aqua-rgb), 0.35);
     transition: transform 0.45s var(--spring);
 }
 
 .cta-core::before {
     content: "";
-    width: 14px;
-    height: 14px;
+    width: 0.4em;
+    height: 0.4em;
     border-radius: 50%;
-    background: var(--ice);
-    box-shadow: 0 0 0 5px rgba(var(--ice-rgb), 0.18), 0 0 16px var(--ice);
+    background: var(--orange);
+    box-shadow: 0 0 0 5px rgba(var(--orange-rgb), 0.18), 0 0 16px var(--orange);
     animation: beat 2.4s ease-in-out infinite;
 }
 
@@ -392,9 +409,9 @@ a.chip:hover {
     z-index: 20;
     overflow: hidden;
     background:
-        radial-gradient(50% 55% at 64% 47%, rgba(var(--blue-rgb), 0.24), transparent 70%),
+        radial-gradient(50% 55% at 64% 47%, rgba(var(--teal-rgb), 0.24), transparent 70%),
         radial-gradient(45% 50% at 0% 100%, rgba(var(--orange-rgb), 0.16), transparent 70%),
-        radial-gradient(40% 40% at 0% 0%, rgba(var(--blue-rgb), 0.1), transparent 70%),
+        radial-gradient(40% 40% at 0% 0%, rgba(var(--teal-rgb), 0.1), transparent 70%),
         var(--deep);
     touch-action: none;
     animation: stage-failsafe 0.6s ease 8s forwards;
@@ -437,9 +454,9 @@ a.chip:hover {
     position: absolute;
     inset: calc(-1 * var(--cell)) calc(-1 * var(--cell)) 0 0;
     background:
-        radial-gradient(circle, rgba(var(--ice-rgb), 0.5) 1px, transparent 1.8px) 0 0 / var(--cell) var(--cell),
-        linear-gradient(rgba(var(--blue-rgb), 0.08) 1px, transparent 1px) 0 calc(var(--cell) / 2) / var(--cell) var(--cell),
-        linear-gradient(90deg, rgba(var(--blue-rgb), 0.08) 1px, transparent 1px) calc(var(--cell) / 2) 0 / var(--cell) var(--cell);
+        radial-gradient(circle, rgba(var(--aqua-rgb), 0.5) 1px, transparent 1.8px) 0 0 / var(--cell) var(--cell),
+        linear-gradient(rgba(var(--teal-rgb), 0.08) 1px, transparent 1px) 0 calc(var(--cell) / 2) / var(--cell) var(--cell),
+        linear-gradient(90deg, rgba(var(--teal-rgb), 0.08) 1px, transparent 1px) calc(var(--cell) / 2) 0 / var(--cell) var(--cell);
     animation: lattice 16s linear infinite;
 }
 
@@ -465,8 +482,8 @@ a.chip:hover {
     left: calc(var(--col, 12) * var(--cell) + var(--cell) / 2);
     width: 1px;
     height: 150px;
-    background: linear-gradient(transparent, rgba(var(--ice-rgb), 0.85) 85%, #FFFFFF);
-    box-shadow: 0 0 10px rgba(var(--ice-rgb), 0.6);
+    background: linear-gradient(transparent, rgba(var(--aqua-rgb), 0.85) 85%, #FFFFFF);
+    box-shadow: 0 0 10px rgba(var(--aqua-rgb), 0.6);
     animation-name: run-y;
 }
 
@@ -489,6 +506,8 @@ a.chip:hover {
 }
 
 .stage-ui {
+    --title-size: clamp(3.25rem, min(8vw, 13vh), 8.5rem);
+
     position: relative;
     z-index: 0;
     display: flex;
@@ -497,7 +516,7 @@ a.chip:hover {
     padding:
         max(20px, env(safe-area-inset-top))
         var(--gutter)
-        max(clamp(28px, 7vh, 80px), env(safe-area-inset-bottom));
+        max(10px, env(safe-area-inset-bottom));
     pointer-events: none;
 }
 
@@ -529,7 +548,7 @@ a.chip:hover {
 
 .stage-title {
     margin: 0 0 20px;
-    font-size: clamp(3.25rem, min(8vw, 13vh), 8.5rem);
+    font-size: var(--title-size);
     font-weight: 800;
     font-stretch: 125%;
     letter-spacing: -0.04em;
@@ -561,7 +580,7 @@ a.chip:hover {
 
     .stage-title .line > span,
     .welcome-title {
-        background: linear-gradient(100deg, var(--ink) 20%, #A9CCFF 60%, var(--blue) 100%);
+        background: linear-gradient(100deg, var(--ink) 20%, var(--aqua) 60%, var(--teal) 100%);
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -605,10 +624,10 @@ a.chip:hover {
     align-items: center;
     gap: 8px;
     padding: 6px 16px 6px 6px;
-    border: 1px solid rgba(var(--orange-rgb), 0.6);
+    border: 1px solid rgba(var(--teal-rgb), 0.6);
     border-radius: 999px;
-    background: rgba(var(--orange-rgb), 0.12);
-    color: var(--amber);
+    background: rgba(var(--teal-rgb), 0.12);
+    color: var(--aqua);
     font-weight: 750;
     font-stretch: 115%;
     text-decoration: none;
@@ -619,7 +638,7 @@ a.chip:hover {
     content: "";
     position: absolute;
     inset: -1px;
-    border: 1px solid var(--orange);
+    border: 1px solid var(--teal);
     border-radius: inherit;
     animation: ripple 2.4s ease-out infinite;
     pointer-events: none;
@@ -630,8 +649,8 @@ a.chip:hover {
     height: 26px;
     padding: 4px;
     border-radius: 50%;
-    background: var(--hot);
-    fill: var(--on-hot);
+    background: var(--cool);
+    fill: var(--deep);
     transition: transform 0.4s var(--spring);
 }
 
@@ -664,15 +683,15 @@ a.chip:hover {
 }
 
 .maker:hover {
-    background: var(--orange);
-    color: var(--on-hot);
+    background: var(--teal);
+    color: var(--deep);
     transform: translateY(-2px) scale(1.05);
 }
 
 .maker:hover .maker-play {
     transform: scale(1.12);
-    background: var(--on-hot);
-    fill: var(--amber);
+    background: var(--deep);
+    fill: var(--aqua);
 }
 
 .maker:hover .maker-cue {
@@ -702,49 +721,50 @@ a.chip:hover {
     line-height: 1.6;
 }
 
+/* Start chatting leads the copy (17.7): the biggest thing
+   on the page after the name, with Buy XEQM a quiet side
+   door beside it. */
+
 .stage-actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 28px;
+    gap: 16px 24px;
 }
 
-/* Buy XEQM: the second action, so glass, not fire. */
+/* Buy XEQM: a side door, so a quiet outline, not fire. */
 
 .button-buy {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    min-height: 60px;
-    padding: 0 22px 0 26px;
-    border: 1.5px solid rgba(var(--ice-rgb), 0.5);
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 16px 0 18px;
+    border: 1px solid var(--line);
     border-radius: 999px;
-    background: rgba(var(--blue-rgb), 0.14);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-    color: var(--ink);
-    font-size: 1.0625rem;
-    font-weight: 700;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.9375rem;
+    font-weight: 600;
     font-stretch: 112%;
     text-decoration: none;
     transition: transform 0.4s var(--spring), background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .button-buy svg {
-    width: 18px;
-    height: 18px;
-    color: var(--ice);
+    width: 16px;
+    height: 16px;
+    color: var(--aqua);
     transition: transform 0.4s var(--spring);
 }
 
 .button-buy:hover {
-    border-color: var(--blue);
-    background: var(--blue);
+    border-color: rgba(var(--teal-rgb), 0.6);
+    color: var(--ink);
     transform: translateY(-2px);
 }
 
 .button-buy:hover svg {
-    color: var(--ink);
     transform: translate(2px, -2px);
 }
 
@@ -759,7 +779,8 @@ a.chip:hover {
 }
 
 .stage-hint {
-    display: inline-flex;
+    display: flex;
+    margin-top: 22px;
     align-items: center;
     gap: 10px;
     color: var(--muted);
@@ -778,7 +799,7 @@ a.chip:hover {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(transparent, var(--ice), transparent);
+    background: linear-gradient(transparent, var(--aqua), transparent);
     animation: hint-drop 2s ease-in-out infinite;
 }
 
@@ -788,15 +809,13 @@ a.chip:hover {
 }
 
 
-/* The foot of the landing: the maker's links, the project's
-   links, and the small print. Wide screens put the small
-   print beside the links; narrow ones under them. */
+/* The foot of the landing: the maker's links and the
+   project's, stacked, then the small print, centred, wide and
+   short, on the very bottom of the screen (17.7). */
 
 .stage-foot {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: end;
-    gap: 16px 48px;
+    gap: clamp(20px, 5vh, 56px);
     padding-top: 18px;
     border-top: 1px solid var(--line);
 }
@@ -819,7 +838,6 @@ a.chip:hover {
     font-size: 0.8125rem;
 }
 
-.link-icon,
 .link-pill {
     display: inline-flex;
     align-items: center;
@@ -831,63 +849,170 @@ a.chip:hover {
     transition: transform 0.35s var(--spring), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-.link-icon svg,
 .link-pill svg {
     width: 18px;
     height: 18px;
     flex: none;
 }
 
-.link-icon {
-    width: 36px;
-    border: 1px solid rgba(var(--orange-rgb), 0.5);
-    background: rgba(var(--orange-rgb), 0.1);
-    color: var(--amber);
-}
-
-.link-icon:hover {
-    border-color: var(--orange);
-    background: var(--orange);
-    color: var(--on-hot);
-    transform: translateY(-2px);
-}
-
 .link-pill {
     padding: 0 13px 0 10px;
-    border: 1px solid rgba(var(--blue-rgb), 0.45);
-    background: rgba(var(--blue-rgb), 0.1);
+    border: 1px solid rgba(var(--teal-rgb), 0.45);
+    background: rgba(var(--teal-rgb), 0.1);
     color: var(--ink);
     font-size: 0.8125rem;
     font-weight: 600;
 }
 
 .link-pill svg {
-    color: var(--ice);
+    color: var(--aqua);
 }
 
 .link-pill:hover {
-    border-color: var(--blue);
-    background: rgba(var(--blue-rgb), 0.3);
+    border-color: var(--teal);
+    background: rgba(var(--teal-rgb), 0.3);
     transform: translateY(-2px);
 }
 
-.link-icon:active,
 .link-pill:active {
     transform: scale(0.94);
     transition-duration: 0.1s;
 }
 
-.link-icon:focus-visible,
 .link-pill:focus-visible {
     border-radius: 999px;
 }
 
 .disclaimer {
-    max-width: 68ch;
-    margin: 0 0 0 auto;
+    max-width: 170ch;
+    margin: 0 auto;
     color: var(--muted);
     font-size: 0.71875rem;
     line-height: 1.55;
+    text-align: center;
+    text-wrap: balance;
+}
+
+/* Feedback and support (16.10): two quiet words opposite the
+   links, each opening a small card upwards. Wide screens put
+   them at the right, level with the last link row. */
+
+.stage-foot {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.disclaimer {
+    grid-column: 1 / -1;
+}
+
+.foot-asks {
+    position: relative;
+    display: flex;
+    align-items: center;
+    align-self: end;
+    gap: 22px;
+    pointer-events: auto;
+}
+
+.ask-toggle {
+    min-height: 36px;
+    padding: 0 2px;
+    border: 0;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: underline dotted rgba(var(--teal-rgb), 0.8);
+    text-underline-offset: 0.35em;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.ask-toggle:hover,
+.ask-toggle[aria-expanded="true"] {
+    color: var(--aqua);
+    text-decoration-style: solid;
+    text-decoration-color: var(--aqua);
+}
+
+.ask-card {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 10px);
+    z-index: 2;
+    display: grid;
+    gap: 10px;
+    width: min(24rem, calc(100vw - 2 * var(--gutter)));
+    padding: 14px 16px 16px;
+    border: 1px solid rgba(var(--teal-rgb), 0.45);
+    border-radius: 14px;
+    background: linear-gradient(var(--wash), var(--wash)), var(--deep);
+    box-shadow: 0 18px 50px -14px rgba(var(--aqua-rgb), 0.35);
+    color: var(--ink);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    transform-origin: bottom right;
+    transition: opacity 0.18s ease, transform 0.35s var(--spring);
+}
+
+.ask-card:not(.is-open),
+.foot-gist {
+    display: none;
+}
+
+@starting-style {
+    .ask-card {
+        opacity: 0;
+        transform: translateY(6px) scale(0.96);
+    }
+}
+
+.ask-card p {
+    margin: 0;
+}
+
+.ask-card a {
+    color: var(--aqua);
+    font-weight: 600;
+}
+
+.ask-address {
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--wash);
+    color: var(--aqua);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    user-select: all;
+    -webkit-user-select: all;
+}
+
+.ask-copy {
+    justify-self: start;
+    height: 36px;
+    padding: 0 16px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: var(--hot);
+    color: var(--on-hot);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.35s var(--spring);
+}
+
+.ask-copy:active {
+    transform: scale(0.94);
+    transition-duration: 0.1s;
+}
+
+.ask-copy:focus-visible {
+    border-radius: 999px;
 }
 
 
@@ -906,12 +1031,12 @@ a.chip:hover {
     height: 100vh;
     height: 100dvh;
     background:
-        radial-gradient(130% 100% at 50% 46%, transparent 50%, rgba(0, 1, 4, 0.85) 100%),
+        radial-gradient(130% 100% at 50% 46%, transparent 50%, rgba(var(--deep-rgb), 0.85) 100%),
         var(--deep);
 }
 
 /* Inside the tunnel (Task 17): the light of the core at the
-   far end, orange round ice, breathing slowly. The canvas
+   far end, orange round aqua, breathing slowly. The canvas
    above it draws the walls. Transform only, so the breath
    costs the compositor and nothing else. */
 
@@ -921,9 +1046,9 @@ a.chip:hover {
     inset: 0;
     z-index: -1;
     background:
-        radial-gradient(14% 12% at 50% 46%, rgba(var(--ice-rgb), 0.16), transparent 70%),
+        radial-gradient(14% 12% at 50% 46%, rgba(var(--aqua-rgb), 0.16), transparent 70%),
         radial-gradient(36% 32% at 50% 46%, rgba(var(--orange-rgb), 0.2), transparent 72%),
-        radial-gradient(70% 60% at 50% 46%, rgba(var(--blue-rgb), 0.16), transparent 75%);
+        radial-gradient(70% 60% at 50% 46%, rgba(var(--teal-rgb), 0.16), transparent 75%);
     pointer-events: none;
     animation: breathe 7s ease-in-out infinite alternate;
 }
@@ -967,7 +1092,7 @@ a.chip:hover {
     background: radial-gradient(
         circle at 50% 50%,
         #FFFFFF 6%,
-        rgba(var(--ice-rgb), 0.5) 28%,
+        rgba(var(--aqua-rgb), 0.5) 28%,
         rgba(var(--orange-rgb), 0.3) 52%,
         transparent 75%
     );
@@ -981,7 +1106,7 @@ a.chip:hover {
     gap: 12px;
     padding: max(12px, env(safe-area-inset-top)) var(--gutter) 12px;
     border-bottom: 1px solid var(--line);
-    background: rgba(2, 4, 9, 0.35);
+    background: rgba(var(--deep-rgb), 0.35);
     -webkit-backdrop-filter: blur(16px);
     backdrop-filter: blur(16px);
 }
@@ -1003,7 +1128,7 @@ a.chip:hover {
     overscroll-behavior: contain;
     padding: 8px max(var(--gutter), (100% - var(--column)) / 2) 32px;
     scrollbar-width: thin;
-    scrollbar-color: rgba(var(--blue-rgb), 0.25) transparent;
+    scrollbar-color: rgba(var(--teal-rgb), 0.25) transparent;
 }
 
 .log:focus-visible {
@@ -1030,7 +1155,7 @@ a.chip:hover {
 }
 
 /* Suggestions: glass tiles, each in its topic's colour. The
-   live snapshot is ice because it is the one that reads the
+   live snapshot is aqua because it is the one that reads the
    chain; its dot beats like the other live signals. */
 
 .prompts {
@@ -1040,7 +1165,7 @@ a.chip:hover {
 }
 
 .prompt {
-    --tone: var(--blue-rgb);
+    --tone: var(--teal-rgb);
 
     position: relative;
     isolation: isolate;
@@ -1065,7 +1190,7 @@ a.chip:hover {
 
 .prompt[data-tone="orange"] { --tone: var(--orange-rgb); }
 .prompt[data-tone="amber"] { --tone: var(--amber-rgb); }
-.prompt[data-tone="ice"] { --tone: var(--ice-rgb); }
+.prompt[data-tone="aqua"] { --tone: var(--aqua-rgb); }
 
 /* The pointer's light (--mx, --my, set by the script). */
 
@@ -1103,7 +1228,7 @@ a.chip:hover {
     transition: transform 0.45s var(--spring);
 }
 
-.prompt[data-tone="ice"] strong::before {
+.prompt[data-tone="aqua"] strong::before {
     animation: beat 2.4s ease-in-out infinite;
 }
 
@@ -1149,9 +1274,9 @@ a.chip:hover {
     max-width: min(85%, 36rem);
     padding: 12px 16px;
     border-radius: 20px 20px 6px 20px;
-    background: linear-gradient(135deg, #2563EB, #1B3FA8);
+    background: linear-gradient(135deg, var(--teal), #3A8A85);
     box-shadow: 0 12px 32px -14px rgba(var(--orange-rgb), 0.7);
-    color: #FFFFFF;
+    color: var(--deep);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
@@ -1181,9 +1306,9 @@ a.chip:hover {
     align-items: center;
     gap: 6px;
     padding: 2px 9px;
-    border: 1px solid rgba(var(--ice-rgb), 0.3);
+    border: 1px solid rgba(var(--aqua-rgb), 0.3);
     border-radius: 999px;
-    color: var(--ice);
+    color: var(--aqua);
     font-weight: 500;
     font-stretch: 100%;
 }
@@ -1230,7 +1355,7 @@ a.chip:hover {
 }
 
 .msg-body li::marker {
-    color: var(--blue);
+    color: var(--teal);
 }
 
 .msg-body strong {
@@ -1309,7 +1434,7 @@ a.chip:hover {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--blue);
+    background: var(--teal);
     opacity: 0.3;
     animation: fire 1.2s ease-in-out infinite;
 }
@@ -1345,7 +1470,7 @@ a.chip:hover {
     border-radius: 26px;
     background:
         linear-gradient(var(--raised), var(--raised)) padding-box,
-        linear-gradient(100deg, rgba(var(--blue-rgb), 0.4), rgba(var(--orange-rgb), 0.4), rgba(var(--amber-rgb), 0.3)) border-box;
+        linear-gradient(100deg, rgba(var(--teal-rgb), 0.45), rgba(var(--aqua-rgb), 0.3)) border-box;
     box-shadow: 0 18px 50px -20px rgba(0, 0, 0, 0.8);
     transition: box-shadow 0.3s ease;
 }
@@ -1353,10 +1478,10 @@ a.chip:hover {
 .composer:focus-within {
     background:
         linear-gradient(var(--raised), var(--raised)) padding-box,
-        linear-gradient(100deg, var(--blue), var(--orange), var(--amber)) border-box;
+        var(--cool) border-box;
     box-shadow:
-        0 0 0 5px rgba(var(--orange-rgb), 0.12),
-        0 18px 60px -18px rgba(var(--orange-rgb), 0.55);
+        0 0 0 5px rgba(var(--aqua-rgb), 0.1),
+        0 18px 60px -18px rgba(var(--aqua-rgb), 0.4);
 }
 
 .composer textarea {
@@ -1369,8 +1494,13 @@ a.chip:hover {
     background: none;
     font-size: 1rem;
     line-height: 1.5;
+    caret-color: var(--aqua);
     resize: none;
     outline: none;
+}
+
+.composer textarea::selection {
+    background: rgba(var(--teal-rgb), 0.45);
 }
 
 .composer textarea::placeholder {
@@ -1446,17 +1576,50 @@ a.chip:hover {
         position: absolute;
         inset: 25% 0 0;
         z-index: -1;
-        background: linear-gradient(transparent, rgba(2, 4, 9, 0.9) 32%);
+        background: linear-gradient(transparent, rgba(var(--deep-rgb), 0.9) 32%);
         pointer-events: none;
     }
 
     .stage-foot {
-        grid-template-columns: minmax(0, 1fr);
         margin-top: 24px;
     }
 
+    /* Tablets (16.10): the foot flows as one line-up. The
+       words ride at the right of Xrypto's short row, as on
+       wide screens, and wrap under it only when it is full. */
+
+    .stage-foot {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 16px;
+    }
+
+    .link-rows {
+        display: contents;
+    }
+
+    .link-row {
+        flex: none;
+        max-width: 100%;
+        order: 1;
+    }
+
+    .foot-asks {
+        order: 2;
+        align-self: center;
+        margin-left: auto;
+    }
+
+    .link-row.is-project {
+        flex-basis: 100%;
+        order: 3;
+    }
+
     .disclaimer {
-        margin: 0;
+        flex-basis: 100%;
+        order: 4;
+        margin-top: clamp(8px, 3vh, 32px);
     }
 
 }
@@ -1478,18 +1641,14 @@ a.chip:hover {
     }
 
     .stage-actions {
-        gap: 10px;
+        gap: 12px;
     }
 
-    .stage-actions .button-primary,
-    .button-buy {
+    .stage-actions .button-primary {
+        font-size: 1.5rem;
         width: 100%;
         justify-content: space-between;
         padding-left: 28px;
-    }
-
-    .button-buy {
-        min-height: 52px;
     }
 
     /* Icons only on phones; the names stay for screen
@@ -1509,19 +1668,115 @@ a.chip:hover {
         white-space: nowrap;
     }
 
-    .link-row-name {
-        min-width: 7.5em;
-        font-size: 0.75rem;
-    }
+    /* Phones (16.10): one strip of icons, each group under its
+       own caption and split by a hairline; the words and the
+       small print centre under it, on one axis. The column
+       counts match the pills in each row. */
 
     .stage-foot {
-        gap: 12px;
+        justify-content: center;
+        gap: 6px 12px;
         margin-top: 18px;
         padding-top: 14px;
     }
 
-    .disclaimer {
-        font-size: 0.65625rem;
+    .link-row {
+        display: grid;
+        grid-template-columns: repeat(3, auto);
+        gap: 6px;
+    }
+
+    .link-row.is-project {
+        flex-basis: auto;
+        order: 2;
+        grid-template-columns: repeat(5, auto);
+        padding-left: 12px;
+        border-left: 1px solid var(--line);
+    }
+
+    .link-row-name {
+        grid-column: 1 / -1;
+        min-width: 0;
+        font-size: 0.75rem;
+        line-height: 1.3;
+        white-space: nowrap;
+    }
+
+    .foot-asks {
+        flex-basis: 100%;
+        order: 3;
+        justify-content: center;
+        margin-left: 0;
+    }
+
+    .ask-card {
+        left: 0;
+        width: min(24rem, 100%);
+        margin-inline: auto;
+        transform-origin: bottom center;
+    }
+
+    /* The small print folds to one line of its gist; "Small
+       print" opens the full text as a card over the foot,
+       every word intact. */
+
+    .stage-foot {
+        position: relative;
+    }
+
+    .foot-gist,
+    .disclaimer.is-open {
+        pointer-events: auto;
+    }
+
+    .foot-gist {
+        display: block;
+        flex-basis: 100%;
+        order: 4;
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.71875rem;
+        line-height: 1.4;
+        text-align: center;
+    }
+
+    .foot-gist .ask-toggle {
+        min-height: 24px;
+        margin-left: 4px;
+        font-size: inherit;
+    }
+
+    .disclaimer:not(.is-open) {
+        display: none;
+    }
+
+    .disclaimer.is-open {
+        position: absolute;
+        right: 0;
+        bottom: calc(100% + 10px);
+        left: 0;
+        z-index: 2;
+        width: min(24rem, 100%);
+        margin: 0 auto;
+        padding: 14px 16px;
+        border: 1px solid rgba(var(--teal-rgb), 0.45);
+        border-radius: 14px;
+        background: linear-gradient(var(--wash), var(--wash)), var(--deep);
+        box-shadow: 0 18px 50px -14px rgba(var(--aqua-rgb), 0.35);
+        color: var(--ink);
+        font-size: 0.75rem;
+        line-height: 1.5;
+        text-align: left;
+        text-wrap: pretty;
+        transform-origin: bottom center;
+        transition: opacity 0.18s ease, transform 0.35s var(--spring);
+    }
+
+    @starting-style {
+        .disclaimer.is-open {
+            opacity: 0;
+            transform: translateY(6px) scale(0.96);
+        }
     }
 
     .cta-core {
@@ -1569,9 +1824,19 @@ a.chip:hover {
 
     .maker:hover,
     .button-buy:hover,
-    .link-icon:hover,
     .link-pill:hover {
         transform: none;
+    }
+
+}
+
+/* Short screens: the scroll hint goes before it meets the
+   links (17.7). */
+
+@media (max-height: 760px) {
+
+    .stage-hint {
+        display: none;
     }
 
 }
@@ -1591,6 +1856,82 @@ a.chip:hover {
 
     .stage-bar .chip {
         display: none;
+    }
+
+    /* The icon strip still fits one line down to 355px. */
+
+    .link-pill {
+        width: 34px;
+        height: 34px;
+    }
+
+    .link-row {
+        gap: 5px;
+    }
+
+    .stage-foot {
+        column-gap: 10px;
+    }
+
+    .link-row.is-project {
+        padding-left: 10px;
+    }
+
+}
+
+/* Narrower still, smaller pills keep the strip on one line
+   (28px is still above the 24px minimum touch target). Below
+   300px the groups stack and lose the rule. */
+
+@media (max-width: 354px) {
+
+    .link-pill {
+        width: 28px;
+        height: 28px;
+    }
+
+    .link-pill svg {
+        width: 16px;
+        height: 16px;
+    }
+
+}
+
+@media (max-width: 299px) {
+
+    .link-row.is-project {
+        padding-left: 0;
+        border-left: 0;
+    }
+
+}
+
+/* Short phones: the copy and the foot tighten so the name
+   clears the top bar. */
+
+@media (max-width: 600px) and (max-height: 620px) {
+
+    .stage-ui {
+        --title-size: 3rem;
+    }
+
+    .stage-by {
+        margin-bottom: 12px;
+    }
+
+    .stage-actions {
+        gap: 8px;
+    }
+
+    .cta-core {
+        width: 44px;
+        height: 44px;
+    }
+
+    .stage-foot {
+        margin-top: 10px;
+        padding-top: 10px;
+        row-gap: 4px;
     }
 
 }

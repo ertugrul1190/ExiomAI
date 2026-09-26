@@ -279,3 +279,253 @@ identity replies, `knowledge/*.md`, and the old
 `XEQM_USDT`), and so do the project's names (EXIOM, XEQM
 Labs). The identity fast path matches "exiom ai" and
 "exiomai" alike, with two new test cases. 530 tests pass.
+
+
+## 16.9 Revision: the client's palette, "deep water"
+
+The client supplied a palette, in priority order: black
+`#0B0C10`, slate `#1F2833`, off-white `#C5C6C7`, teal
+`#66FCF2` and darker teal `#45A29D`, and asked to keep our
+orange. As in 16.6, every token keeps its job; only the
+colour (and the name) changed. The two teals take blue's and
+ice's jobs: the calmer darker teal covers the most ground
+(the mind), and the bright teal is the light (what is live).
+Orange and amber stay the energy (but see "Start button and
+question bar" below). Renamed in CSS, the `data-tone` values and the
+canvas constants: `--blue` → `--teal`, `--ice` → `--aqua`,
+`BLUE` → `TEAL`, `ICE` → `AQUA`.
+
+| Token | Hex | Used for |
+| --- | --- | --- |
+| `--deep` | `#0B0C10` | Background (client black) |
+| `--raised` | `#1F2833` | Composer, the start button's disc (client slate) |
+| `--ink` | `#C5C6C7` | Text (client off-white; 11.4:1 on `--deep`, 8.7:1 on `--raised`) |
+| `--muted` | `#8B949E` | Secondary text, off-white toward slate (6.4:1 / 4.8:1) |
+| `--teal` | `#45A29D` | The mind: links, brain nodes and links, washes, lines (6.4:1 as text) |
+| `--orange` | `#FF7A1A` | Energy: the send button, the status chip, the message mark, the brain's warm nodes (unchanged) |
+| `--amber` | `#FFB23F` | End of the action gradient (unchanged) |
+| `--aqua` | `#66FCF2` | Only what is live: pulses, the core, live dots, focus |
+| `--danger` | `#FF7B72` | Errors (unchanged) |
+| `--on-hot` | `#1A0B00` | Text and icons on `--hot` (unchanged, 6.2:1) |
+
+**Other colour changes.**
+
+* New `--deep-rgb` and `--ink-rgb`. The vignette, the
+  landing's dusk and the chat's scrim now use `--deep-rgb`
+  instead of hard-coded blue-blacks. `--glass` and
+  `--glass-edge` use `--ink-rgb`.
+* Display gradient: ink → aqua → teal (it was ink → pale blue
+  → blue).
+* Your messages are a teal bubble (`--teal` → `#3A8A85`) with
+  `--deep` text, at least 4.8:1. White on teal would be 3:1,
+  which fails.
+* The start button's disc is slate (`--raised`) instead of navy.
+* The brain's `WHITE` sparkle is the off-white.
+* `theme-color` is `#0B0C10`. `usage.html` never had one
+  (16.6 was wrong about that), so it gained it. `usage.css`
+  only uses tokens, so it needed no edits.
+* The client's logo stays blue: it is their artwork, and we
+  don't recolour it.
+* The dev-only `frontend/` is untouched (Task 12).
+
+**Verified.** No old palette values are left in `static/`
+or `templates/` (grep). Headless Chrome at 1440×900 with
+reduced motion: the chat screen reads well, teal and aqua on
+black and slate, with orange for the send button and prompt
+dots. 528 tests pass. The 2 usage-page tests fail only when
+`.env` sets `EXIOM_USAGE_TOKEN`, as before this change (see
+Task 8, 8.6).
+
+**Start button and question bar.** The client asked for
+the question bar to have no orange in any part, and for the
+start button not to be orange. Both now wear a new gradient,
+`--cool` (`--teal` → `--aqua`), with `--deep` text and icons
+(6.4:1 on teal and above).
+
+* **Start chatting:** a `--cool` face, an aqua glow, and a
+  colour wheel of aqua, teal and off-white. The mouth is
+  slate into black with a teal lip and a faint aqua glow
+  (the lip was amber and orange).
+* **Question bar:** the edge is teal → aqua (it was teal →
+  orange → amber), and on focus it is `--cool` with an aqua
+  halo. The send button is `--cool` (later orange again; see
+  "Third round" below). The caret is aqua, and
+  selected text in the box is teal (the page-wide selection
+  is still orange).
+* `--hot` still covers the other actions: the streaming
+  caret, the message mark and (until the third round) the
+  Xrypto play button.
+
+**Verified.** Neither component's rules, including the
+mobile, reduced-motion and `forced-colors` overrides, refer
+to `--orange`, `--amber` or `--hot` any more (grep).
+Headless Chrome drew both on the real stylesheet: teal
+throughout, with dark text that reads well.
+
+**Xrypto's links.** The client asked for Xrypto's social
+links (Discord, YouTube, Telegram) to look like the Official
+EXIOM links. They were orange icon-only circles
+(`.link-icon`, 16.7). Now they are the same `.link-pill` as
+the project's links: teal edge and fill, an aqua icon (the
+same icons) and an off-white label. Like the project's
+links, they show icons only on phones. Their `aria-label`s
+("Xrypto on Discord (opens in a new tab)") still say whose
+they are and include the visible label. `.link-icon` and
+its rules are deleted, so nothing uses it any more. Headless
+Chrome at 900px and 390px: the two rows are the same.
+
+**Third round.**
+
+* **Send button:** orange again (`--hot`, `--on-hot` icon,
+  orange glow). The rest of the question bar (edge, focus
+  halo, caret, selection) stays teal.
+* **Status chip:** one line only, **"Awake and ready to
+  help"**. The `QUIPS` list, its random start and its
+  6-second rotation are gone; `QUIP` is a single constant.
+  While an answer is being written, the chip still reads
+  "Thinking it through…", then goes back. Both chips (on the
+  landing and in the chat) have `.is-status`: an orange edge
+  and fill, amber text (≈10:1 on black) and an orange dot.
+* **Xrypto play button** (under the main heading): teal, with
+  no orange. The edge, fill and ripple are teal, the name is
+  aqua, and the play disc is `--cool` with a `--deep`
+  triangle. On hover it fills teal with `--deep` text (6.4:1)
+  and the disc turns black with an aqua triangle.
+
+**Verified.** The inline scripts pass `node --check`.
+Headless Chrome drew the status chip, the Xrypto button and
+the question bar on the real stylesheet: orange chip, teal
+Xrypto, teal bar with an orange send button.
+
+**Start button core.** The glowing dot inside Start
+chatting's mouth (`.cta-core::before`) is orange now, with
+an orange halo and glow; it was aqua. The face, the wheel
+and the teal lip are unchanged. It still beats.
+
+## 16.10 Feedback and support
+
+The client asked for two words opposite the link rows:
+**Feedback** and **Support**. Clicking one opens a small card.
+
+- **Feedback:** "Send feedback on Telegram to
+  @Xryptoforgood". The handle links to
+  `https://t.me/Xryptoforgood` in a new tab.
+- **Support:** "Support ExiomAI by sending some XEQM to:",
+  then the address
+  (`Wu11Wgeu8ZSFttNS65XWyTAGToF9ypwxUS3qehwDQuhPa3231bq72MFAfZf9UWVaC8HvA5QakHp74Y9sK8aJxsxy1s9MgXGHbc`)
+  and an orange **Copy address** button.
+
+**Look.** The words are plain text buttons in `--ink` with a
+dotted teal underline. They turn aqua with a solid underline
+on hover or while their card is open. Each card opens upwards
+and is opaque black with a teal wash, a teal hairline edge,
+a 14px radius and a soft aqua glow. It springs in with
+`--spring` through `@starting-style` (older browsers simply
+show it). The address is aqua monospace in a `--wash` well. It
+wraps anywhere, and one click selects all of it. Copy address
+uses `--hot` with `--on-hot` text, the same as the send button.
+
+**Layout.** On wide screens `.stage-foot` is a two-column
+grid. The `.foot-asks` sit at the right, level with the last
+link row, and the small print spans both columns. Each card
+is `min(24rem, 100vw - 2 * gutter)` wide, so it never
+overflows.
+
+**Behaviour.** The buttons use the disclosure pattern
+(`aria-expanded`, `aria-controls`, and a `role="group"` card
+right after its button in tab order), and only one card is
+open at a time. A card is shown by the `is-open` class, not
+`hidden`, so the small print can use the same wiring (see
+below). Clicking outside closes it. Escape closes it
+and returns focus to the button. It is caught in the capture
+phase with `stopImmediatePropagation`, so it no longer also
+skips the intro, but only while a card is on screen.
+Otherwise the intro's Escape works as before. Copy writes
+to the clipboard in a secure context. Otherwise, or if the
+write is refused, it selects the address for a manual copy.
+The button and a polite live region say "Copied" or
+"Selected, now copy it" for 2 seconds. Everything is wired
+in the nonced script, with no inline handlers (CSP).
+
+**Verified.** Headless Chrome at 1440×900, 820×1180 and
+390×844, with the intro running: both buttons pass a hit
+test, every card fits the viewport with no horizontal
+scroll, Escape closes a card while the intro stays open, and
+an outside click closes it. The inline script passes
+`node --check`. The first test run caught Escape skipping the
+intro when it was dispatched on `window` itself;
+`stopImmediatePropagation` fixed it. Of 530 tests, 528 pass.
+The two that fail are the usage-token tests, which fail only
+because of a local `.env` token (17.7).
+
+**Tablets and phones.** The client found the foot cluttered
+on smaller screens: the link rows, a lone row for the two
+words and a centred block of small print, each aligned
+differently. It now reflows at each size.
+
+- **Tablets (900px or narrower, or portrait):** `.link-rows`
+  becomes `display: contents`, and the foot is one wrapping
+  flex line-up. Feedback and Support sit at the right of
+  Xrypto's short row, as on desktop, with the Official EXIOM
+  row under it. If that row fills up, the words wrap under
+  it, still right-aligned. The cards open from the right, as
+  on desktop.
+- **Phones (600px or narrower):** both groups share one strip
+  of icons. Each group is a small grid with its caption
+  ("Made by Xrypto", "Official EXIOM") above its icons, and a
+  teal hairline separates them. The words and the small
+  print are centred under the strip, on the same axis, and
+  each card is centred over the words. The grids' column
+  counts (3 and 5) match the pills in each row. An added pill
+  wraps to a new line rather than breaking the layout.
+- **Small phones:** pills are 34px wide at 400px or narrower
+  and 28px below 355px, which is still above the 24px minimum
+  touch target, so the strip stays on one line. Below 300px
+  the groups stack and the hairline is dropped. Phones 620px
+  tall or shorter get a smaller heading (`--title-size:
+  3rem`), a smaller start-button core (44px) and tighter
+  gaps. At 320×568 the name now clears the top bar and the
+  small print ends on screen.
+
+On tablets and phones the order on screen differs from the
+keyboard order: `order` puts the words before the Official
+EXIOM links on tablets, but Tab still reaches both link
+groups first and the words last. Each group stays together,
+so this is harmless.
+
+**Verified (reflow).** Headless Chrome at 1440×900, 820×1180,
+768×1024, 600×900, 390×844, 375×667, 360×740 and 320×568:
+the link groups, words, small print and the two main buttons
+never overlap, and nothing scrolls sideways. Both words pass a
+hit test, every card fits, and Escape and outside clicks
+still close the cards without leaving the intro. The phone
+strip stays on one line down to 320px.
+
+**Small print on phones.** Even after the reflow, the six
+lines of small print were the heaviest thing on a phone
+landing. At 600px or narrower it now folds to one centred
+line, "Not official EXIOM, not financial advice.", followed
+by a **Small print** word (`.foot-gist`, hidden on wider
+screens). The two key warnings stay visible without a tap.
+Small print is a third `.ask-toggle`. It opens the real
+`.disclaimer` (`id="small-print"`, every word intact, never
+duplicated) as a card in the same style as the others,
+centred over the foot. Clicking outside, Escape or
+opening another card closes it. On tablets and desktop the
+disclaimer shows in full, as before, and the word never
+appears. Escape is only caught while the word and its card
+are both on screen, so a card left open at phone width
+never swallows Escape after a resize. The `.stage-ui`
+overlay has `pointer-events: none`, so `.foot-gist` and the
+open disclaimer set it back to `auto`. The first test run
+caught this: the word could not be clicked. The foot is
+about 70px shorter on phones, so the short-phone rule no
+longer needs to touch the disclaimer.
+
+**Verified (small print).** Headless Chrome at the same eight
+sizes. On phones, Small print passes a hit test, its card
+fits and closes, and nothing overlaps. On tablets and desktop,
+the disclaimer is unchanged. The inline script passes
+`node --check`. Of 530 tests, 528 pass. The two that fail
+are the usage-token tests, which fail only because of a local
+`.env` token (17.7).

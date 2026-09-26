@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#020409">
+    <meta name="theme-color" content="#0B0C10">
     <title>ExiomAI</title>
     <link rel="preload" href="{{ url_for('static', filename='fonts/mona-sans-latin-wdth.woff2', v='5.3.0') }}" as="font" type="font/woff2" crossorigin>
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32.png', v=asset_version('favicon-32.png')) }}">
@@ -93,7 +93,7 @@
             </span>
 
             <span class="stage-bar-end">
-                <span class="chip">
+                <span class="chip is-status">
                     <span class="chip-dot"></span>
                     <span data-quip>Awake and ready to help</span>
                 </span>
@@ -127,11 +127,8 @@
             </p>
 
             <p class="stage-lede">
-                Crypto shouldn't make anyone feel lost. ExiomAI is
-                your one-stop guide to EXIOM: ask about XEQM, service
-                nodes or privacy in your own words, and get answers
-                anyone can follow, with live numbers from the Official
-                EXIOM Explorer. No question is too small.
+                Learn EXIOM from scratch, one simple answer at a
+                time. No question is too small.
             </p>
 
             <div class="stage-actions">
@@ -149,17 +146,18 @@
                     <svg aria-hidden="true"><use href="#i-out"/></svg>
                     <span class="sr-only">on NonKYC (opens in a new tab)</span>
                 </a>
-                <span class="stage-hint" aria-hidden="true">
-                    <span class="stage-hint-line"></span>
-                    or scroll to dive in
-                </span>
             </div>
+
+            <span class="stage-hint" aria-hidden="true">
+                <span class="stage-hint-line"></span>
+                or scroll to dive in
+            </span>
 
         </div>
 
-        <!-- Links and small print (Task 16). The maker's links
-             wear the maker's orange, the project's wear its
-             blue. Every link opens in a new tab. -->
+        <!-- Links and small print (Task 16). The maker's links and
+             the project's are the same teal pills (16.9).
+             Every link opens in a new tab. -->
 
         <footer class="stage-foot">
 
@@ -167,14 +165,17 @@
 
                 <nav class="link-row" aria-label="Xrypto, the maker of ExiomAI">
                     <span class="link-row-name">Made by Xrypto</span>
-                    <a class="link-icon" href="https://discord.gg/fFTXSvSDgD" target="_blank" rel="noopener noreferrer" title="Discord" aria-label="Xrypto on Discord (opens in a new tab)">
+                    <a class="link-pill" href="https://discord.gg/fFTXSvSDgD" target="_blank" rel="noopener noreferrer" title="Discord" aria-label="Xrypto on Discord (opens in a new tab)">
                         <svg aria-hidden="true"><use href="#i-discord"/></svg>
+                        <span>Discord</span>
                     </a>
-                    <a class="link-icon" href="https://youtube.com/@xrypto_cryptozone" target="_blank" rel="noopener noreferrer" title="YouTube" aria-label="Xrypto on YouTube (opens in a new tab)">
+                    <a class="link-pill" href="https://youtube.com/@xrypto_cryptozone" target="_blank" rel="noopener noreferrer" title="YouTube" aria-label="Xrypto on YouTube (opens in a new tab)">
                         <svg aria-hidden="true"><use href="#i-youtube"/></svg>
+                        <span>YouTube</span>
                     </a>
-                    <a class="link-icon" href="https://t.me/xryptogroupcrypto" target="_blank" rel="noopener noreferrer" title="Telegram" aria-label="Xrypto on Telegram (opens in a new tab)">
+                    <a class="link-pill" href="https://t.me/xryptogroupcrypto" target="_blank" rel="noopener noreferrer" title="Telegram" aria-label="Xrypto on Telegram (opens in a new tab)">
                         <svg aria-hidden="true"><use href="#i-telegram"/></svg>
+                        <span>Telegram</span>
                     </a>
                 </nav>
 
@@ -204,7 +205,39 @@
 
             </div>
 
-            <p class="disclaimer">
+            <!-- Feedback and support (Task 16, 16.10): two quiet
+                 words opposite the links. Each opens a small card
+                 under the same button; wired in the script. -->
+
+            <div class="foot-asks">
+
+                <button class="ask-toggle" type="button" aria-expanded="false" aria-controls="ask-feedback">Feedback</button>
+                <div class="ask-card" id="ask-feedback" role="group" aria-label="Send feedback">
+                    <p>
+                        Send feedback on Telegram to
+                        <a href="https://t.me/Xryptoforgood" target="_blank" rel="noopener noreferrer">@Xryptoforgood<span class="sr-only"> (opens in a new tab)</span></a>
+                    </p>
+                </div>
+
+                <button class="ask-toggle" type="button" aria-expanded="false" aria-controls="ask-support">Support</button>
+                <div class="ask-card" id="ask-support" role="group" aria-label="Support ExiomAI">
+                    <p>Support ExiomAI by sending some XEQM to:</p>
+                    <code class="ask-address" id="support-address">Wu11Wgeu8ZSFttNS65XWyTAGToF9ypwxUS3qehwDQuhPa3231bq72MFAfZf9UWVaC8HvA5QakHp74Y9sK8aJxsxy1s9MgXGHbc</code>
+                    <button class="ask-copy" type="button" data-copy="support-address">Copy address</button>
+                    <span class="sr-only" role="status" aria-live="polite"></span>
+                </div>
+
+            </div>
+
+            <!-- Phones only (16.10): one line of the small print's
+                 gist; the full text opens as a card. -->
+
+            <p class="foot-gist">
+                Not official EXIOM, not financial advice.
+                <button class="ask-toggle" type="button" aria-expanded="false" aria-controls="small-print">Small print</button>
+            </p>
+
+            <p class="disclaimer" id="small-print">
                 ExiomAI is an independent, third-party tool made by
                 Xrypto. It is not an official EXIOM product. Answers
                 are written by AI and can be wrong or out of date, so
@@ -245,7 +278,7 @@
 
         <div class="app-bar-end">
 
-            <span class="chip">
+            <span class="chip is-status">
                 <span class="chip-dot"></span>
                 <span data-quip>Awake and ready to help</span>
             </span>
@@ -278,7 +311,7 @@
                 <button
                     class="prompt"
                     type="button"
-                    data-tone="blue"
+                    data-tone="teal"
                     data-glow
                     data-question="Explain XEQM to me simply. What is it, what does it do, and why does it exist?"
                 >
@@ -300,7 +333,7 @@
                 <button
                     class="prompt"
                     type="button"
-                    data-tone="ice"
+                    data-tone="aqua"
                     data-glow
                     data-question="Give me a current EXIOM network snapshot using live Explorer data. Include active service nodes, block height, locked supply, current APY, and daily reward per node."
                 >
@@ -467,25 +500,13 @@ function writeSetting(key, value, area = "localStorage") {
 /* -------------------------------------------------------
    STATUS (Task 16)
 
-   The status chips take turns at a light-hearted line about
-   the assistant, and own up while an answer is being
-   written. With reduced motion the line stays put.
+   The status chips say the assistant is ready, and own up
+   while an answer is being written. One line only (16.9).
 ------------------------------------------------------- */
 
-const QUIPS = [
-    "Awake and ready to help",
-    "Jargon translator: on",
-    "No question too basic",
-    "Fully caffeinated",
-    "Zero judgement, promise",
-    "Reading the chain for fun",
-    "Plain words only",
-    "Service nodes? Ask away"
-];
+const QUIP = "Awake and ready to help";
 
 const quipSlots = document.querySelectorAll("[data-quip]");
-
-let quip = Math.floor(Math.random() * QUIPS.length);
 
 function showQuip(text) {
     quipSlots.forEach(function (slot) {
@@ -493,19 +514,6 @@ function showQuip(text) {
         enter(slot, { y: 6, duration: 0.4 });
     });
 }
-
-showQuip(QUIPS[quip]);
-
-window.setInterval(function () {
-
-    if (requestInProgress || document.hidden || reduceMotion.matches) {
-        return;
-    }
-
-    quip = (quip + 1) % QUIPS.length;
-    showQuip(QUIPS[quip]);
-
-}, 6000);
 
 
 /* -------------------------------------------------------
@@ -1007,7 +1015,7 @@ async function askQuestion() {
     } finally {
 
         requestInProgress = false;
-        showQuip(QUIPS[quip]);
+        showQuip(QUIP);
 
         if (chamber) {
             chamber.think(false);
@@ -1249,11 +1257,120 @@ document.querySelectorAll("[data-question]").forEach(button => {
 
 
 /* -------------------------------------------------------
+   FEEDBACK AND SUPPORT (Task 16, 16.10)
+
+   Each word toggles its card (`is-open`); one card is open
+   at a time. A click outside or Escape closes it. Escape is
+   caught before the intro's own Escape (which skips to the
+   chat), but only while the word and its card are on
+   screen. On phones "Small print" opens the disclaimer the
+   same way; wider screens show it in full and never show
+   that word.
+------------------------------------------------------- */
+
+(function () {
+
+const toggles = document.querySelectorAll(".ask-toggle");
+let openToggle = null;
+
+function card(toggle) {
+    return document.getElementById(toggle.getAttribute("aria-controls"));
+}
+
+function close() {
+    if (openToggle) {
+        openToggle.setAttribute("aria-expanded", "false");
+        card(openToggle).classList.remove("is-open");
+        openToggle = null;
+    }
+}
+
+toggles.forEach(toggle => {
+    toggle.addEventListener("click", () => {
+        const wasOpen = openToggle === toggle;
+        close();
+        if (!wasOpen) {
+            toggle.setAttribute("aria-expanded", "true");
+            card(toggle).classList.add("is-open");
+            openToggle = toggle;
+        }
+    });
+});
+
+document.addEventListener("click", event => {
+    if (openToggle && !event.target.closest(".ask-toggle, .ask-card, .disclaimer")) {
+        close();
+    }
+});
+
+window.addEventListener("keydown", event => {
+    if (event.key !== "Escape" || !openToggle) {
+        return;
+    }
+    const toggle = openToggle;
+    const shown = toggle.getClientRects().length > 0 &&
+        card(toggle).getClientRects().length > 0;
+    close();
+    if (shown) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        toggle.focus({ preventScroll: true });
+    }
+}, true);
+
+/* Copy uses the clipboard where the page may (HTTPS or
+   localhost); otherwise it selects the address to copy by
+   hand. Either way the result is announced. */
+
+document.querySelectorAll("[data-copy]").forEach(button => {
+
+    const source = document.getElementById(button.dataset.copy);
+    const status = button.parentElement.querySelector("[role=status]");
+    const label = button.textContent;
+    let timer = 0;
+
+    function report(text) {
+        button.textContent = text;
+        status.textContent = text;
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            button.textContent = label;
+            status.textContent = "";
+        }, 2000);
+    }
+
+    function selectByHand() {
+        const range = document.createRange();
+        range.selectNodeContents(source);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        report("Selected, now copy it");
+    }
+
+    button.addEventListener("click", () => {
+        const text = source.textContent.trim();
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(
+                () => report("Copied"),
+                selectByHand
+            );
+        } else {
+            selectByHand();
+        }
+    });
+
+});
+
+})();
+
+
+/* -------------------------------------------------------
    THE BRAIN (Task 9)
 
    A point cloud in the shape of a brain, built from the
    network: each point is a node, each line a link to its
-   nearest neighbours, and ice pulses travel real paths
+   nearest neighbours, and aqua pulses travel real paths
    through that graph. An opening in the near hemisphere
    (Task 17) funnels down to the core, and pulses pour into
    it; the camera flies through the opening to the core.
@@ -1262,11 +1379,11 @@ document.querySelectorAll("[data-question]").forEach(button => {
    per brightness band a frame, driven by gsap.ticker.
 ------------------------------------------------------- */
 
-const BLUE = "61,139,255";
+const TEAL = "69,162,157";
 const ORANGE = "255,122,26";
 const AMBER = "255,178,63";
-const ICE = "143,230,255";
-const WHITE = "243,246,252";
+const AQUA = "102,252,242";
+const WHITE = "197,198,199";
 
 const clamp01 = value => value < 0 ? 0 : value > 1 ? 1 : value;
 
@@ -1669,24 +1786,24 @@ function createBrain(canvas) {
     }
 
 
-    const blueDot = sprite(BLUE);
+    const tealDot = sprite(TEAL);
     const orangeDot = sprite(ORANGE);
     const amberDot = sprite(AMBER);
-    const iceDot = sprite(ICE);
+    const aquaDot = sprite(AQUA);
     const whiteDot = sprite(WHITE);
 
     /* Every third brain node glows orange, so the mind is
        lit in both of its colours. The lip burns amber, the
-       tunnel runs orange into ice as it nears the core. */
+       tunnel runs orange into aqua as it nears the core. */
 
     const dots = new Array(CORE);
 
     for (let i = 0; i < CORE; i++) {
         dots[i] =
-            i < FIRST ? (i % 3 ? blueDot : orangeDot) :
+            i < FIRST ? (i % 3 ? tealDot : orangeDot) :
             depth[i] === 0 ? amberDot :
             depth[i] < 0.5 ? orangeDot :
-            i % 2 ? iceDot : blueDot;
+            i % 2 ? aquaDot : tealDot;
     }
 
 
@@ -1856,7 +1973,7 @@ function createBrain(canvas) {
         ctx.globalAlpha = 1;
         ctx.lineWidth = 0.6 + e;
 
-        strokeBands(ctx, edges, linkAlpha, px, py, BLUE, 0.36);
+        strokeBands(ctx, edges, linkAlpha, px, py, TEAL, 0.36);
         strokeBands(ctx, tunnelEdges, linkAlpha, px, py, ORANGE, 0.5);
 
         ctx.globalCompositeOperation = "lighter";
@@ -1918,7 +2035,7 @@ function createBrain(canvas) {
 
             ctx.globalAlpha = alpha;
             ctx.drawImage(
-                iceDot,
+                aquaDot,
                 px[a] + (px[b] - px[a]) * t - d / 2,
                 py[a] + (py[b] - py[a]) * t - d / 2,
                 d,
@@ -1941,7 +2058,7 @@ function createBrain(canvas) {
             const d = Math.min(glow * beat + bloom, Math.max(width, height) * 3);
 
             ctx.globalAlpha = clamp01((form - 0.3) * 2);
-            ctx.drawImage(iceDot, px[CORE] - d / 2, py[CORE] - d / 2, d, d);
+            ctx.drawImage(aquaDot, px[CORE] - d / 2, py[CORE] - d / 2, d, d);
             ctx.drawImage(whiteDot, px[CORE] - d / 4, py[CORE] - d / 4, d / 2, d / 2);
 
         }
@@ -1990,11 +2107,11 @@ function createChamber(canvas) {
     const FRAME = compact ? 1 / 30 : 1 / 45;
     const total = RINGS * SPOKES;
 
-    /* Brainbow: every neuron its own hue, blue most, amber
+    /* Brainbow: every neuron its own hue, teal most, amber
        rarest. */
 
-    const hues = [BLUE, BLUE, BLUE, ORANGE, ORANGE, ICE, ICE, AMBER].map(sprite);
-    const coreDot = sprite(ICE);
+    const hues = [TEAL, TEAL, TEAL, ORANGE, ORANGE, AQUA, AQUA, AMBER].map(sprite);
+    const coreDot = sprite(AQUA);
     const whiteDot = sprite(WHITE);
 
     const ringOf = new Uint16Array(total);
@@ -2123,7 +2240,7 @@ function createChamber(canvas) {
         ctx.globalAlpha = 1;
         ctx.lineWidth = 1;
 
-        strokeBands(ctx, links, linkAlpha, px, py, BLUE, 0.42);
+        strokeBands(ctx, links, linkAlpha, px, py, TEAL, 0.42);
 
         ctx.globalCompositeOperation = "lighter";
 
@@ -2485,7 +2602,7 @@ function buildIntro() {
                     stagger: 0.09,
                     ease: "expo.out"
                 }, 0.3)
-                .from(".stage-bar, .stage-by, .stage-lede, .stage-actions, .stage-foot", {
+                .from(".stage-bar, .stage-by, .stage-lede, .stage-actions, .stage-hint, .stage-foot", {
                     y: 14,
                     autoAlpha: 0,
                     duration: 0.9,

@@ -169,3 +169,58 @@ chamber's Brainbow hues are blue, orange, ice and, rarely,
 amber. The dive's flash now clears through ice and orange.
 The Skip intro button is gone; Escape still skips, and the
 logo's round trip is unchanged.
+
+The client's palette then replaced blue with teal and ice
+with aqua (Task 16, 16.9). The brain is now teal with orange
+nodes, the tunnel runs orange into aqua, the Brainbow hues
+are teal, orange, aqua and, rarely, amber, and the flash
+clears through aqua and orange. Only the colour values
+changed, and the constants were renamed to match (`TEAL`,
+`AQUA`).
+
+## 17.7 The client's landing review
+
+Four changes after the client saw the redesign:
+
+- **Start chatting leads the copy.** It is the biggest thing
+  on the page after the name, ending at the name's "I".
+  Its padding, gap and core are in `em`, and its size is
+  `0.36 * var(--title-size)` (the heading's own size, set on
+  `.stage-ui`), so it tracks the heading at every screen;
+  phones fix it at `1.5rem`, full width. It sits straight under the lede, with Buy
+  XEQM beside it and "or scroll to dive in" on its own line
+  below (hidden under 761px tall, where it would meet the
+  links). A first pass pinned it onto the brain's lower half;
+  it read as a sticker, cut the brain's silhouette and left
+  the copy column empty, so it was dropped and the brain is
+  back at `0.47` of the height, untouched.
+- **Buy XEQM is a side door.** A quiet outline (44px tall,
+  muted text, hairline border, no fill or blur) beside Start
+  chatting. On phones it wraps under it and is no longer full
+  width.
+- **The lede is one line of promise:** "Learn EXIOM from
+  scratch, one simple answer at a time. No question is too
+  small." The chat's welcome still covers live numbers and
+  topics.
+- **The small print sits on the bottom edge.** The link rows
+  stay as Task 16 left them (stacked, labels aligned, pills
+  flush left). The small print keeps every word but now runs
+  under them, centred and balanced, up to `170ch` wide (two
+  lines at 1440px instead of five), with only
+  `max(10px, safe-area)` below it, so it rests on the very
+  bottom of the screen.
+
+Checked in headless Chrome at 1600×815, 1440×900, 1024×680,
+820×1180, 390×844 and 375×667. There was no overlap, the button
+passed a hit test at its centre, and clicking it dives into
+the chat. The two usage-token tests fail only when a local
+`.env` sets a token. That is unrelated to this change.
+
+## 17.8 Escape and the feedback cards
+
+The landing now has Feedback and Support cards (Task 16,
+16.10). If one is open, Escape closes that card first and
+the intro stays. The next Escape skips to the chat as
+before. Enter and Space on those buttons don't start the
+dive, because `onKey` already ignores keys that come from
+buttons and links.
