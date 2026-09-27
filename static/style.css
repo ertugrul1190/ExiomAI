@@ -22,6 +22,17 @@
          url("fonts/mona-sans-latin-wdth.woff2?v=5.3.0") format("woff2");
 }
 
+/* Audiowide sets only the name on the landing, the nearest
+   free match to the logo's wordmark (Task 16.13). */
+
+@font-face {
+    font-family: "Audiowide";
+    font-style: normal;
+    font-display: swap;
+    font-weight: 400;
+    src: url("fonts/audiowide-latin.woff2?v=22") format("woff2");
+}
+
 :root {
     --deep: #020409;
     --raised: #0B1322;
@@ -154,10 +165,9 @@ a {
 }
 
 .brand-mark {
-    width: 30px;
-    height: 30px;
+    width: 40px;
+    height: 40px;
     flex: none;
-    border-radius: 50%;
 }
 
 /* The chat's logo leads home to the intro (Task 9). Disabled
@@ -178,8 +188,8 @@ a {
 
 .stage-bar .brand-mark,
 .brand-button .brand-mark {
-    width: 36px;
-    height: 36px;
+    width: 48px;
+    height: 48px;
 }
 
 .brand-button:disabled {
@@ -573,6 +583,13 @@ a.chip:hover {
 
 .stage-title .line > span {
     display: block;
+}
+
+.stage-title .line:not(.line-small) {
+    font-family: "Audiowide", var(--font);
+    font-weight: 400;
+    font-stretch: normal;
+    letter-spacing: 0;
 }
 
 .stage-title .line-small {
@@ -1602,6 +1619,13 @@ a.chip:hover {
     text-align: center;
 }
 
+/* Phones fold the note to one line and a Small print word
+   (16.14); wider screens never show the line. */
+
+.privacy-gist {
+    display: none;
+}
+
 
 /* ---------------------------------------------------------
    SMALL SCREENS
@@ -1827,6 +1851,78 @@ a.chip:hover {
     .privacy-note {
         font-size: 0.6875rem;
         text-align: left;
+    }
+
+}
+
+/* Phones: the note is one line, and the full text opens as
+   a card above the composer, like the Feedback card. */
+
+@media (max-width: 600px) {
+
+    /* Messages a step under the page's 16px, so a phone
+       shows more of an answer (16.15). The textarea stays at
+       16px: under that, iOS zooms the page on focus. */
+
+    .msg {
+        margin: 18px 0;
+        font-size: 0.875rem;
+        line-height: 1.55;
+    }
+
+    .bubble {
+        padding: 8px 13px;
+        border-radius: 17px 17px 5px 17px;
+    }
+
+    .msg-body p {
+        margin-bottom: 0.6em;
+    }
+
+    .msg-body h2 { font-size: 1.1875rem; }
+    .msg-body h3 { font-size: 1.0625rem; }
+    .msg-body h4 { font-size: 1em; }
+
+    .dock {
+        position: relative;
+    }
+
+    .privacy-gist {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 0.6875rem;
+        line-height: 1.3;
+        white-space: nowrap;
+    }
+
+    .privacy-gist .ask-toggle {
+        min-height: 28px;
+        font-size: 0.6875rem;
+    }
+
+    .privacy-note {
+        position: absolute;
+        left: var(--gutter);
+        right: var(--gutter);
+        bottom: calc(100% + 4px);
+        z-index: 2;
+        max-width: none;
+        margin: 0;
+        padding: 14px 16px;
+        border: 1px solid rgba(var(--blue-rgb), 0.45);
+        border-radius: 14px;
+        background: linear-gradient(var(--wash), var(--wash)), var(--deep);
+        box-shadow: 0 18px 50px -14px rgba(var(--ice-rgb), 0.35);
+        color: var(--ink);
+        font-size: 0.75rem;
+    }
+
+    .privacy-note:not(.is-open) {
+        display: none;
     }
 
 }

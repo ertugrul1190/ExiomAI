@@ -7,6 +7,7 @@
     <meta name="theme-color" content="#020409">
     <title>ExiomAI</title>
     <link rel="preload" href="{{ url_for('static', filename='fonts/mona-sans-latin-wdth.woff2', v='5.3.0') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ url_for('static', filename='fonts/audiowide-latin.woff2', v='22') }}" as="font" type="font/woff2" crossorigin>
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32.png', v=asset_version('favicon-32.png')) }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png', v=asset_version('apple-touch-icon.png')) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=asset_version('style.css')) }}">
@@ -97,7 +98,7 @@
                      status chip's place at the right. -->
 
                 <span class="brand">
-                    <img class="brand-mark" src="{{ url_for('static', filename='logo-128.png', v=asset_version('logo-128.png')) }}" alt="ExiomAI" width="36" height="36">
+                    <img class="brand-mark" src="{{ url_for('static', filename='logo-full.png', v=asset_version('logo-full.png')) }}" alt="ExiomAI" width="48" height="48">
                 </span>
 
                 <span class="stage-bar-end">
@@ -275,7 +276,7 @@
                 type="button"
                 title="Back to the intro"
             >
-                <img class="brand-mark" src="{{ url_for('static', filename='logo-128.png', v=asset_version('logo-128.png')) }}" alt="" width="36" height="36">
+                <img class="brand-mark" src="{{ url_for('static', filename='logo-full.png', v=asset_version('logo-full.png')) }}" alt="" width="48" height="48">
                 <span class="sr-only">ExiomAI, back to the intro</span>
             </button>
         </h1>
@@ -390,7 +391,14 @@
 
         </div>
 
-        <!-- PRIVACY NOTICE (Task 13) -->
+        <!-- PRIVACY NOTICE (Task 13). On phones it folds to one
+             line and a Small print word that opens the full
+             note as a card (16.14). -->
+
+        <p class="privacy-gist">
+            AI answers can be wrong. Not financial advice.
+            <button class="ask-toggle" type="button" aria-expanded="false" aria-controls="privacyNote">Small print</button>
+        </p>
 
         <p id="privacyNote" class="privacy-note">
             Questions are sent to an AI service to write the
@@ -1029,8 +1037,13 @@ async function askQuestion() {
         sendButton.disabled = false;
         questionInput.disabled = false;
 
+        /* Back to the input for the next question, but only
+           for a mouse: on a phone focus pops the keyboard up
+           uninvited and covers the answer. */
 
-        questionInput.focus({ preventScroll: true });
+        if (finePointer.matches) {
+            questionInput.focus({ preventScroll: true });
+        }
 
     }
 
@@ -1301,7 +1314,7 @@ toggles.forEach(toggle => {
 });
 
 document.addEventListener("click", event => {
-    if (openToggle && !event.target.closest(".ask-toggle, .ask-card, .disclaimer")) {
+    if (openToggle && !event.target.closest(".ask-toggle, .ask-card, .disclaimer, .privacy-note")) {
         close();
     }
 });

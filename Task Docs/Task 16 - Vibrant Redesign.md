@@ -684,3 +684,101 @@ Start chatting and the layout is as in 16.11. There were no console errors, and 
 script passes `node --check`. Of 530 tests, 528 pass. The two
 that fail are the usage-token tests, which fail only because
 of a local `.env` token (17.7).
+
+
+## 16.13 The new logo
+
+The client's `static/newlogo.png` (1254px) is now the source in
+place of `logo.png`. It is a brain and robot face in a speech
+bubble, circled by an orbit, over the "ExiomAI" wordmark. The
+wordmark can't be read at 30 to 36px, so the served files
+are cut from the mark alone: the image above the wordmark
+(rows 0 to 955), trimmed to its content and padded to a
+transparent square. From that square, Pillow writes
+`logo-128.png`, `favicon-32.png` and `apple-touch-icon.png` at
+the same names and sizes as before. The templates don't change,
+and `asset_version` busts the caches. The mark isn't round, so
+`.brand-mark` loses its `border-radius: 50%`, which would clip
+the orbit's ends. `logo.png` is left in `static/` but nothing uses
+it.
+
+**Revision: the full logo.** The client wants the wordmark
+kept. The brand mark is now `logo-full.png`: the whole logo,
+trimmed and padded to a transparent square, 192px (4× the
+largest display size). It grew from 36 to 48px on the landing
+and in the chat bar, and from 30 to 40px on the usage page.
+The favicons stay cut from the mark alone, because at 32px the
+wordmark is a smudge. `logo-128.png` is no longer used.
+
+**The name's font.** The logo's wordmark looks AI-drawn, so
+it has no exact font. Its letterforms (the rounded, open "E"
+with a slanted bar, the crossbar-less "Λ" A) are closest to
+Nasalization (Typodermic), which isn't on Google Fonts. Of the
+free fonts, Audiowide (OFL) is the nearest; Michroma and Orbitron
+were compared and are further off. The landing's "ExiomAI" line
+(not "Welcome to") is now set in Audiowide, self-hosted as
+`fonts/audiowide-latin.woff2` (latin subset, 14 KB, with
+`OFL-audiowide.txt`) because the CSP allows only `font-src
+'self'`, and preloaded like Mona Sans. It is set at weight 400
+with no negative tracking, because Audiowide has a single weight
+and its letters touch when tracked in. The colour flow and glow are unchanged.
+
+**Verified.** Headless Chrome over CDP at 1440×900 and 390×844.
+The name renders in Audiowide (`document.fonts.check`), 720px
+and 358px wide, with no sideways scroll. The full logo reads at
+48px in the top bar.
+
+
+## 16.14 Phones: the chat's small print and the keyboard
+
+Two things the client found on phones.
+
+**The privacy note was a paragraph.** Under the composer it
+ran to five lines on a phone. At 600px or narrower it now folds
+to one line, "AI answers can be wrong. Not financial advice.",
+and a **Small print** word. This is the landing's old pattern
+(16.10, since retired there). The word is an `.ask-toggle` on
+the same wiring as Feedback and Support. It opens the real
+`#privacyNote` (every word, never duplicated, still the
+textarea's `aria-describedby`) as a card above the composer.
+Clicking outside, Escape or opening another card closes it.
+Wider screens show the note in full, as before, and never
+show the line.
+
+**The keyboard opened by itself.** After every answer the
+send function's `finally` put the focus back in the input. On
+a phone that pops the keyboard over the answer just written.
+It now refocuses only when `(pointer: fine)` matches, the same
+rule the intro's hand-off to the chat already used (Task 17).
+A mouse user can still type the next question straight away.
+
+**Verified.** Headless Chrome over CDP. At 390×844 with touch
+and a coarse pointer, the line is one row (28px) with no
+sideways scroll. Small print opens the card at 16 to 374px
+above the composer, and an outside click closes it. After
+asking "who are you", nothing holds the focus. At 1440×900
+with a fine pointer, the note shows in full, the line is
+hidden, and the focus returns to the input after the answer.
+Of 530 tests, 528 pass. The two that fail are the usage-token
+tests, which fail only because of a local `.env` token (17.7).
+
+
+## 16.15 Phones: chat messages a step smaller
+
+The client found the chat "zoomed in" on phones. The messages
+inherited the page's 16px at a 1.6 line height, with 28px
+between messages and roomy bubbles, so a 390px screen held
+about 38 characters a line. At 600px or narrower, messages are
+now 14px at 1.55, 18px apart. The user's bubble is tighter
+(8px 13px padding, 17px corners). Paragraph gaps are 0.6em,
+and the headings are scaled to match (h2 19px, h3 17px, h4 the
+body size). A line now holds about 45 characters. The textarea
+stays at 16px, because under that iOS zooms the page when it is
+focused. Tablets and desktop are unchanged.
+
+**Verified.** Headless Chrome over CDP. At 390×844 the answer
+and bubble compute to 14px and the textarea to 16px. The
+identity answer takes four lines instead of six. At 1440×900
+both are still 16px. Of 530 tests, 528 pass. The two that fail
+are the usage-token tests, which fail only because of a local
+`.env` token (17.7).
