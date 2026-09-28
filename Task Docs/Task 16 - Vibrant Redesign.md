@@ -782,3 +782,53 @@ identity answer takes four lines instead of six. At 1440×900
 both are still 16px. Of 530 tests, 528 pass. The two that fail
 are the usage-token tests, which fail only because of a local
 `.env` token (17.7).
+
+
+## 16.16 The logo over the "m"
+
+**The logo, without the name.** The brand mark is the mark
+alone again (16.13), as `logo-mark.png`: `newlogo.png` above
+the wordmark (rows 0 to 953; the wordmark's first row is 954),
+trimmed where the alpha passes 24 so faint glow doesn't pad it,
+centred on a transparent square and written at 384px by Pillow.
+It is back to 36px in the chat bar and 30px on the usage page.
+`logo-full.png` and `logo-128.png` stay in `static/` but
+nothing uses them. The favicons are unchanged.
+
+**The top bar has no logo.** It holds only Buy XEQM, kept at
+the right (`justify-content: flex-end`). Phones hid the bar
+for one round; the client wanted Buy XEQM back.
+
+**The logo floats over the "m".** "Welcome to ExiomAI" stays.
+The "m" is wrapped in `.title-m`, and the mark is positioned
+inside it: centred on the letter, 0.54em square (up from
+0.46em, as the client asked for it a tad bigger), its bottom
+0.9em above the letter's box, just clear of the "m". It has
+no animation of its own. It is inside the name, so it rises
+with it on load. The name's line needed `overflow: hidden` to
+clip the rise, which would have cut the mark off. It now uses
+`clip-path: inset(-1em -1em 0)`, which clips only the bottom
+edge. The mark has `alt=""`, so the heading still reads
+"Welcome to ExiomAI".
+
+**The lede.** "Your AI assistant for all things EXIOM: clear,
+simple answers whenever you need them." The amber "No question
+is too small." now has a line of its own.
+
+**Phones: the brain moves.** The brain's centre on portrait phones moved from 50% to 46% across and
+from 26% to 29% down (Task 17, 17.10).
+
+**Tried and reverted.** The logo beside the name in place of
+"Welcome to", the arrow centred on the page, and phone copy
+raised with the arrow halfway between Start chatting and the
+screen's bottom edge. The client preferred the heading, arrow
+and phone spacing as they were.
+
+**Verified.** Headless Chrome over CDP at 1440×900, 1280×720,
+820×1180, 390×844, 375×667 and 320×568: no sideways scroll,
+and the mark sits over the "m" with nothing clipped (68px on
+desktop, 28px on a 390px phone), clear of "to". Buy XEQM shows
+at every size, and the brain clears it on phones. The arrow still dives, and the chat bar shows the 36px
+mark. Of 530 tests, 528 pass. The two that fail are the
+usage-token tests, which fail only because of a local `.env`
+token (17.7).

@@ -165,8 +165,8 @@ a {
 }
 
 .brand-mark {
-    width: 40px;
-    height: 40px;
+    width: 30px;
+    height: 30px;
     flex: none;
 }
 
@@ -186,10 +186,9 @@ a {
     letter-spacing: inherit;
 }
 
-.stage-bar .brand-mark,
 .brand-button .brand-mark {
-    width: 48px;
-    height: 48px;
+    width: 36px;
+    height: 36px;
 }
 
 .brand-button:disabled {
@@ -545,6 +544,10 @@ a.chip:hover {
     gap: 12px;
 }
 
+.stage-bar {
+    justify-content: flex-end;
+}
+
 .stage-bar a,
 .stage-actions,
 .maker,
@@ -598,6 +601,29 @@ a.chip:hover {
     font-weight: 600;
     font-stretch: 112%;
     letter-spacing: -0.01em;
+}
+
+/* The logo, without its name, floats over the "m" (16.16).
+   The name's line clips only its bottom edge (for the
+   rise), so the mark can stand above it. It doesn't move. */
+
+.stage-title .line:not(.line-small) {
+    overflow: visible;
+    clip-path: inset(-1em -1em 0);
+}
+
+.title-m {
+    position: relative;
+}
+
+.title-mark {
+    position: absolute;
+    left: 50%;
+    bottom: 0.9em;
+    width: 0.54em;
+    height: 0.54em;
+    transform: translateX(-50%);
+    filter: drop-shadow(0 0 0.06em rgba(var(--blue-rgb), 0.4));
 }
 
 /* ExiomAI glows (16.11): a soft blue and orange light behind
@@ -744,7 +770,11 @@ a.chip:hover {
     line-height: 1.55;    text-wrap: pretty;
 }
 
+/* The amber line stands alone under the description
+   (16.16). */
+
 .stage-lede strong {
+    display: block;
     color: var(--amber);
     font-weight: 650;
 }
@@ -1859,6 +1889,20 @@ a.chip:hover {
    a card above the composer, like the Feedback card. */
 
 @media (max-width: 600px) {
+
+    /* Buy XEQM a tad smaller on phones. */
+
+    .button-buy {
+        gap: 5px;
+        min-height: 32px;
+        padding: 0 10px 0 12px;
+        font-size: 0.8125rem;
+    }
+
+    .button-buy svg {
+        width: 13px;
+        height: 13px;
+    }
 
     /* Messages a step under the page's 16px, so a phone
        shows more of an answer (16.15). The textarea stays at

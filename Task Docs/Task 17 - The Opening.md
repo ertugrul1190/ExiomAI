@@ -250,3 +250,11 @@ its armed state. Start chatting, the keys and, on tablets
 and desktop, swipes and scrolling still dive. On phones the
 arrow scrolls to the links, and returning from the chat resets
 that scroll to the top.
+
+## 17.10 The brain on phones
+
+The client asked for the brain a tad lower and to the left on
+phones (Task 16, 16.16). On a portrait phone (narrower than
+600px) its resting centre moved from 50% to 46% across and
+from 26% to 29% down. Tablets and desktop are unchanged, and
+the dive still recentres it.

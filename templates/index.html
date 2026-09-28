@@ -94,12 +94,8 @@
 
             <header class="stage-bar">
 
-                <!-- Just the logo (16.11); Buy XEQM takes the
-                     status chip's place at the right. -->
-
-                <span class="brand">
-                    <img class="brand-mark" src="{{ url_for('static', filename='logo-full.png', v=asset_version('logo-full.png')) }}" alt="ExiomAI" width="48" height="48">
-                </span>
+                <!-- Just Buy XEQM, at the right (16.11). The logo
+                     moved into the title (16.16). -->
 
                 <span class="stage-bar-end">
                     <a
@@ -118,9 +114,13 @@
 
             <div class="stage-copy">
 
+                <!-- The logo, without its name, floats over the "m"
+                     (16.16); it is inside the name, so it rises
+                     with it. -->
+
                 <h2 class="stage-title">
                     <span class="line line-small"><span>Welcome to</span></span>
-                    <span class="line"><span>ExiomAI</span></span>
+                    <span class="line"><span>Exio<span class="title-m">m<img class="title-mark" src="{{ url_for('static', filename='logo-mark.png', v=asset_version('logo-mark.png')) }}" alt="" width="384" height="384"></span>AI</span></span>
                 </h2>
 
                 <p class="stage-by">
@@ -141,8 +141,8 @@
                 </p>
 
                 <p class="stage-lede">
-                    Learn EXIOM from scratch, one simple answer at a
-                    time. <strong>No question is too small.</strong>
+                    Your AI assistant for all things EXIOM: clear,
+                    simple answers whenever you need them.
                 </p>
 
                 <div class="stage-actions">
@@ -276,7 +276,7 @@
                 type="button"
                 title="Back to the intro"
             >
-                <img class="brand-mark" src="{{ url_for('static', filename='logo-full.png', v=asset_version('logo-full.png')) }}" alt="" width="48" height="48">
+                <img class="brand-mark" src="{{ url_for('static', filename='logo-mark.png', v=asset_version('logo-mark.png')) }}" alt="" width="36" height="36">
                 <span class="sr-only">ExiomAI, back to the intro</span>
             </button>
         </h1>
@@ -1865,8 +1865,9 @@ function createBrain(canvas) {
            copy is tall). The dive recentres it. */
 
         const wide = width > 900 && width > height;
-        const ox = wide ? width * 0.64 : width * 0.5;
-        const oy = wide ? height * 0.47 : height * (height > width ? (width < 600 ? 0.26 : 0.36) : 0.45);
+        const phone = !wide && height > width && width < 600;
+        const ox = wide ? width * 0.64 : width * (phone ? 0.46 : 0.5);
+        const oy = wide ? height * 0.47 : height * (height > width ? (phone ? 0.29 : 0.36) : 0.45);
         const cx = ox + (width / 2 - ox) * e;
         const cy = oy + (height / 2 - oy) * e;
         const focal = Math.min(wide ? width * 0.5 : width, height) * 1.15;
