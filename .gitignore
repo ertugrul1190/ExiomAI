@@ -11,3 +11,10 @@ __pycache__/
 
 # Usage ledger (Task 15): counters, per deployment
 usage.sqlite3*
+
+# Cloudflare Worker build output and local secrets
+cloudflare/src/
+cloudflare/.dev.vars
+cloudflare/python_modules/
+.wrangler/
+cloudflare/pylock.toml

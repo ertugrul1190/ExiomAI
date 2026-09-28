@@ -1,0 +1,46 @@
+// Production Worker. Build first: ./build.sh (copies the app
+// into src/). See "Task Docs/Cloudflare Workers Deployment.md".
+{
+  "name": "xeqm-hub",
+  "main": "src/worker.py",
+  "compatibility_date": "2026-09-28",
+  "compatibility_flags": ["python_workers"],
+  "workers_dev": true,
+
+  // Workers Paid only: a free account refuses the deploy.
+  "limits": { "cpu_ms": 30000 },
+
+  // Explorer reading (Handoff §4.2).
+  "triggers": { "crons": ["* * * * *"] },
+
+  // Usage limits and ledger (Handoff §4.3).
+  "durable_objects": {
+    "bindings": [{ "name": "USAGE_HUB", "class_name": "UsageHubObject" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["UsageHubObject"] }],
+
+  // Secrets (OPENAI_API_KEY, EXIOM_USAGE_TOKEN) are set with
+  // `npx wrangler secret put`, never here.
+  "vars": {
+    "EXIOM_TRUSTED_PROXY_HOPS": "0",
+    "EXIOM_USAGE_DB": "off"
+  },
+
+  // Python Workers bundle only .py, .txt and .html by default.
+  // Everything else the app opens must be listed, or it is
+  // silently missing (deploy.sh checks).
+  "rules": [
+    {
+      "type": "Text",
+      "globs": ["knowledge/*.md", "knowledge/*.json", "static/**/*.css", "static/**/*.js"],
+      "fallthrough": true
+    },
+    {
+      "type": "Data",
+      "globs": ["static/**/*.png", "static/**/*.woff2"],
+      "fallthrough": true
+    }
+  ],
+
+  "observability": { "enabled": true }
+}

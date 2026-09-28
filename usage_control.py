@@ -556,9 +556,13 @@ class UsageController:
             return UsageDecision(True)
 
 
-    def record_tokens(self, client_id, tokens):
+    def record_tokens(self, client_id, tokens, count_global=True):
         """
         Charge tokens against the client and global budgets.
+
+        count_global=False charges the client only, for a host
+        that counts the global total from the provider's own
+        numbers instead (usage_hub.py).
         """
 
         client_id = client_id or "unknown"
@@ -578,7 +582,31 @@ class UsageController:
             state = self._client_state(client_id, now)
 
             state["tokens_today"] += tokens
-            self._global_tokens += tokens
+
+            if count_global:
+                self._global_tokens += tokens
+
+
+    def record_global_tokens(self, tokens):
+        """
+        Charge tokens against the global budget only.
+        """
+
+        with self._lock:
+            self._roll_global_day(self._now())
+            self._global_tokens += max(0, int(tokens))
+
+
+    def restore_today(self, tokens, web_searches):
+        """
+        Start today's global totals from a durable record, so
+        the daily ceilings survive a restart (usage_hub.py).
+        """
+
+        with self._lock:
+            self._roll_global_day(self._now())
+            self._global_tokens = max(0, int(tokens))
+            self._global_web_searches = max(0, int(web_searches))
 
 
     def claim_web_search(self, client_id):
