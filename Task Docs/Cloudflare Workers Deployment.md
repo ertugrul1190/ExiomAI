@@ -108,6 +108,11 @@ network wait (JSPI). Two consequences:
   `close()` always released them; on Workers a copy can be
   killed mid-stream, and a lost release would otherwise lock a
   client out until the next deploy.
+* **HTTPS only.** TLS 1.3 with a certificate Cloudflare issues
+  and renews (Let's Encrypt), HSTS for a year, and plain HTTP
+  redirected (301) to HTTPS by `worker._wrap_app`. On the
+  custom domain, also switch on SSL/TLS → Edge Certificates →
+  "Always Use HTTPS".
 * If the hub cannot be reached: **paid work is refused**
   ("daily capacity" message), web searches are not claimed;
   the page, Explorer stats and bookkeeping carry on.

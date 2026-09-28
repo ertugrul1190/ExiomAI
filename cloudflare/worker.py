@@ -140,6 +140,20 @@ def _wrap_app(app):
     """
 
     def wrapped(environ, start_response):
+        host = environ.get("HTTP_HOST", "")
+
+        # HSTS only protects a browser after its first visit;
+        # plain HTTP is redirected (not for local pywrangler dev).
+        if environ["wsgi.url_scheme"] == "http" and not host.startswith(
+            ("localhost", "127.0.0.1")
+        ):
+            path = environ.get("RAW_URI") or environ.get("PATH_INFO", "/")
+            query = environ.get("QUERY_STRING")
+            location = f"https://{host}{path}" + (f"?{query}" if query else "")
+
+            start_response("301 Moved Permanently", [("Location", location)])
+            return [b""]
+
         environ["REMOTE_ADDR"] = environ.get("HTTP_CF_CONNECTING_IP", "")
 
         context = contextvars.copy_context()
