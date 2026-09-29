@@ -21,6 +21,7 @@ from flask import (
 import ai_provider as ai_provider_module
 from ai_provider import AIProvider
 from live_data import LiveData
+from market_data import MarketData, market_data_text
 import explorer_lookup
 import query_router
 
@@ -367,6 +368,9 @@ ai_provider = AIProvider(
 
 live_data = LiveData()
 explorer_lookups = explorer_lookup.ExplorerLookup()
+market_data = MarketData(
+    api_key=os.getenv("EXIOM_COINGECKO_API_KEY") or None
+)
 
 
 # Router decisions depend on the question and on which facts
@@ -1131,7 +1135,34 @@ for prices [CoinGecko](https://www.coingecko.com/). Never
 present a price, listing or release from memory as current.
 """
 
+# Added under a price answer by the code, never left to the
+# model: when the price came from CoinGecko (the last resort)
+# or from a web search, whose pages are old copies.
+STALE_PRICE_NOTE = (
+    "\n\n\u26A0\uFE0F This price comes from a backup source and "
+    "may be out of date. For the live price, check "
+    "[NonKYC](https://nonkyc.io/market/XEQM_USDT)."
+)
+
+MARKET_DATA_RULES = """
+MARKET DATA is the current price. For the price, 24h change,
+volume or market cap, use ONLY these figures, never a web
+page's or your memory's: pages are older copies. Say whether
+it is up or down exactly as the 24h change says, and name
+the source as its link.
+"""
+
+# No search ran: MARKET DATA answers the question.
+WEB_SEARCH_MARKET_SECTION = """
+============================================================
+WEB SEARCH: NOT NEEDED
+============================================================
+
+MARKET DATA above answers this price question.
+""" + WEB_SEARCH_RULES
+
 WEB_SEARCH_SECTIONS = {
+    "market": WEB_SEARCH_MARKET_SECTION,
     "on": WEB_SEARCH_ON_SECTION,
     "open": WEB_SEARCH_OPEN_SECTION,
     "unavailable": WEB_SEARCH_UNAVAILABLE_SECTION,
@@ -1251,7 +1282,8 @@ def build_system_prompt(
     explorer_data,
     relevant_knowledge,
     web_search_state=None,
-    can_look_further=False
+    can_look_further=False,
+    market_text=None
 ):
     """
     Attach the per-request material to the static prompt.
@@ -1261,12 +1293,20 @@ def build_system_prompt(
 
     explorer_data: the Explorer values as text, or None when
     this step has none. web_search_state: None (no search),
-    "on", "open" or "unavailable".
+    "on", "open", "unavailable" or "market" (no search: the
+    live market data answers it). market_text: the live
+    price as text, or None.
     """
 
     explorer_section = (
         f"\nEXPLORER DATA (live):\n{explorer_data}\n"
         if explorer_data is not None else ""
+    )
+
+    market_section = (
+        f"\nMARKET DATA (live, read from the tracker's API just now):\n"
+        f"{market_text}\n{MARKET_DATA_RULES}"
+        if market_text is not None else ""
     )
 
     return f"""{STATIC_SYSTEM_PROMPT}
@@ -1277,7 +1317,7 @@ THIS REQUEST
 
 SCOPE: {scope}
 INTENT: {intent}
-{explorer_section}
+{explorer_section}{market_section}
 
 RELEVANT VERIFIED KNOWLEDGE:
 
@@ -1460,11 +1500,14 @@ def stream_answer(
     meta,
     reuse_key=None,
     can_look_further=False,
-    explorer_given=False
+    explorer_given=False,
+    caveat=""
 ):
 
     """
     Drain a provider stream into pipeline events.
+
+    caveat: text added under a real answer (STALE_PRICE_NOTE).
 
     Returns LOOKUP_SIGNAL, having sent nothing, when the model
     asked to look further and a further step exists.
@@ -1524,6 +1567,8 @@ def stream_answer(
         explorer_given,
         getattr(ai_provider, "last_sources", [])
     )
+
+    extra += caveat
 
     if extra:
         answer += extra
@@ -1774,11 +1819,20 @@ def answer_pipeline(
     # forgetting the flag, but never turns a concept question
     # ("what does market cap mean?") into a search. Claimed
     # from the allowance only just before the answer call.
-    wants_search = scope != "unrelated" and (
-        route.get("search") is True
-        or (
-            intent != "explanation"
-            and query_router.asks_for_current_market_info(question)
+    wants_price = (
+        scope != "unrelated"
+        and intent != "explanation"
+        and query_router.asks_for_price(question)
+    )
+
+    wants_search = wants_price or (
+        scope != "unrelated"
+        and (
+            route.get("search") is True
+            or (
+                intent != "explanation"
+                and query_router.asks_for_current_market_info(question)
+            )
         )
     )
 
@@ -1901,6 +1955,30 @@ def answer_pipeline(
 
     meta = {"route": intent, "scope": scope}
 
+
+    # -----------------------------------------------------
+    # LIVE MARKET DATA
+    # -----------------------------------------------------
+    #
+    # A search reads the index's copy of a tracker's page,
+    # which can be hours old: everyone was told the same
+    # stale price. The price comes from a tracker's API
+    # instead, for every question that searches (a follow-up
+    # like "and now?" searches without naming the price).
+    # A question that only wants the price then needs no
+    # search at all.
+    # -----------------------------------------------------
+
+    market_quote = market_data.get_quote() if wants_search else None
+
+    market_text = market_data_text(market_quote) if market_quote else None
+
+    price_only = (
+        market_quote is not None
+        and wants_price
+        and not query_router.asks_beyond_price(question)
+    )
+
     for step in range(first_step, last_step + 1):
 
         explorer_given = step >= EXPLORER
@@ -1963,7 +2041,18 @@ def answer_pipeline(
         web_search = False
         web_search_state = None
 
-        if step == WEB_SEARCH:
+        # A price from the last resort, or from a search
+        # instead of a tracker, is flagged as maybe stale.
+        caveat = ""
+
+        if step == WEB_SEARCH and price_only:
+
+            web_search_state = "market"
+
+            if market_quote.get("last_resort"):
+                caveat = STALE_PRICE_NOTE
+
+        elif step == WEB_SEARCH:
 
             wanted = True if wants_search else ai_provider_module.OPEN_WEB
 
@@ -1991,13 +2080,19 @@ def answer_pipeline(
                 else "open"
             )
 
+            if web_search and wants_price and (
+                market_quote is None or market_quote.get("last_resort")
+            ):
+                caveat = STALE_PRICE_NOTE
+
         system_prompt = build_system_prompt(
             scope,
             intent,
             explorer_data if explorer_given else None,
             relevant_knowledge,
             web_search_state,
-            can_look_further
+            can_look_further,
+            market_text
         )
 
         if streaming:
@@ -2013,7 +2108,8 @@ def answer_pipeline(
                 meta,
                 reuse_key=reuse_key,
                 can_look_further=can_look_further,
-                explorer_given=explorer_given
+                explorer_given=explorer_given,
+                caveat=caveat
             )
 
             if outcome == LOOKUP_SIGNAL:
@@ -2063,6 +2159,9 @@ def answer_pipeline(
                 explorer_given,
                 getattr(ai_provider, "last_sources", [])
             )
+
+            if answer != NOT_FOUND_ANSWER:
+                extra += caveat
 
             answer += extra
 

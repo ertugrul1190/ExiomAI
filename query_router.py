@@ -33,6 +33,43 @@ def asks_for_current_market_info(question):
     return bool(MARKET_PATTERN.search(question or ""))
 
 
+# The part of a market question the price trackers' APIs
+# answer live (market_data.py). Movement words count: "is
+# XEQM up today?" wants the 24h change.
+PRICE_PATTERN = re.compile(
+    r"\b("
+    r"prices?|priced|worth|value"
+    r"|how much is (xeqm|exiom|it|one)"
+    r"|market\s?caps?|marketcap"
+    r"|(trading|24h|24 hour|daily)\s+volume"
+    r"|(going|gone|trending) (up|down)|pumping|dumping"
+    r"|(is|are) (xeqm|exiom|it) (up|down)"
+    r"|(24h|24 hour|daily) change"
+    r")\b",
+    re.IGNORECASE
+)
+
+# The part only a web search answers: where it trades,
+# releases, news.
+BEYOND_PRICE_PATTERN = re.compile(
+    r"\b("
+    r"where (can|do|should|to) (i |we |you )?(buy|trade|get|purchase)"
+    r"|exchanges?|listed|listings?"
+    r"|releases?|news|announcements?"
+    r"|all[- ]time|ath|history|historical|predictions?|forecasts?"
+    r")\b",
+    re.IGNORECASE
+)
+
+
+def asks_for_price(question):
+    return bool(PRICE_PATTERN.search(question or ""))
+
+
+def asks_beyond_price(question):
+    return bool(BEYOND_PRICE_PATTERN.search(question or ""))
+
+
 EXIOM_NAME = re.compile(r"\b(exiom|xeqm|xeqmlabs|xeqm ?labs)", re.IGNORECASE)
 
 

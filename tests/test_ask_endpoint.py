@@ -46,6 +46,31 @@ class FakeLiveData:
 NODE_KEY = "99efd7f74cc325ae6d2b62a08be9e932d960dfb53243f3f2d67595cb378747ba"
 
 
+class FakeMarketData:
+    """
+    No tracker answers unless a test sets a quote.
+    """
+
+    def __init__(self):
+        self.quote = None
+        self.calls = 0
+
+    def get_quote(self):
+        self.calls += 1
+        return self.quote
+
+
+LIVE_QUOTE = {
+    "source": "NonKYC",
+    "page": "https://nonkyc.io/market/XEQM_USDT",
+    "price_usd": 0.02215,
+    "change_24h_percent": -8.21,
+    "volume_24h_usd": 15252.5,
+    "market_cap_usd": None,
+    "updated_at": None,
+}
+
+
 class FakeLookups:
     """
     Stands in for Explorer lookups and records what was asked.
@@ -197,6 +222,7 @@ def provider(monkeypatch):
     monkeypatch.setattr(application, "ai_provider", fake)
     monkeypatch.setattr(application, "live_data", FakeLiveData())
     monkeypatch.setattr(application, "explorer_lookups", FakeLookups())
+    monkeypatch.setattr(application, "market_data", FakeMarketData())
     monkeypatch.setattr(application, "cost_meter", usage_control.CostMeter())
     monkeypatch.setattr(
         application,
@@ -1401,7 +1427,10 @@ def test_a_searched_answer_with_links_is_left_alone(client, provider):
 
     response = ask(client, "exiom coin price")
 
-    assert response.json["answer"] == provider.answer_text
+    # No sources line; only the searched price's warning.
+    assert response.json["answer"] == (
+        provider.answer_text + application.STALE_PRICE_NOTE
+    )
 
 
 # ---------------------------------------------------------
@@ -1538,3 +1567,160 @@ def test_an_answer_written_without_search_is_not_reused_once_it_returns(
     ask(client, "nodes of canada please")
 
     assert len(provider.generate_calls) == 2
+
+
+# ---------------------------------------------------------
+# LIVE MARKET DATA
+# ---------------------------------------------------------
+#
+# A search reads the index's copy of a tracker's page, which
+# gave everyone the same stale price and 24h change. The
+# price is read from the tracker's API instead.
+# ---------------------------------------------------------
+
+@pytest.mark.parametrize("send", [ask, ask_stream])
+def test_a_price_question_is_answered_from_live_market_data(
+    client, provider, send
+):
+    provider.route_result = dict(SEARCH_ROUTE)
+    application.market_data.quote = dict(LIVE_QUOTE)
+
+    assert send(client, "What is the price of xeqm").status_code == 200
+
+    [call] = provider.generate_calls
+    prompt = call["system_prompt"]
+
+    assert call["web_search"] is False
+    assert "MARKET DATA (live" in prompt
+    assert "- Price: $0.02215 (USD)" in prompt
+    assert "- 24h change: -8.2% (down over the last 24 hours)" in prompt
+    assert "WEB SEARCH: NOT NEEDED" in prompt
+
+
+def test_a_live_price_spends_no_search_allowance(client, provider):
+    provider.route_result = dict(SEARCH_ROUTE)
+    application.market_data.quote = dict(LIVE_QUOTE)
+    application.usage_controller = usage_control.UsageController(
+        client_web_searches_per_day=0
+    )
+
+    ask(client, "What is the price of xeqm")
+
+    [call] = provider.generate_calls
+
+    assert "WEB SEARCH: UNAVAILABLE" not in call["system_prompt"]
+    assert "MARKET DATA (live" in call["system_prompt"]
+
+
+def test_a_price_question_is_never_answered_from_the_answer_cache(
+    client, provider
+):
+    provider.route_result = dict(SEARCH_ROUTE)
+    application.market_data.quote = dict(LIVE_QUOTE)
+
+    ask(client, "What is the price of xeqm")
+    application.market_data.quote = {**LIVE_QUOTE, "price_usd": 0.019}
+    ask(client, "What is the price of xeqm")
+
+    assert len(provider.generate_calls) == 2
+    assert "- Price: $0.01900 (USD)" in provider.generate_calls[1]["system_prompt"]
+
+
+def test_price_with_listings_still_searches_and_carries_the_live_price(
+    client, provider
+):
+    provider.route_result = dict(SEARCH_ROUTE)
+    application.market_data.quote = dict(LIVE_QUOTE)
+
+    ask(client, "What is the xeqm price and where can I buy it?")
+
+    [call] = provider.generate_calls
+
+    assert call["web_search"] is True
+    assert "MARKET DATA (live" in call["system_prompt"]
+    assert "WEB SEARCH: ON" in call["system_prompt"]
+
+
+def test_without_live_market_data_a_price_question_searches(client, provider):
+    provider.route_result = dict(SEARCH_ROUTE)
+
+    ask(client, "What is the price of xeqm")
+
+    [call] = provider.generate_calls
+
+    assert call["web_search"] is True
+    assert "MARKET DATA" not in call["system_prompt"]
+
+
+def test_a_movement_question_gets_the_live_price(client, provider):
+    provider.route_result = {
+        "scope": "relevant", "intent": "general", "facts": [], "search": False
+    }
+    application.market_data.quote = dict(LIVE_QUOTE)
+
+    ask(client, "is xeqm up today?")
+
+    [call] = provider.generate_calls
+
+    assert call["web_search"] is False
+    assert "- 24h change: -8.2%" in call["system_prompt"]
+
+
+def test_questions_that_never_search_never_read_the_market(client, provider):
+    ask(client, "what is staking?")
+
+    assert application.market_data.calls == 0
+
+
+# The last resort and the search: the answer says the price
+# may be out of date, added by the code, not the model.
+
+SENDERS = [
+    (ask, lambda response: response.json["answer"]),
+    (ask_stream, streamed_answer),
+]
+
+
+@pytest.mark.parametrize("send, reply", SENDERS)
+def test_a_live_price_carries_no_warning(client, provider, send, reply):
+    provider.route_result = dict(SEARCH_ROUTE)
+    application.market_data.quote = dict(LIVE_QUOTE)
+
+    text = reply(send(client, "What is the price of xeqm"))
+
+    assert "may be out of date" not in text
+
+
+@pytest.mark.parametrize("send, reply", SENDERS)
+def test_a_coingecko_price_says_it_may_be_out_of_date(client, provider, send, reply):
+    provider.route_result = dict(SEARCH_ROUTE)
+    application.market_data.quote = {
+        **LIVE_QUOTE,
+        "source": "CoinGecko",
+        "page": "https://www.coingecko.com/en/coins/xeqm-labs",
+        "last_resort": True,
+    }
+
+    text = reply(send(client, "What is the price of xeqm"))
+
+    assert text.endswith(application.STALE_PRICE_NOTE)
+    assert provider.generate_calls[0]["web_search"] is False
+    assert "Backup source" in provider.generate_calls[0]["system_prompt"]
+
+
+@pytest.mark.parametrize("send, reply", SENDERS)
+def test_a_searched_price_says_it_may_be_out_of_date(client, provider, send, reply):
+    provider.route_result = dict(SEARCH_ROUTE)
+
+    text = reply(send(client, "What is the price of xeqm"))
+
+    assert provider.generate_calls[0]["web_search"] is True
+    assert text.endswith(application.STALE_PRICE_NOTE)
+
+
+def test_a_searched_non_price_answer_has_no_price_warning(client, provider):
+    provider.route_result = dict(SEARCH_ROUTE)
+
+    text = ask(client, "What is the latest xeqm release?").json["answer"]
+
+    assert "may be out of date" not in text

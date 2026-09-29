@@ -116,11 +116,13 @@
 
                 <!-- The logo, without its name, floats over the "m"
                      (16.16); it is inside the name, so it rises
-                     with it. -->
+                     with it. The "m" has no wrapper: iOS WebKit
+                     drops a positioned child's glyphs from
+                     gradient text (17.11). -->
 
                 <h2 class="stage-title">
                     <span class="line line-small"><span>Welcome to</span></span>
-                    <span class="line"><span>Exio<span class="title-m">m<img class="title-mark" src="{{ url_for('static', filename='logo-mark.png', v=asset_version('logo-mark.png')) }}" alt="" width="384" height="384"></span>AI</span></span>
+                    <span class="line"><span><img class="title-mark" src="{{ url_for('static', filename='logo-mark.png', v=asset_version('logo-mark.png')) }}" alt="" width="384" height="384">ExiomAI</span></span>
                 </h2>
 
                 <p class="stage-by">

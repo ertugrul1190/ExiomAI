@@ -286,3 +286,92 @@ Reviewed and kept:
   usual. The new `node_counts` table is created on first use.
   The node change figures start 24 hours after the Durable
   Object first stores a reading.
+
+
+## 10. Follow-up: the price came from a stale page
+
+**Reported.** The owner, the client and a user all asked "What
+is the price of xeqm" and got the same answer: $0.01960, up
+6.8%. CoinGecko showed it down about 8% at the time.
+
+**Cause.** The price came from the provider's `web_search`
+tool. That tool reads the search index's copy of the CoinGecko
+page, which can be hours old. Everyone got the same old copy.
+Searched answers were never cached, so the answer cache was
+not the cause.
+
+**Fix (`market_data.py`).** The price is now read from a
+tracker's API when the question is asked:
+
+* CoinGecko `simple/price` (`xeqm-labs`) first, then
+  CoinPaprika `tickers/xeqm-xeqm-labs`. CoinGecko's keyless
+  API often answers 403 or 429 from shared IPs like
+  Cloudflare's. CoinPaprika needs no key.
+* Optional `EXIOM_COINGECKO_API_KEY` (a free CoinGecko "Demo"
+  key) is sent as `x-cg-demo-api-key`. Set it with
+  `npx wrangler secret put EXIOM_COINGECKO_API_KEY`.
+* Then NonKYC `api/v2/market/getbysymbol/XEQM_USDT`, the
+  exchange's own XEQM/USDT market. No key. Its price is in
+  USDT and its time is the last trade, so the prompt says
+  "(USDT)" and "Last trade: N min ago". A paused or inactive
+  market is not used.
+* A quote is reused for 60 s. A tracker that fails is skipped
+  for 5 minutes. With no quote, the old web search still runs.
+
+**Rate limits (checked 2026-09-29, 40-request bursts):**
+
+| Source | Key | Limit seen | Burst result |
+|---|---|---|---|
+| CoinGecko | none | 403/429 from this machine after a few calls; likely the same from Cloudflare's shared IPs | blocked |
+| CoinPaprika | none | `ratelimit-limit: 20000` per period, per IP. Its edge cache holds a ticker 30 s, and cached hits don't count | 40 × 200, quota unchanged |
+| NonKYC | none | no rate-limit headers | 40 × 200 |
+
+Our own load is small. Only price and search questions fetch,
+at most once a minute per Worker instance. So 20,000 calls
+per period is far more than we need. The open question is how
+much of that per-IP quota other Cloudflare customers use up.
+That's why NonKYC is behind it, and the web search behind
+that.
+
+**In `app.py`:**
+
+* Any question that would search fetches the quote. It goes
+  into the prompt as `MARKET DATA (live …)`, with rules that it
+  beats any page or memory for price, 24h change, volume and
+  market cap.
+* A question that only asks the price (`asks_for_price`, and
+  not `asks_beyond_price`: exchanges, news, releases,
+  all-time high, predictions) runs no search at all
+  (`WEB_SEARCH: NOT NEEDED`). It uses no search allowance, and
+  it is cheaper and faster.
+* Movement questions ("is xeqm up today?") count as price
+  questions, even when the router doesn't flag them.
+
+**Tested.** `tests/test_market_data.py` covers parsing,
+fallback, caching, backoff and formatting. New tests in
+`tests/test_ask_endpoint.py` cover the live-price path. Full
+suite: 641 passed. The only 2 failures come from the local
+`.env` usage token (`test_usage_*_is_off_without_a_token`),
+and they fail the same way without this change. A live local
+run answered "$0.02215, down 8.2% over the last 24 hours",
+from CoinPaprika, matching the tracker.
+
+**Source order, revised (owner's request): CoinGecko is last.**
+The order is now NonKYC (real trades on the exchange), then
+CoinPaprika, then CoinGecko, then the web search. The owner
+doesn't trust CoinGecko's figures to be fresh, so a
+CoinGecko quote is marked `last_resort`:
+
+* The prompt calls it a backup source and tells the model
+  never to call it live.
+* The code adds `STALE_PRICE_NOTE` under the answer: "⚠️ This
+  price comes from a backup source and may be out of date.
+  For the live price, check NonKYC." The code adds it, not
+  the model, so the model can't leave it out. It works the
+  same streamed or whole.
+* A price answered by the web search (no tracker answered)
+  gets the same note. A "couldn't find it" reply and
+  searches that aren't about the price don't.
+
+Tests: 648 passed. The same 2 `.env` usage-token failures
+remain.

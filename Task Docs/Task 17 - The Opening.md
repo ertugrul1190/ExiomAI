@@ -258,3 +258,75 @@ phones (Task 16, 16.16). On a portrait phone (narrower than
 600px) its resting centre moved from 50% to 46% across and
 from 26% to 29% down. Tablets and desktop are unchanged, and
 the dive still recentres it.
+
+
+## 17.11 The missing "m" on iPhones
+
+Several users saw "Exio AI" on the landing page, with the
+logo floating over an empty gap. The owner's devices showed
+it correctly.
+
+**Cause.** The name is gradient text (`background-clip: text`
+with a transparent fill). Its "m" sat in a
+`position: relative` wrapper so the logo could be placed over
+it (16.16). WebKit, the engine behind every browser on iOS,
+leaves a positioned child's glyphs out of the gradient mask.
+The "m" kept its transparent fill, so it drew as nothing.
+Chrome, Firefox and desktop Chromium draw it, which is why
+the bug only showed on some devices.
+
+**Fix.** The "m" has no wrapper now, so the name is one plain
+run of text, "ExiomAI". The logo is positioned from the
+name's own box (`.stage-title .line > span` is the positioned
+one; it is also the element carrying the gradient, which
+WebKit handles). Its place comes from Audiowide's glyph
+widths: "Exio" is 2.383em and "m" is 0.874em, so the middle
+of the "m" is at 2.82em. It sits 0.73em up from the line's
+foot, measured from the old layout, so the logo does not
+move.
+
+**Verified.** Playwright WebKit with iPhone 13 emulation
+reproduced the bug on the live site ("Exio  AI"). With the
+fix, the name reads "ExiomAI" in full. The logo is at the
+same horizontal place as before (2.8205em against 2.8208em).
+
+
+## 17.12 Suggestion tiles on phones
+
+The client asked for the four suggested questions to be
+small boxes on phones instead of full-width rectangles.
+
+**Change (`static/style.css`, `max-width: 600px`).** The
+tiles are two by two, and all four sit above the message bar
+without scrolling (the owner's follow-up). To make room:
+
+* Less space above the heading (`clamp(8px, 3vh, 32px)`).
+* 16px under the lede.
+* The dot sits beside the title, not on its own line.
+* Each tile is only as tall as its words.
+
+The note stays, cut to two lines. It is dropped below 360px
+wide or 600px tall, where only the titles fit. Tablets and
+desktop are unchanged.
+
+Room left between the last tile and the bar (WebKit):
+
+| Phone (viewport) | Tile | Spare |
+|---|---|---|
+| iPhone 13 (390×664) | 175×97 | 90px |
+| iPhone 13 with Safari bars (390×632) | 175×97 | 59px |
+| 390×610 | 175×97 | 38px |
+| iPhone 14 Pro Max (430×740) | 194×97 | 164px |
+| iPhone SE (320×568), no note | 140×79 | 8px |
+| Galaxy S9+ (320×658), no note | 140×79 | 96px |
+| Pixel 7 (412×839) | 186×97 | 262px |
+
+**Found on the way.** On a 320px phone the whole chat was
+17px wider than the screen: the heading, status chip and
+tiles ran into the right edge. `.app` had no column size, so
+its one column took the footer line's full width. It is now
+`minmax(0, 1fr)`.
+
+**Verified.** Measured with Playwright WebKit (table above),
+and checked by screenshot. The chat column is 320px on a
+320px screen.
