@@ -1,0 +1,69 @@
+# Questions for live_eval.py, one per line. "A || B" asks B
+# as a follow-up to A. Lines starting with # are skipped.
+#
+# Written from the client's reports (Canada, nodes added or
+# removed in 24 hours) and every category in "What EXIOM AI
+# Can Answer.md": plain and reworded live values, one entry
+# of a list, time windows, mixed data + explanation,
+# concepts, market questions, things no source has, off-topic
+# and follow-ups.
+How many active nodes are there?
+how many nodes r running rn
+What's the total number of service nodes on the network right now?
+nodes of canada
+How many nodes are in Germany?
+Which country has the most nodes?
+Are there any nodes in Japan?
+Compare nodes in France and the Netherlands
+how many nodes have been added or removed in last 24 hours
+How many new nodes joined today?
+Did the node count go up or down this week?
+When is the next hard fork?
+How many blocks until the next upgrade?
+What's the average block time over the last 12 hours?
+How many blocks were produced in the last hour?
+How many nodes still need to upgrade to the latest version?
+How many active nodes are there, and is that a lot?
+What is the staking requirement, and what does it mean for me?
+Is the network healthy right now?
+How much would I earn running a node?
+What percentage of supply is staked and why does it matter?
+Explain pulse quorums and tell me how many there are
+How many XEQM are locked and what does locked mean?
+What's the difference between locked and circulating supply right now?
+Is the blockchain growing fast? how big is it
+What is staking?
+What is a service node?
+What does block height mean?
+Exiom coin price
+What's XEQM's market cap?
+Where can I buy XEQM right now?
+What's the latest XEQM release?
+Is XEQM listed on Binance?
+What is the all-time high price of XEQM?
+How many wallets hold XEQM?
+Who is the CEO of XEQMLabs?
+What's the XEQM GitHub?
+Any recent XEQMLabs news?
+what's the weather in paris and how many nodes are there
+What's in block 210000?
+What is the current APY and how does it compare to last month?
+How many transactions happened in the last 24 hours?
+How many nodes are waiting for contributions and can I join one?
+What's the current hashrate and why does a proof of stake chain have one?
+nodes of canada || and germany?
+How many active nodes are there? || why did it change?
+How many nodes are there in the US? || what states?
+How many nodes left the network today?
+How many nodes does the Netherlands have compared to the US?
+What share of nodes is in France?
+how many countries run exiom nodes and which is smallest
+What's the minimum I need to join a shared node?
+Is the explorer connected right now?
+What changes in HF22?
+How long until HF22 in days?
+What does the circulating supply mean and what is it now?
+How many XEQM are paid to nodes every day?
+Explain EXIOM like I'm 10
+Who made you?
+Tell me a joke about bitcoin

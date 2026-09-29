@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import threading
 import time
 from pathlib import Path
@@ -699,3 +700,127 @@ def test_a_banner_marked_not_hidden_means_disconnected():
     assert build(session).get_network_stats()["connection_state"] == (
         "disconnected"
     )
+
+
+# ---------------------------------------------------------
+# RECENT CHANGES AND THE NEXT UPGRADE
+# ---------------------------------------------------------
+
+def session_with_recent_pages():
+    session = session_with_pages()
+    session.routes[""] = explorer_page("dashboard_hf22.html")
+    session.routes["service_nodes"] = explorer_page(
+        "service_nodes_recent.html"
+    )
+
+    return session
+
+
+def test_nodes_registered_in_the_last_day_come_from_the_node_list():
+    facts = settled(build(session_with_recent_pages()))["facts"]
+
+    # 43 active rows and 2 awaiting rows registered after block
+    # 210,253 - 1,440 (the page's own "Lifespan" agrees).
+    assert facts["nodes_registered_24h"]["value"] == (
+        "45 (2 still awaiting contributions)"
+    )
+
+
+def test_a_full_first_page_of_new_nodes_is_a_lower_bound():
+    session = session_with_recent_pages()
+    page = (FIXTURES / "service_nodes_recent.html").read_text()
+
+    # Every row on the first page registered a block ago.
+    session.routes["service_nodes"] = FakeResponse(
+        re.sub(r"#2\d{5}\b", "#210252", page)
+    )
+
+    value = settled(build(session))["facts"]["nodes_registered_24h"]["value"]
+
+    assert value.startswith("at least ")
+
+
+def test_no_node_list_means_no_new_node_count():
+    session = session_with_recent_pages()
+    del session.routes["service_nodes"]
+
+    facts = settled(build(session))["facts"]
+
+    assert "nodes_registered_24h" not in facts
+
+
+def test_the_next_hard_fork_comes_from_the_dashboard():
+    facts = settled(build(session_with_recent_pages()))["facts"]
+
+    assert facts["next_hard_fork"]["value"] == (
+        "HF v22 (SN Policy) at block 219,120: 8,867 blocks to go, "
+        "estimated 2026-10-05 19:00 UTC"
+    )
+
+
+def test_no_upcoming_fork_on_the_page_means_no_fact():
+    facts = settled(build(session_with_pages()))["facts"]
+
+    assert "next_hard_fork" not in facts
+
+
+def test_short_window_block_figures_come_from_the_feed():
+    session = FakeSession()
+    feed = dict(FEEDS["api/live_slow"], blocks_1h=60, blocks_12h=720, avg_12h=60.2)
+    session.routes["api/live_slow"] = FakeResponse(json.dumps(feed))
+
+    facts = build(session).get_network_stats()["facts"]
+
+    assert facts["blocks_1h"]["value"] == "60"
+    assert facts["blocks_12h"]["value"] == "720"
+    assert facts["average_block_time_12h"]["value"] == "1m 00s"
+
+
+def test_the_twelve_hour_block_time_falls_back_to_the_page():
+    facts = settled(build(session_with_recent_pages()))["facts"]
+
+    assert facts["average_block_time_12h"]["value"] == "1m 00s"
+
+
+def test_the_node_count_change_appears_a_day_later():
+    now = [1_000_000.0]
+    session = FakeSession()
+    data = build(session, clock=lambda: now[0])
+
+    data.get_network_stats()
+
+    feed = dict(FEEDS["api/live_slow"], total_sns=1040)
+    session.routes["api/live_slow"] = FakeResponse(json.dumps(feed))
+    now[0] += 24 * 60 * 60
+
+    facts = data.get_network_stats()["facts"]
+
+    assert facts["node_count_change_24h"]["value"] == (
+        "+10 (from 1,030 to 1,040)"
+    )
+
+
+def test_nodes_by_region_group_under_their_country():
+    session = FakeSession()
+    feed = json.loads(json.dumps(FEEDS["api/node_map"]))
+    feed["data"]["nodes"] = [
+        {"country": "United States", "country_code": "US", "count": 25, "region": "Virginia"},
+        {"country": "Canada", "country_code": "CA", "count": 45, "region": "Quebec"},
+        {"country": "United States", "country_code": "US", "count": 48, "region": "New York"},
+        {"country": "Canada", "country_code": "CA", "count": 4, "region": "British Columbia"},
+        {"country": "United States", "country_code": "US", "count": 2, "region": "Virginia"},
+    ]
+    session.routes["api/node_map"] = FakeResponse(json.dumps(feed))
+
+    facts = build(session).get_network_stats()["facts"]
+
+    assert facts["nodes_by_region"]["value"] == (
+        "United States: New York 48, Virginia 27\n"
+        "Canada: Quebec 45, British Columbia 4"
+    )
+
+
+def test_a_map_without_regions_gives_no_region_fact():
+    facts = build(FakeSession()).get_network_stats()["facts"]
+
+    assert "nodes_by_region" not in facts

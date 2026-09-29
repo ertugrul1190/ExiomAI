@@ -1,0 +1,2784 @@
+
+<!DOCTYPE html>
+
+<html lang="en" style="background:#000;color:#fff">
+<head>
+  
+      <title>Exiom | XEQM Explorer</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#000000">
+    
+    <style>html,body{background:#000;color:#fff;margin:0}</style>
+    <meta name="description" content="Exiom ($XEQM) Blockchain Explorer - View blocks, transactions, and service nodes on the Exiom network.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Exiom Explorer">
+    <meta property="og:description" content="Block explorer for the Exiom ($XEQM) network — blocks, transactions, service nodes, and governance quorums.">
+    <meta property="og:image" content="https://explorer.xeqmlabs.com/static/og-image-exiom.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="https://explorer.xeqmlabs.com/">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Exiom Explorer">
+    <meta name="twitter:description" content="Block explorer for the Exiom ($XEQM) network.">
+    <meta name="twitter:image" content="https://explorer.xeqmlabs.com/static/og-image-exiom.png">
+    <link rel="stylesheet" type="text/css" href="/style.css?v=1790685269">
+    
+  
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="apple-touch-icon" href="/static/favicon.ico">
+  
+</head>
+
+<body class="dashboard-layout" style="background:#000;color:#fff;margin:0">
+
+
+<div class="app-container">
+    
+    
+
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <a href="/" class="sidebar-brand">
+            <img src="/static/logo-header.png" alt="Exiom" class="sidebar-logo">
+        </a>
+        <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle Sidebar" aria-label="Toggle Sidebar">
+            <svg class="icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+            <svg class="icon-menu" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M3 12h18M3 6h18M3 18h18"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="sidebar-search">
+        <form action="/search" method="get">
+            <div class="search-input-wrap">
+                <input type="text" name="value" class="sidebar-search-input" placeholder="Search block, tx, SN...">
+            </div>
+        </form>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <a href="/" class="nav-item " data-tab="dashboard">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="/#nodes" class="nav-item" data-tab="nodes">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
+                    <path d="m4.93 4.93 2.83 2.83m8.48 8.48 2.83 2.83m-2.83-14.14 2.83 2.83M4.93 19.07l2.83-2.83"/>
+                </svg>
+                <span>Node Command Center</span>
+                <span class="nav-badge" id="nav-my-nodes-count">0</span>
+            </a>
+            <a href="/#health" class="nav-item" data-tab="health">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+                <span>Network Health</span>
+            </a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Explorer</div>
+            <a href="/service_nodes" class="nav-item active">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01"/>
+                </svg>
+                <span>Service Nodes</span>
+                <span class="nav-badge">952</span>
+            </a>
+            <a href="/txpool" class="nav-item ">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+                    <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
+                </svg>
+                <span>Mempool</span>
+                
+            </a>
+            <a href="/quorums" class="nav-item ">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span>Quorums</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="sidebar-footer">
+        
+        <div class="network-indicator" id="network-indicator">
+            <div class="network-status-dot" id="network-status-dot"></div>
+            <span class="network-label" id="network-label"
+                  data-online-label="Mainnet - v1.1.0 &#8216;Ragnarok&#8217;"
+                  data-offline-label="Mainnet - v1.1.0 &#8216;Ragnarok&#8217;">
+                Mainnet - v1.1.0 &lsquo;Ragnarok&rsquo;
+            </span>
+        </div>
+        
+        <div class="sidebar-stats">
+            <div class="sidebar-stat">
+                <span class="sidebar-stat-label">Block</span>
+                <span class="sidebar-stat-value" id="header-height">210253</span>
+            </div>
+            <div class="sidebar-stat">
+                <span class="sidebar-stat-label">Time (UTC)</span>
+                <span class="sidebar-stat-value">15:06</span>
+            </div>
+        </div>
+        
+    </div>
+</aside>
+
+<script>
+// Sidebar Toggle
+// NOTE: the mobile-menu-btn lives inside the page template's mobile-header,
+// which is rendered AFTER this include — so we must wait for DOM parsing to
+// finish before binding the click handler, otherwise getElementById returns null.
+(function() {
+    function init() {
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+
+        if (!sidebar) return;
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('collapsed');
+            localStorage.setItem('xeqm_sidebar_collapsed', sidebar.classList.contains('collapsed'));
+        }
+
+        function toggleMobileSidebar() {
+            sidebar.classList.toggle('mobile-open');
+        }
+
+        sidebarToggle?.addEventListener('click', toggleSidebar);
+
+        // Use event delegation for the mobile button so load-order doesn't matter.
+        document.addEventListener('click', function(e) {
+            const menuBtn = e.target.closest && e.target.closest('#mobile-menu-btn');
+            if (menuBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleMobileSidebar();
+                return;
+            }
+            // Close mobile sidebar when clicking outside (and not on the menu button).
+            if (sidebar.classList.contains('mobile-open') &&
+                !sidebar.contains(e.target)) {
+                sidebar.classList.remove('mobile-open');
+            }
+        });
+
+        // Expose mobile close helper so tab-switch handlers (index.html) can dismiss
+        // the sidebar after selection on mobile.
+        window.__closeMobileSidebar = function() { sidebar.classList.remove('mobile-open'); };
+
+        // Restore sidebar state
+        if (localStorage.getItem('xeqm_sidebar_collapsed') === 'true') {
+            sidebar.classList.add('collapsed');
+        }
+
+        // My Nodes badge — reads the same localStorage key the dashboard
+        // tracker writes ('xeqm_my_nodes'). Exposed globally so index.html can
+        // refresh after add/remove without a page reload.
+        function updateMyNodesBadge() {
+            const el = document.getElementById('nav-my-nodes-count');
+            if (!el) return;
+            let count = 0;
+            try {
+                const raw = localStorage.getItem('xeqm_my_nodes');
+                if (raw) {
+                    const arr = JSON.parse(raw);
+                    if (Array.isArray(arr)) count = arr.length;
+                }
+            } catch (_) {}
+            el.textContent = count;
+        }
+        window.__updateMyNodesBadge = updateMyNodesBadge;
+        updateMyNodesBadge();
+        // Cross-tab sync: storage events fire in other tabs/windows.
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'xeqm_my_nodes') updateMyNodesBadge();
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+</script>
+
+    <main class="main-content has-mobile-header">
+        <header class="mobile-header" id="mobile-header">
+            <a href="/" class="mobile-header-brand" aria-label="Exiom Explorer home">
+                <img src="/static/logo-header.png" alt="Exiom" class="mobile-header-logo">
+            </a>
+            <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu" aria-expanded="false">
+                <svg class="mobile-menu-icon-open" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M3 12h18M3 6h18M3 18h18"/>
+                </svg>
+                <svg class="mobile-menu-icon-close" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </header>
+
+        <div class="content-area">
+            
+<div class="offline-banner is-hidden" role="status" id="offline-banner" hidden style="display:none">
+    <div class="offline-banner-dot"></div>
+    <div class="offline-banner-text">
+        <strong>Disconnected</strong>
+        <span>Explorer is not connected to a daemon. Showing placeholder data until the seed node comes online.</span>
+    </div>
+</div>
+<script>
+(function () {
+    // SYNC-PATCH 2026-05-09c: poller kept solely so a recovered daemon triggers
+    // a soft location.reload() and the page picks up fresh server-side context.
+    // No banner toggling, no offline indicator flips.
+    let wasOnline = true;
+    let polling = false;
+    async function poll() {
+        if (polling) return;
+        polling = true;
+        try {
+            const r = await fetch('/api/dashboard_refresh');
+            if (!r.ok) throw new Error('offline');
+            const data = await r.json();
+            if (data.status !== 'OK') throw new Error('offline');
+            if (!wasOnline) {
+                location.reload();
+                return;
+            }
+        } catch (e) {
+            wasOnline = false;
+        }
+        polling = false;
+    }
+    setInterval(poll, 5000);
+    setTimeout(poll, 2000);
+})();
+</script>
+            <!-- SERVICE NODE METRICS -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-icon success">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Active Nodes</div>
+                        <div class="metric-value success-text">952</div>
+                        <div class="metric-sub">Fully operational</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon warning">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Awaiting Contribution</div>
+                        <div class="metric-value warning-text">2</div>
+                        <div class="metric-sub">Open for staking</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACTIVE SERVICE NODES -->
+            <div class="panel" id="service-nodes-active">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        Active Service Nodes
+                        <span class="nav-badge" style="background: rgba(0, 255, 136, 0.15); color: var(--status-live);">952</span>
+                    </div>
+                    <div class="sn-swarm-info">
+                        <span class="header-stat-label">Swarms:</span>
+                        <span class="header-stat-value" title="~7.0 nodes per swarm">136</span>
+                        <span class="header-stat-divider" style="margin:0 8px;opacity:0.3">|</span>
+                        <span class="header-stat-label">v1.1.0 Nodes:</span>
+                        <span class="header-stat-value" style="color:var(--status-warning)">678/952</span>
+                    </div>
+                </div>
+                <div class="panel-body" style="padding: 0;">
+                    
+                    <div class="scroll-panel">
+                        <table class="data-table">
+                            
+                            
+                            <thead>
+                                <tr>
+                                    <th><a href="?active_sort=status&active_order=desc#service-nodes-active" class="sn-sort-link ">
+                                    Status
+                                </a></th>
+                                    <th>Public Key</th>
+                                    <th><a href="?active_sort=reg&active_order=asc#service-nodes-active" class="sn-sort-link sn-sort-active">
+                                    Block Reg. ↓
+                                </a></th>
+                                    <th><a href="?active_sort=lifespan&active_order=desc#service-nodes-active" class="sn-sort-link ">
+                                    Lifespan
+                                </a></th>
+                                    <th>Contribs</th>
+                                    <th>Total Staked</th>
+                                    <th>Fee</th>
+                                    <th><a href="?active_sort=downtime&active_order=desc#service-nodes-active" class="sn-sort-link ">
+                                    Allowed Downtime
+                                </a></th>
+                                    <th><a href="?active_sort=version&active_order=desc#service-nodes-active" class="sn-sort-link ">
+                                    Version
+                                </a></th>
+                                    <th>Last Reward</th>
+                                    <th>Last Uptime</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/0d3b4fe2509f462328074c0168d90f2163306e47323ae6970496f066b865feb9">0d3b4fe2509f462328074c0168d90f2163306e47323ae6970496f066b865feb9</a></td>
+                                    <td class="mono">#210245</td>
+                                    <td class="mono">7m</td>
+                                    <td>4/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">10.0%</td>
+                                    
+                                    <td class="mono">12.0h (720 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210245</td>
+                                    <td>0:06:20</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/43d467711b31bf365492bb425a2d8f503fd25cb8af577699942b7b60a0f6bc41">43d467711b31bf365492bb425a2d8f503fd25cb8af577699942b7b60a0f6bc41</a></td>
+                                    <td class="mono">#210232</td>
+                                    <td class="mono">20m</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">7.5h (447 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210232</td>
+                                    <td>0:02:56</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/23a9bf655997e4eeffe81c3278d0efd7e637a701b557ec4e915691e61304f4de">23a9bf655997e4eeffe81c3278d0efd7e637a701b557ec4e915691e61304f4de</a></td>
+                                    <td class="mono">#210228</td>
+                                    <td class="mono">24m</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">9.1h (546 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210228</td>
+                                    <td>0:02:15</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/c4e05a062ecf70162fb1aa1a8866047e2297d23d6f6ab9b741cf4c24684a338c">c4e05a062ecf70162fb1aa1a8866047e2297d23d6f6ab9b741cf4c24684a338c</a></td>
+                                    <td class="mono">#210212</td>
+                                    <td class="mono">40m</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">5.5h (333 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210212</td>
+                                    <td>0:09:17</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/2c769e3fa01097d7fcf3f8cd02a54a03ad6e1a9ae16972bccbb930c501b2e422">2c769e3fa01097d7fcf3f8cd02a54a03ad6e1a9ae16972bccbb930c501b2e422</a></td>
+                                    <td class="mono">#210200</td>
+                                    <td class="mono">52m</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.9d (2807 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210200</td>
+                                    <td>0:05:42</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/72d77eefcb64df8dd5da75bc211a9e8e9599d905cf6f0ec5768ee926c3d87e36">72d77eefcb64df8dd5da75bc211a9e8e9599d905cf6f0ec5768ee926c3d87e36</a></td>
+                                    <td class="mono">#210183</td>
+                                    <td class="mono">1.1h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">7.8h (468 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210183</td>
+                                    <td>0:02:29</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/3258f23bf82cb148855fda2f977ccdede62c105d961f4a2f4ff3eb6aa24a67f2">3258f23bf82cb148855fda2f977ccdede62c105d961f4a2f4ff3eb6aa24a67f2</a></td>
+                                    <td class="mono">#210172</td>
+                                    <td class="mono">1.3h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">5.5h (332 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210172</td>
+                                    <td>0:09:55</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/c9d349b4ee514ea14bbc4996ae874ba82029989b9b96277274fc1d97a15de8bb">c9d349b4ee514ea14bbc4996ae874ba82029989b9b96277274fc1d97a15de8bb</a></td>
+                                    <td class="mono">#210146</td>
+                                    <td class="mono">1.8h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">10.1h (604 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210146</td>
+                                    <td>0:02:56</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/2413e3c3fb443647f52911c588468eecd22d4ff465ae58530edc5593f8f858ef">2413e3c3fb443647f52911c588468eecd22d4ff465ae58530edc5593f8f858ef</a></td>
+                                    <td class="mono">#210130</td>
+                                    <td class="mono">2.0h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">9.4h (566 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210130</td>
+                                    <td>0:06:49</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/dd549275218c996a07a7638eb643384eccac2f7754485f3f047f200c4b8fd2bf">dd549275218c996a07a7638eb643384eccac2f7754485f3f047f200c4b8fd2bf</a></td>
+                                    <td class="mono">#210121</td>
+                                    <td class="mono">2.2h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">9.6h (578 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210121</td>
+                                    <td>0:05:53</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/5d8b4a9b61cea7ea5f2d96aa30861341de0a087aad8c5a4d400a02740a6a872d">5d8b4a9b61cea7ea5f2d96aa30861341de0a087aad8c5a4d400a02740a6a872d</a></td>
+                                    <td class="mono">#210099</td>
+                                    <td class="mono">2.5h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">7.2h (432 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210099</td>
+                                    <td>0:08:21</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/88c5e9a444bccb88b23940f310f5b0f8b94391e711c3bdac996c2d74850951bc">88c5e9a444bccb88b23940f310f5b0f8b94391e711c3bdac996c2d74850951bc</a></td>
+                                    <td class="mono">#210086</td>
+                                    <td class="mono">2.8h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">7.3h (437 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210086</td>
+                                    <td>0:03:39</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/4487c173d0078f0ce62d527c0a7f3ca35ee4d8cb6b864225d412172f1a769ee5">4487c173d0078f0ce62d527c0a7f3ca35ee4d8cb6b864225d412172f1a769ee5</a></td>
+                                    <td class="mono">#210059</td>
+                                    <td class="mono">3.2h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">9.7h (581 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210059</td>
+                                    <td>0:04:17</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/c096cfe7f9d3926e3f80f61c96732c015045c01f33784e771a5a19623585ccfc">c096cfe7f9d3926e3f80f61c96732c015045c01f33784e771a5a19623585ccfc</a></td>
+                                    <td class="mono">#210033</td>
+                                    <td class="mono">3.6h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">6.4h (383 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210033</td>
+                                    <td>0:04:36</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/5bee584e80650d795c5420f883cd90339cd85cb0f33ac69981fab82fbf4827f8">5bee584e80650d795c5420f883cd90339cd85cb0f33ac69981fab82fbf4827f8</a></td>
+                                    <td class="mono">#210030</td>
+                                    <td class="mono">3.7h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">7.8h (468 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210030</td>
+                                    <td>0:01:52</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/2d8ded1c25c17d05b0f93cf92374dc6afd71e5d61770e58b8631f8e7f5ad3166">2d8ded1c25c17d05b0f93cf92374dc6afd71e5d61770e58b8631f8e7f5ad3166</a></td>
+                                    <td class="mono">#210025</td>
+                                    <td class="mono">3.8h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">9.4h (566 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210025</td>
+                                    <td>0:07:53</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/4af288efb0838d4791565aac409a8cd9bbacc1fc3ff1813b300ae9ae84d966d1">4af288efb0838d4791565aac409a8cd9bbacc1fc3ff1813b300ae9ae84d966d1</a></td>
+                                    <td class="mono">#209987</td>
+                                    <td class="mono">4.4h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.6d (2355 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209987</td>
+                                    <td>0:03:49</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/d5489862cd61cf605a673d74c27854c76a9e177840a74f63a991620758e13fdd">d5489862cd61cf605a673d74c27854c76a9e177840a74f63a991620758e13fdd</a></td>
+                                    <td class="mono">#209976</td>
+                                    <td class="mono">4.6h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">6.7h (399 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209976</td>
+                                    <td>0:07:07</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/3a438173dd042a39fd4f5394bb33dd2059ec9dadae1d29d9c5f05d295d4b3407">3a438173dd042a39fd4f5394bb33dd2059ec9dadae1d29d9c5f05d295d4b3407</a></td>
+                                    <td class="mono">#209975</td>
+                                    <td class="mono">4.6h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">9.5h (569 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209975</td>
+                                    <td>0:07:24</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge warning" title="≤120 blocks (2h) of downtime credit — at risk of decommissioning">Active - At Risk</span></td>
+                                    <td class="mono hash"><a href="/sn/31a516ae8b14aeb113bb453d0a50d01c3a9eb082f77320a454ad63932941121a">31a516ae8b14aeb113bb453d0a50d01c3a9eb082f77320a454ad63932941121a</a></td>
+                                    <td class="mono">#209883</td>
+                                    <td class="mono">6.2h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">19m (19 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209883</td>
+                                    <td>0:01:50</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/7b5da71eb4205fd71457055fa0d0fadbe2b0314be30dc24e74e743380c70498f">7b5da71eb4205fd71457055fa0d0fadbe2b0314be30dc24e74e743380c70498f</a></td>
+                                    <td class="mono">#209853</td>
+                                    <td class="mono">6.7h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">9.4h (564 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209853</td>
+                                    <td>0:00:54</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/e4b7ca13e3f8a510e804bf8d96a65c8b380060c01c570cf8c2668deeee326762">e4b7ca13e3f8a510e804bf8d96a65c8b380060c01c570cf8c2668deeee326762</a></td>
+                                    <td class="mono">#209846</td>
+                                    <td class="mono">6.8h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">8.9h (532 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209846</td>
+                                    <td>0:01:05</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/5826ccf6365d159adcf13e0ff33c6d20f139adb46f0ad0258cc46758e6f22472">5826ccf6365d159adcf13e0ff33c6d20f139adb46f0ad0258cc46758e6f22472</a></td>
+                                    <td class="mono">#209838</td>
+                                    <td class="mono">6.9h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">7.3h (441 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209838</td>
+                                    <td>0:04:14</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/056a84bf517a5e7056e4633f95cf540dae7dab2308a9d09d9f6914f11bda6daa">056a84bf517a5e7056e4633f95cf540dae7dab2308a9d09d9f6914f11bda6daa</a></td>
+                                    <td class="mono">#209822</td>
+                                    <td class="mono">7.2h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">8.1h (483 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209822</td>
+                                    <td>0:05:39</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/ef2d33f6da9c356b3527e081a8e398f4994cf450d2e97f8b11460285cf9e994d">ef2d33f6da9c356b3527e081a8e398f4994cf450d2e97f8b11460285cf9e994d</a></td>
+                                    <td class="mono">#209735</td>
+                                    <td class="mono">8.6h</td>
+                                    <td>2/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">10.0%</td>
+                                    
+                                    <td class="mono">8.6h (514 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209735</td>
+                                    <td>0:06:19</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/e5d6bf0a027d861aae59a2cae427b298eb255a696aba43bf14087cb148bb1eac">e5d6bf0a027d861aae59a2cae427b298eb255a696aba43bf14087cb148bb1eac</a></td>
+                                    <td class="mono">#209707</td>
+                                    <td class="mono">9.1h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">2.0d (2831 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209707</td>
+                                    <td>0:05:44</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/eabee663b45b0081a1d1d580af32f5b93f09e80e3fcb34ad8a31b2e537aec480">eabee663b45b0081a1d1d580af32f5b93f09e80e3fcb34ad8a31b2e537aec480</a></td>
+                                    <td class="mono">#209700</td>
+                                    <td class="mono">9.2h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.3d (1847 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209700</td>
+                                    <td>0:00:48</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/028c698e58d97cfd6cd9a131f1d64416e9cb169aca8a20fe5f5778f47c6a2485">028c698e58d97cfd6cd9a131f1d64416e9cb169aca8a20fe5f5778f47c6a2485</a></td>
+                                    <td class="mono">#209692</td>
+                                    <td class="mono">9.3h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">2.0d (2840 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209692</td>
+                                    <td>0:05:41</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/18ee48e72fb80610c468496a4f9f79fb4c520e570d162691f9fb10c8f35d13ff">18ee48e72fb80610c468496a4f9f79fb4c520e570d162691f9fb10c8f35d13ff</a></td>
+                                    <td class="mono">#209675</td>
+                                    <td class="mono">9.6h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">3.9h (232 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209675</td>
+                                    <td>0:01:49</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/489b3df299c52834bd33297d33b56a66bb8d9f2d658acc35842ae46264d24afb">489b3df299c52834bd33297d33b56a66bb8d9f2d658acc35842ae46264d24afb</a></td>
+                                    <td class="mono">#209641</td>
+                                    <td class="mono">10.2h</td>
+                                    <td>3/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">10.0%</td>
+                                    
+                                    <td class="mono">12.3h (740 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209641</td>
+                                    <td>0:02:24</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/3e054361c8c4bfd383d1e18c3e3091d1c7f6ba92e702f04e59e00578229174e2">3e054361c8c4bfd383d1e18c3e3091d1c7f6ba92e702f04e59e00578229174e2</a></td>
+                                    <td class="mono">#209221</td>
+                                    <td class="mono">17.2h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.2d (1749 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#210129</td>
+                                    <td>0:05:03</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/d9e49458ab56ded28075324b30c3d2ff69a17f6d9a8788195f231b8517d6ad9e">d9e49458ab56ded28075324b30c3d2ff69a17f6d9a8788195f231b8517d6ad9e</a></td>
+                                    <td class="mono">#209153</td>
+                                    <td class="mono">18.3h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.0d (1461 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#210060</td>
+                                    <td>0:05:38</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/d4f9e60f2b0a50da04314e7eecc066ec3d74fd0cf959fe587d52ee17c6a9d258">d4f9e60f2b0a50da04314e7eecc066ec3d74fd0cf959fe587d52ee17c6a9d258</a></td>
+                                    <td class="mono">#209088</td>
+                                    <td class="mono">19.4h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.1d (1575 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209994</td>
+                                    <td>0:05:59</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/0a9efdfcdf70ff6d503fd9f22d8980791ad367e9899077b081a17b3241888a8a">0a9efdfcdf70ff6d503fd9f22d8980791ad367e9899077b081a17b3241888a8a</a></td>
+                                    <td class="mono">#209080</td>
+                                    <td class="mono">19.5h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">2.0d (2839 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209984</td>
+                                    <td>0:04:26</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/7e9211ba0812b042d8f7c6bccfc1f5dca1c8a37a664a938206bd319b2a1d5e6e">7e9211ba0812b042d8f7c6bccfc1f5dca1c8a37a664a938206bd319b2a1d5e6e</a></td>
+                                    <td class="mono">#209064</td>
+                                    <td class="mono">19.8h</td>
+                                    <td>2/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">10.0%</td>
+                                    
+                                    <td class="mono">12.7h (759 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209967</td>
+                                    <td>0:08:34</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/ebdc2e96424078426a14f150c90aece2becc28e453602ef3559ed0073eee8da5">ebdc2e96424078426a14f150c90aece2becc28e453602ef3559ed0073eee8da5</a></td>
+                                    <td class="mono">#208976</td>
+                                    <td class="mono">21.3h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">12.7h (762 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209879</td>
+                                    <td>0:05:33</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/8f3bfffd256597939a64a127f3cd7105326bd0f17bcb82a6e266731b8d08d449">8f3bfffd256597939a64a127f3cd7105326bd0f17bcb82a6e266731b8d08d449</a></td>
+                                    <td class="mono">#208973</td>
+                                    <td class="mono">21.3h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">12.7h (762 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209875</td>
+                                    <td>0:08:20</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/dffbd2618c3c935d620ab9f54ffc6aa097b03f92bb18845f7bd4ff1aded88eab">dffbd2618c3c935d620ab9f54ffc6aa097b03f92bb18845f7bd4ff1aded88eab</a></td>
+                                    <td class="mono">#208966</td>
+                                    <td class="mono">21.4h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">12.7h (762 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209867</td>
+                                    <td>0:04:11</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/2f79e904663c04580d9c74eb4a9a494f651c7b5a671497ed594a9d90d8547db4">2f79e904663c04580d9c74eb4a9a494f651c7b5a671497ed594a9d90d8547db4</a></td>
+                                    <td class="mono">#208966</td>
+                                    <td class="mono">21.4h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">12.7h (762 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209866</td>
+                                    <td>0:04:11</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge warning" title="≤120 blocks (2h) of downtime credit — at risk of decommissioning">Active - At Risk</span></td>
+                                    <td class="mono hash"><a href="/sn/5f37755151d63a519b014b1c5d352d7df1ee66da36e391d996bd4e079dbb22e5">5f37755151d63a519b014b1c5d352d7df1ee66da36e391d996bd4e079dbb22e5</a></td>
+                                    <td class="mono">#208963</td>
+                                    <td class="mono">21.5h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">42m (42 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209862</td>
+                                    <td>0:06:46</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/5cd3fdb4f2f5bca08093223366fa86ce90b4588b52f79f2bcde22bd8aa2230f2">5cd3fdb4f2f5bca08093223366fa86ce90b4588b52f79f2bcde22bd8aa2230f2</a></td>
+                                    <td class="mono">#208960</td>
+                                    <td class="mono">21.5h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">12.7h (763 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209858</td>
+                                    <td>0:09:53</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/d6c9ca7b8b02eccdd173af43dd6f57d0f8ef1e515ec4091b407611cb0b11997b">d6c9ca7b8b02eccdd173af43dd6f57d0f8ef1e515ec4091b407611cb0b11997b</a></td>
+                                    <td class="mono">#208959</td>
+                                    <td class="mono">21.6h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">12.7h (763 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209856</td>
+                                    <td>0:00:59</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/eaca4abac194850d07cf82e81bf97ccc4424c24cbf06055c5922a56d90c9f12c">eaca4abac194850d07cf82e81bf97ccc4424c24cbf06055c5922a56d90c9f12c</a></td>
+                                    <td class="mono">#208955</td>
+                                    <td class="mono">21.6h</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">2.0d (2865 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209852</td>
+                                    <td>0:05:46</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/7d7bf4bf021b9b539b2be5d7ef10b23db5af948454a7a9abfb6068b4101dc087">7d7bf4bf021b9b539b2be5d7ef10b23db5af948454a7a9abfb6068b4101dc087</a></td>
+                                    <td class="mono">#208776</td>
+                                    <td class="mono">1.0d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.2d (1723 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209673</td>
+                                    <td>0:00:42</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/de29af266c83d1d70758334e5ca447cb64f41bff2dd99278555e7b0158a471a7">de29af266c83d1d70758334e5ca447cb64f41bff2dd99278555e7b0158a471a7</a></td>
+                                    <td class="mono">#208556</td>
+                                    <td class="mono">1.2d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.9d (2688 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209455</td>
+                                    <td>0:00:26</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/924c4e25a1b39a685659b93f0c0ae05badae2d58366511fb05c86a9f3eef4157">924c4e25a1b39a685659b93f0c0ae05badae2d58366511fb05c86a9f3eef4157</a></td>
+                                    <td class="mono">#208525</td>
+                                    <td class="mono">1.2d</td>
+                                    <td>4/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">10.0%</td>
+                                    
+                                    <td class="mono">12.9h (777 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209422</td>
+                                    <td>0:03:06</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/a4c2123405adefecdefbf4185c53c255b7673c2c0bd738081e15881f49354d0c">a4c2123405adefecdefbf4185c53c255b7673c2c0bd738081e15881f49354d0c</a></td>
+                                    <td class="mono">#208383</td>
+                                    <td class="mono">1.3d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">2.0d (2846 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#210189</td>
+                                    <td>0:00:04</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/dcd8e583a685c804a061642ec216f712168546ab0e1f3dda64777cdc74d6fbb0">dcd8e583a685c804a061642ec216f712168546ab0e1f3dda64777cdc74d6fbb0</a></td>
+                                    <td class="mono">#208055</td>
+                                    <td class="mono">1.5d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">2.0d (2825 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209850</td>
+                                    <td>0:00:31</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/e1743a86883d34ef1e0b4069823d6969f1fb10163ba56ad80ada5aebdea8dc78">e1743a86883d34ef1e0b4069823d6969f1fb10163ba56ad80ada5aebdea8dc78</a></td>
+                                    <td class="mono">#207872</td>
+                                    <td class="mono">1.7d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.8d (2655 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209669</td>
+                                    <td>0:04:43</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/266127002dab4a3cdbeafb43134a97d10d9a2f705b9306fb9b8c049124d75540">266127002dab4a3cdbeafb43134a97d10d9a2f705b9306fb9b8c049124d75540</a></td>
+                                    <td class="mono">#207832</td>
+                                    <td class="mono">1.7d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">2.0d (2880 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209627</td>
+                                    <td>0:05:39</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/3f697297580ded69273dacc69d5b2c923aba0100bfe7b56701612290f91a49bc">3f697297580ded69273dacc69d5b2c923aba0100bfe7b56701612290f91a49bc</a></td>
+                                    <td class="mono">#207650</td>
+                                    <td class="mono">1.8d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">2.0d (2880 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209447</td>
+                                    <td>0:05:52</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/43dce73def111bcb608c9f01f51e3b777499b2b41a9b350fa34441d9212f47ce">43dce73def111bcb608c9f01f51e3b777499b2b41a9b350fa34441d9212f47ce</a></td>
+                                    <td class="mono">#207320</td>
+                                    <td class="mono">2.0d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.3d (1872 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210024</td>
+                                    <td>0:03:16</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/eb8983950118d49737b49dd8a52522b0101aa42566fa4beffe3d7abac1df006f">eb8983950118d49737b49dd8a52522b0101aa42566fa4beffe3d7abac1df006f</a></td>
+                                    <td class="mono">#207303</td>
+                                    <td class="mono">2.0d</td>
+                                    <td>2/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">10.0%</td>
+                                    
+                                    <td class="mono">17.5h (1050 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#210226</td>
+                                    <td>0:08:24</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/4252facd08050c9a60d5f90c65427763fc02de58c7401ee9868b421234a8ced2">4252facd08050c9a60d5f90c65427763fc02de58c7401ee9868b421234a8ced2</a></td>
+                                    <td class="mono">#207188</td>
+                                    <td class="mono">2.1d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.8d (2622 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209890</td>
+                                    <td>0:05:43</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/f757a02b56b3b6dd90968c309c62c2f85ab02f2c587f6d5fb86696cbdab14728">f757a02b56b3b6dd90968c309c62c2f85ab02f2c587f6d5fb86696cbdab14728</a></td>
+                                    <td class="mono">#206924</td>
+                                    <td class="mono">2.3d</td>
+                                    <td>4/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">10.0%</td>
+                                    
+                                    <td class="mono">13.8h (830 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209618</td>
+                                    <td>0:08:07</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/faecaa4efb2e3ba570985db5a67432e155cc7a6bed3d2e6cda21402cb02c77e1">faecaa4efb2e3ba570985db5a67432e155cc7a6bed3d2e6cda21402cb02c77e1</a></td>
+                                    <td class="mono">#206846</td>
+                                    <td class="mono">2.4d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">2.0d (2880 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209542</td>
+                                    <td>0:03:20</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/b8946c4a035eb87119153b9e0a01942f046cfed8cd57cfdf9afee7dc3323ae3f">b8946c4a035eb87119153b9e0a01942f046cfed8cd57cfdf9afee7dc3323ae3f</a></td>
+                                    <td class="mono">#206550</td>
+                                    <td class="mono">2.6d</td>
+                                    <td>2/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">10.0%</td>
+                                    
+                                    <td class="mono">14.1h (843 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210153</td>
+                                    <td>0:06:03</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/5d7cc1e55af10fe119eb898190e1042be2059747863b37d89391fa2b635325e4">5d7cc1e55af10fe119eb898190e1042be2059747863b37d89391fa2b635325e4</a></td>
+                                    <td class="mono">#206486</td>
+                                    <td class="mono">2.6d</td>
+                                    <td>2/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">10.0%</td>
+                                    
+                                    <td class="mono">14.1h (845 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210087</td>
+                                    <td>0:07:33</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/63acf8a3e47997ab5a8333b8523ca8bd6b057af5a4f0d59a7eab6364e24d43e4">63acf8a3e47997ab5a8333b8523ca8bd6b057af5a4f0d59a7eab6364e24d43e4</a></td>
+                                    <td class="mono">#205545</td>
+                                    <td class="mono">3.3d</td>
+                                    <td>3/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">10.0%</td>
+                                    
+                                    <td class="mono">14.6h (876 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210046</td>
+                                    <td>0:05:58</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/9be6d9dbf1ec8ed4414cedd24a2379b2d5cbc6dcf342c5675421cce8f7d17c9d">9be6d9dbf1ec8ed4414cedd24a2379b2d5cbc6dcf342c5675421cce8f7d17c9d</a></td>
+                                    <td class="mono">#205509</td>
+                                    <td class="mono">3.3d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.4d (1974 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210010</td>
+                                    <td>0:00:31</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/9ada5bfb3c3ac749f4692d9b2e09bf92dd5ba6cc07b842aaeed85cad56e0a46c">9ada5bfb3c3ac749f4692d9b2e09bf92dd5ba6cc07b842aaeed85cad56e0a46c</a></td>
+                                    <td class="mono">#205373</td>
+                                    <td class="mono">3.4d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2397 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209868</td>
+                                    <td>0:00:30</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/061298d0d7fde4245e9b1ff3608b57e2abb7f390006344c2769de1535af9bca6">061298d0d7fde4245e9b1ff3608b57e2abb7f390006344c2769de1535af9bca6</a></td>
+                                    <td class="mono">#205344</td>
+                                    <td class="mono">3.4d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.9d (2775 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209831</td>
+                                    <td>0:03:46</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/59a1c5e2e34dc7bb12e144b657258fe793bcb03eec2a828321bff37bd76156a5">59a1c5e2e34dc7bb12e144b657258fe793bcb03eec2a828321bff37bd76156a5</a></td>
+                                    <td class="mono">#205294</td>
+                                    <td class="mono">3.4d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.9d (2786 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209781</td>
+                                    <td>0:00:36</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/08e904bdadbda9266949071201cb7d0391df5861bd446a671dc562ff2c379c6a">08e904bdadbda9266949071201cb7d0391df5861bd446a671dc562ff2c379c6a</a></td>
+                                    <td class="mono">#204996</td>
+                                    <td class="mono">3.6d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.4d (2005 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209487</td>
+                                    <td>0:03:12</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/5c20669b615bc1978de8948225876dda9314e2ff88344ca277465bba3bedde21">5c20669b615bc1978de8948225876dda9314e2ff88344ca277465bba3bedde21</a></td>
+                                    <td class="mono">#204489</td>
+                                    <td class="mono">4.0d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">2.0d (2880 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209885</td>
+                                    <td>0:05:37</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/98d7947ddd4bf724467fbdcd1cb20cf7a908ef14f47b8c4fd2b67d844c5f7a92">98d7947ddd4bf724467fbdcd1cb20cf7a908ef14f47b8c4fd2b67d844c5f7a92</a></td>
+                                    <td class="mono">#203703</td>
+                                    <td class="mono">4.5d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">2.0d (2880 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#210000</td>
+                                    <td>0:05:55</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/489bf8bf58477dd2021c99f225a19f476a7ef2ccc38c6edf554f67732dad3501">489bf8bf58477dd2021c99f225a19f476a7ef2ccc38c6edf554f67732dad3501</a></td>
+                                    <td class="mono">#203691</td>
+                                    <td class="mono">4.6d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.6d (2374 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">#209985</td>
+                                    <td>0:00:41</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/aa8c5f0a1a9112d9076edf45c4406ea4df6eafbc6fd3aa1dc0f6b1a878deafb7">aa8c5f0a1a9112d9076edf45c4406ea4df6eafbc6fd3aa1dc0f6b1a878deafb7</a></td>
+                                    <td class="mono">#203215</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.6d (2280 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209505</td>
+                                    <td>0:02:00</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/6921964d18536ce9683c0326cc28993e08110f24a72a0cf64a155294bb06269d">6921964d18536ce9683c0326cc28993e08110f24a72a0cf64a155294bb06269d</a></td>
+                                    <td class="mono">#203165</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2410 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209453</td>
+                                    <td>0:02:40</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/2bd5cbc66f4dcf1e30c04b6d839bc5e54efc2e64336fc5b24248ac4bd5d4292c">2bd5cbc66f4dcf1e30c04b6d839bc5e54efc2e64336fc5b24248ac4bd5d4292c</a></td>
+                                    <td class="mono">#203160</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2436 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209445</td>
+                                    <td>0:04:53</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/82b1c74a7d99aecba0d9edb475c747730f10518ce6f95d65835d6aef8f1bfcdf">82b1c74a7d99aecba0d9edb475c747730f10518ce6f95d65835d6aef8f1bfcdf</a></td>
+                                    <td class="mono">#203160</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.6d (2338 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209446</td>
+                                    <td>0:05:59</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/7fb50a0527ba578e1a356b4019f09b5f79c664790586f462fa51be29cbf47384">7fb50a0527ba578e1a356b4019f09b5f79c664790586f462fa51be29cbf47384</a></td>
+                                    <td class="mono">#203150</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.6d (2340 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209436</td>
+                                    <td>0:09:59</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/99efd7f74cc325ae6d2b62a08be9e932d960dfb53243f3f2d67595cb378747ba">99efd7f74cc325ae6d2b62a08be9e932d960dfb53243f3f2d67595cb378747ba</a></td>
+                                    <td class="mono">#203149</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2412 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209433</td>
+                                    <td>0:00:10</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/e049e2aa2bc14af522ad9b51f8dff7b58290d72909ca27572147d9fd2cb38c43">e049e2aa2bc14af522ad9b51f8dff7b58290d72909ca27572147d9fd2cb38c43</a></td>
+                                    <td class="mono">#203146</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2436 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209430</td>
+                                    <td>0:01:11</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/ecdd88b2e735e41a8e11eed3c2a74cb12abc8bc83d536460830763c78be966d4">ecdd88b2e735e41a8e11eed3c2a74cb12abc8bc83d536460830763c78be966d4</a></td>
+                                    <td class="mono">#203145</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2406 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209428</td>
+                                    <td>0:06:29</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/3b83fecde2b06ac4408d6567725b43bba338dca426b35b37fb22d8b246ebedf1">3b83fecde2b06ac4408d6567725b43bba338dca426b35b37fb22d8b246ebedf1</a></td>
+                                    <td class="mono">#203143</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2394 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209424</td>
+                                    <td>0:00:08</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/60d1c7a427b1ee97dcccb57361dd564e98242b5ec51f5296fa6afb841cf06fae">60d1c7a427b1ee97dcccb57361dd564e98242b5ec51f5296fa6afb841cf06fae</a></td>
+                                    <td class="mono">#203143</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>2/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">10.0%</td>
+                                    
+                                    <td class="mono">1.7d (2518 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209425</td>
+                                    <td>0:06:27</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/9b47268111ce82a0dcc4453549f8006bd6aa290683ac7d9bd3f18a8dc8031f8c">9b47268111ce82a0dcc4453549f8006bd6aa290683ac7d9bd3f18a8dc8031f8c</a></td>
+                                    <td class="mono">#203141</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>4/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">10.0%</td>
+                                    
+                                    <td class="mono">1.6d (2357 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209419</td>
+                                    <td>0:02:01</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/74087ccc1aae50418dc160ee7d230bace26485fddc0346f03efee1d115a90fa3">74087ccc1aae50418dc160ee7d230bace26485fddc0346f03efee1d115a90fa3</a></td>
+                                    <td class="mono">#203141</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>2/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">10.0%</td>
+                                    
+                                    <td class="mono">1.6d (2363 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209418</td>
+                                    <td>0:09:35</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/0a7cce86769a861d8cbf9241943be0dc7d7f4cd47a1fb9378712e00a663b3cae">0a7cce86769a861d8cbf9241943be0dc7d7f4cd47a1fb9378712e00a663b3cae</a></td>
+                                    <td class="mono">#203140</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2443 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209414</td>
+                                    <td>0:07:00</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/1f37901b0e0a584452f24e80094f3913ad3de3d973d1d51fdb02cbc91d65c5c9">1f37901b0e0a584452f24e80094f3913ad3de3d973d1d51fdb02cbc91d65c5c9</a></td>
+                                    <td class="mono">#203140</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">13.1h (788 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209415</td>
+                                    <td>0:09:48</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/2852052cd658001cfb72cab9628712fdf49bfbc39427fc77c6a61cee1953eff7">2852052cd658001cfb72cab9628712fdf49bfbc39427fc77c6a61cee1953eff7</a></td>
+                                    <td class="mono">#203140</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>2/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">10.0%</td>
+                                    
+                                    <td class="mono">7.4h (443 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209416</td>
+                                    <td>0:02:34</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/ae5a1c247d142d93950c9d8f600a71e4c6723906468d9e85fcaa7eb6689a2440">ae5a1c247d142d93950c9d8f600a71e4c6723906468d9e85fcaa7eb6689a2440</a></td>
+                                    <td class="mono">#203138</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2423 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209412</td>
+                                    <td>0:08:10</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/258b156fe2a0f59f79d23764807d35727d61438dfbf29534fb32bbcbacaa747d">258b156fe2a0f59f79d23764807d35727d61438dfbf29534fb32bbcbacaa747d</a></td>
+                                    <td class="mono">#203138</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>2/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">10.0%</td>
+                                    
+                                    <td class="mono">1.7d (2385 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209411</td>
+                                    <td>0:08:55</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/20857259e8fbb7458f42f42158cb7b9d68de15f0899b92d0116230f0e48b67d8">20857259e8fbb7458f42f42158cb7b9d68de15f0899b92d0116230f0e48b67d8</a></td>
+                                    <td class="mono">#203138</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2441 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209410</td>
+                                    <td>0:09:43</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/02b7b17fb8ed2a24624427414658a79d726a102d0e1b5f865712966582eb6969">02b7b17fb8ed2a24624427414658a79d726a102d0e1b5f865712966582eb6969</a></td>
+                                    <td class="mono">#203137</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2389 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209405</td>
+                                    <td>0:09:44</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/56d2e209155228173e74f76eff672e9c20bdb4b0714adfaea0be9a46accc8f68">56d2e209155228173e74f76eff672e9c20bdb4b0714adfaea0be9a46accc8f68</a></td>
+                                    <td class="mono">#203137</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2469 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209406</td>
+                                    <td>0:06:06</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/8b4c79b47a3f72d19043f04881762635216dd56934f4e38280935ee49e080ca0">8b4c79b47a3f72d19043f04881762635216dd56934f4e38280935ee49e080ca0</a></td>
+                                    <td class="mono">#203137</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2491 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209407</td>
+                                    <td>0:01:02</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/80796f76ff0eee8445ce4c41cf512b730b95f0dfabdf018b49ce34186b2d1eee">80796f76ff0eee8445ce4c41cf512b730b95f0dfabdf018b49ce34186b2d1eee</a></td>
+                                    <td class="mono">#203136</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2487 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209404</td>
+                                    <td>0:00:35</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/668943a7934a7bbfc6b6a663e7ae1b0c3cf8ceab8404d74d650a61436eae09ab">668943a7934a7bbfc6b6a663e7ae1b0c3cf8ceab8404d74d650a61436eae09ab</a></td>
+                                    <td class="mono">#203135</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2449 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209402</td>
+                                    <td>0:06:08</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/194cf3e9d5b2ef30bcd1737b3f208987496fed027119eac8170cfb197e67aa31">194cf3e9d5b2ef30bcd1737b3f208987496fed027119eac8170cfb197e67aa31</a></td>
+                                    <td class="mono">#203134</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2437 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209397</td>
+                                    <td>0:00:50</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/7e12bef25d511c11d7fd5fe1a5321c3d9857a7f29828dba0185b4bfb49f817b3">7e12bef25d511c11d7fd5fe1a5321c3d9857a7f29828dba0185b4bfb49f817b3</a></td>
+                                    <td class="mono">#203134</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2495 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209398</td>
+                                    <td>0:03:07</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/9fe6bf29fe8c1740fd7b1d57109102f58f27bdcd1efc04e9b9083b5a727051dd">9fe6bf29fe8c1740fd7b1d57109102f58f27bdcd1efc04e9b9083b5a727051dd</a></td>
+                                    <td class="mono">#203134</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">10.6h (636 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209399</td>
+                                    <td>0:06:34</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/d516aa3b2595308c5b45a233fa4d17c14afe845d4a254a4e494cb620b4d2f9e4">d516aa3b2595308c5b45a233fa4d17c14afe845d4a254a4e494cb620b4d2f9e4</a></td>
+                                    <td class="mono">#203131</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.6d (2373 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209393</td>
+                                    <td>0:06:01</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/cd4eb90cd9461534dcf88fa16ac99cef525840dc7baa70a0ea301bedd8ea5a7f">cd4eb90cd9461534dcf88fa16ac99cef525840dc7baa70a0ea301bedd8ea5a7f</a></td>
+                                    <td class="mono">#203130</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">4.0h (237 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209391</td>
+                                    <td>0:08:21</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/d623f31544143989b5b14e0b78d3adb979785719a10260e723c9e864378330ab">d623f31544143989b5b14e0b78d3adb979785719a10260e723c9e864378330ab</a></td>
+                                    <td class="mono">#203130</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2467 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209392</td>
+                                    <td>0:03:55</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/b3c710277585b5c29cf3493491596149d35032a023b63f5553585d10ac9398da">b3c710277585b5c29cf3493491596149d35032a023b63f5553585d10ac9398da</a></td>
+                                    <td class="mono">#203130</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2441 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209390</td>
+                                    <td>0:00:19</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/7d9cc8d0a8ed786d333b89762764350775fcb2bf5ae690babcf60c74799a7b3b">7d9cc8d0a8ed786d333b89762764350775fcb2bf5ae690babcf60c74799a7b3b</a></td>
+                                    <td class="mono">#203130</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2409 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209388</td>
+                                    <td>0:09:42</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/7de8adf8973a0566da2ee26853d5598457ff13d613657df950a2379e48e3c2fa">7de8adf8973a0566da2ee26853d5598457ff13d613657df950a2379e48e3c2fa</a></td>
+                                    <td class="mono">#203130</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.7d (2443 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209389</td>
+                                    <td>0:02:55</td>
+                                </tr>
+                                
+                                
+                                
+                                
+                                <tr>
+                                    
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/137e22da122a9e372afa13591013aaa5c037a39ed1ccd263460aee025d20bf1e">137e22da122a9e372afa13591013aaa5c037a39ed1ccd263460aee025d20bf1e</a></td>
+                                    <td class="mono">#203128</td>
+                                    <td class="mono">4.9d</td>
+                                    <td>1/10</td>
+                                    <td class="mono">200,000 XEQM</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    
+                                    <td class="mono">1.8d (2541 blk)</td>
+                                    
+                                    <td class="mono"><span style="color:var(--status-warning)" title="Upgrade to v1.1.0 before HF22 (block 219120)">v1.0.7</span></td>
+                                    <td class="mono">#209384</td>
+                                    <td>0:02:10</td>
+                                </tr>
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    <div class="pagination">
+                        
+                        <span class="page-btn disabled">&laquo; Prev</span>
+                        
+
+                        
+
+                        
+                        
+                        <span class="page-btn active" aria-current="page">1</span>
+                        
+                        
+                        
+                        <a class="page-btn" href="?active_page=2#service-nodes-active">2</a>
+                        
+                        
+                        
+                        <a class="page-btn" href="?active_page=3#service-nodes-active">3</a>
+                        
+                        
+
+                        
+                        <span class="page-ellipsis">&hellip;</span>
+                        <a class="page-btn" href="?active_page=10#service-nodes-active">10</a>
+                        
+
+                        
+                        <a class="page-btn" href="?active_page=2#service-nodes-active" rel="next">Next &raquo;</a>
+                        
+                    </div>
+                    <div class="pagination-info">
+                        Showing 1&ndash;100 of 952
+                    </div>
+                    
+                    
+                </div>
+            </div>
+
+            <!-- AWAITING CONTRIBUTION (between Active and Decommissioned) -->
+            <div class="panel" id="service-nodes-awaiting">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--status-warning);">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        Awaiting Contributions
+                        <span class="nav-badge" style="background: rgba(255, 170, 0, 0.15); color: var(--status-warning);">2</span>
+                    </div>
+                </div>
+                <div class="panel-body" style="padding: 0;">
+                    <p style="color: var(--text-muted); margin: 0; padding: var(--space-md) var(--space-md) 0; font-size: 0.85rem;">
+                        Nodes registered but still accepting stake contributions. Each row shows how
+                        much is staked so far and how much remains to fully fund the node.
+                    </p>
+                    
+                    <div class="scroll-panel">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Public Key</th>
+                                    <th>Block Reg.</th>
+                                    <th>Lifespan</th>
+                                    <th>Contribs</th>
+                                    <th>Total Staked</th>
+                                    <th>Remaining</th>
+                                    <th>% Funded</th>
+                                    <th>Fee</th>
+                                    <th>Version</th>
+                                    <th>Min Contribution</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                                
+                                
+                                <tr>
+                                    <td><span class="badge warning">Awaiting</span></td>
+                                    <td class="mono hash"><a href="/sn/0445fa7ca551b6e59c65495b69c86783c3ea401c7398a80a40e6b177590b6775">0445fa7ca551b6e59c65495b69c86783c3ea401c7398a80a40e6b177590b6775</a></td>
+                                    <td class="mono">#209710</td>
+                                    
+                                    <td class="mono" style="color:var(--text-muted)">—</td>
+                                    <td>1/10</td>
+                                    <td class="mono">100000.000000000</td>
+                                    <td class="mono">100000.000000000</td>
+                                    <td class="mono">50.0%</td>
+                                    
+                                    <td class="mono">0.0%</td>
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">11111.111111112</td>
+                                </tr>
+                                
+                                
+                                <tr>
+                                    <td><span class="badge warning">Awaiting</span></td>
+                                    <td class="mono hash"><a href="/sn/5788aa6b9411e9344fd86017af0596fa5ddae0d8cca0b7e6d007900be15f133e">5788aa6b9411e9344fd86017af0596fa5ddae0d8cca0b7e6d007900be15f133e</a></td>
+                                    <td class="mono">#210246</td>
+                                    
+                                    <td class="mono" style="color:var(--text-muted)">—</td>
+                                    <td>2/10</td>
+                                    <td class="mono">110000.000000000</td>
+                                    <td class="mono">90000.000000000</td>
+                                    <td class="mono">55.0%</td>
+                                    
+                                    <td class="mono">10.0%</td>
+                                    <td class="mono"><span style="color:var(--status-live)">v1.1.0</span></td>
+                                    <td class="mono">11250.000000000</td>
+                                </tr>
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                </div>
+            </div>
+
+            <!-- DECOMMISSIONED / INACTIVE — always rendered, empty state when none -->
+            <div class="panel" id="service-nodes-inactive">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        Decommissioned Nodes
+                        <span class="nav-badge" style="background: rgba(255, 71, 87, 0.15); color: var(--status-danger);">0</span>
+                    </div>
+                </div>
+                <div class="panel-body" style="padding: 0;">
+                    <p style="color: var(--text-muted); margin: 0; padding: var(--space-md) var(--space-md) 0; font-size: 0.85rem;">
+                        These nodes are decommissioned for failing obligations, are not earning rewards, and face deregistration.
+                    </p>
+                    
+                    <div class="empty-state">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--status-live);">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <h3>No Decommissioned Nodes</h3>
+                        <p>All registered nodes are currently meeting their obligations.</p>
+                    </div>
+                    
+                </div>
+            </div>
+
+            <!-- RECENTLY REWARDED NODES -->
+            <div class="panel" id="service-nodes-recent-rewards">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                        Recently Rewarded Nodes
+                    </div>
+                </div>
+                <div class="panel-body" style="padding: 0;">
+                    
+                    <div class="scroll-panel">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Public Key</th>
+                                    <th>Contribs</th>
+                                    <th>Last Reward</th>
+                                    <th>Last Uptime</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                                
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/96a5cfde43d3c52e7b28127f3c8390bbd1ee3ecfde57a2eb5236f8981ecd7452">96a5cfde43d3c52e7b28127f3c8390bbd1ee3ecfde57a2eb5236f8981ecd7452</a></td>
+                                    <td>1/10</td>
+                                    <td class="mono">#210252</td>
+                                    <td>0:09:13</td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/0346a01480f74749dc003621eace010913e64c739a91f449c871b5af919230ca">0346a01480f74749dc003621eace010913e64c739a91f449c871b5af919230ca</a></td>
+                                    <td>1/10</td>
+                                    <td class="mono">#210251</td>
+                                    <td>0:03:05</td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/43da528bd5f7324db556e7b9323c3873e5d4e39cef0cfa4c404ddcd804023373">43da528bd5f7324db556e7b9323c3873e5d4e39cef0cfa4c404ddcd804023373</a></td>
+                                    <td>2/10</td>
+                                    <td class="mono">#210250</td>
+                                    <td>0:05:10</td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/fd8c9d317376f591e15800c3cc1c0e78e826af460b5ba8c978b7e2add76a1335">fd8c9d317376f591e15800c3cc1c0e78e826af460b5ba8c978b7e2add76a1335</a></td>
+                                    <td>1/10</td>
+                                    <td class="mono">#210249</td>
+                                    <td>0:09:14</td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/a0c62eba4615b2936a2efc5004353dd2eb794340940c36c35ea14289d5b0a5f1">a0c62eba4615b2936a2efc5004353dd2eb794340940c36c35ea14289d5b0a5f1</a></td>
+                                    <td>2/10</td>
+                                    <td class="mono">#210248</td>
+                                    <td>0:03:17</td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/92b2f07b7d357d15d06e084ebbd40b3f2bd0dada29805d109ee344c6c6642e0c">92b2f07b7d357d15d06e084ebbd40b3f2bd0dada29805d109ee344c6c6642e0c</a></td>
+                                    <td>1/10</td>
+                                    <td class="mono">#210247</td>
+                                    <td>0:05:45</td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/1dd06d320732b344ceeb6d712bb80d5b2cb8c94316f70b471b74b0432c6d951d">1dd06d320732b344ceeb6d712bb80d5b2cb8c94316f70b471b74b0432c6d951d</a></td>
+                                    <td>1/10</td>
+                                    <td class="mono">#210246</td>
+                                    <td>0:06:17</td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/6df2e4d90b2e1336fc053ad204d70201607132442373506cee3e26439550795f">6df2e4d90b2e1336fc053ad204d70201607132442373506cee3e26439550795f</a></td>
+                                    <td>1/10</td>
+                                    <td class="mono">#210245</td>
+                                    <td>0:00:41</td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/0d3b4fe2509f462328074c0168d90f2163306e47323ae6970496f066b865feb9">0d3b4fe2509f462328074c0168d90f2163306e47323ae6970496f066b865feb9</a></td>
+                                    <td>4/10</td>
+                                    <td class="mono">#210245</td>
+                                    <td>0:06:20</td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/421aa6de163c0bdb2e95d811cfed253acbd1bddc82b25f5a465e30bf1aeebaa3">421aa6de163c0bdb2e95d811cfed253acbd1bddc82b25f5a465e30bf1aeebaa3</a></td>
+                                    <td>1/10</td>
+                                    <td class="mono">#210244</td>
+                                    <td>0:08:15</td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/31b2515d28b30163f48c23b970004d32cef0f05f712350c333b565dbb1010d0f">31b2515d28b30163f48c23b970004d32cef0f05f712350c333b565dbb1010d0f</a></td>
+                                    <td>1/10</td>
+                                    <td class="mono">#210243</td>
+                                    <td>0:01:10</td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/7641becf2e2f893fbd3e080acd018b8c3e05e18c660e68f1f1000769f90631c0">7641becf2e2f893fbd3e080acd018b8c3e05e18c660e68f1f1000769f90631c0</a></td>
+                                    <td>1/10</td>
+                                    <td class="mono">#210242</td>
+                                    <td>0:07:14</td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/b964a37b563788e0dcbeeb97174cb09ee92e89853a0e23c0fcf2bf6c4dba0b80">b964a37b563788e0dcbeeb97174cb09ee92e89853a0e23c0fcf2bf6c4dba0b80</a></td>
+                                    <td>1/10</td>
+                                    <td class="mono">#210241</td>
+                                    <td>0:03:45</td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/32f452b0d011388c2df76d69ae171d05cf5ab3eaf4fa50906ff439ec1fc54cd1">32f452b0d011388c2df76d69ae171d05cf5ab3eaf4fa50906ff439ec1fc54cd1</a></td>
+                                    <td>1/10</td>
+                                    <td class="mono">#210240</td>
+                                    <td>0:05:17</td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span class="badge success">Active</span></td>
+                                    <td class="mono hash"><a href="/sn/286b33ca494807e6c40c1c2501e93500598023950740c96d05315f5a82c3bad7">286b33ca494807e6c40c1c2501e93500598023950740c96d05315f5a82c3bad7</a></td>
+                                    <td>1/10</td>
+                                    <td class="mono">#210239</td>
+                                    <td>0:03:36</td>
+                                </tr>
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+
+        
+<footer class="content-footer">
+    <img class="footer-mark" src="/static/logo-mark.svg" alt="Exiom" aria-hidden="true">
+    <div class="footer-links">
+        <a href="https://xeqmlabs.com/" target="_blank" rel="noopener">XEQMLabs</a>
+        <a href="https://github.com/XEQMLabs/xeqm-core/releases" target="_blank" rel="noopener">Source</a>
+        <a href="https://t.me/ExiomXEQM" target="_blank" rel="noopener">Community</a>
+    </div>
+    <div class="footer-version">
+        Exiom Explorer | v1.1.0 &lsquo;Ragnarok&rsquo;
+    </div>
+</footer>
+    </main>
+</div>
+
+
+</body>
+</html>

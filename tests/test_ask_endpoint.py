@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+import ai_provider
 import app as application
 import usage_control
 
@@ -99,6 +100,13 @@ class FakeProvider:
         # empty included, is the answer instead.
         self.answer_text = None
 
+        # Answers for successive calls, used before answer_text.
+        # A list entry is streamed as those chunks.
+        self.answers = []
+
+        # Pages the last call cited.
+        self.last_sources = []
+
         self.web_search_enabled = True
 
     @property
@@ -131,6 +139,9 @@ class FakeProvider:
         if self.generate_error:
             raise self.generate_error
 
+        if self.answers:
+            return {"answer": "".join(self.answers.pop(0))}
+
         if self.answer_text is not None:
             return {"answer": self.answer_text}
 
@@ -155,11 +166,16 @@ class FakeProvider:
         if self.generate_error:
             raise self.generate_error
 
-        chunks = (
-            ["answer ", "to ", question]
-            if self.answer_text is None
-            else [self.answer_text] if self.answer_text else []
-        )
+        if self.answers:
+            planned = self.answers.pop(0)
+            chunks = [planned] if isinstance(planned, str) else planned
+
+        else:
+            chunks = (
+                ["answer ", "to ", question]
+                if self.answer_text is None
+                else [self.answer_text] if self.answer_text else []
+            )
 
         for index, chunk in enumerate(chunks):
             if self.stream_error_after == index:
@@ -465,7 +481,7 @@ def test_router_decision_is_reused_for_an_identical_question(
     ask(client, "give me the node number the explorer shows")
 
     assert len(provider.route_calls) == 1
-    assert len(provider.generate_calls) == 0
+    assert len(provider.generate_calls) == 1
 
 
 # ---------------------------------------------------------
@@ -1121,3 +1137,404 @@ def test_an_unrelated_price_question_does_not_search(client, provider):
     ask(client, "price of eggs")
 
     assert provider.generate_calls == []
+
+
+# ---------------------------------------------------------
+# LIVE DATA FIRST, THEN A SEARCH, THEN A GENTLE "NOT FOUND"
+# ---------------------------------------------------------
+
+EXPLORER_ROUTE = {
+    "scope": "relevant",
+    "intent": "mixed",
+    "facts": ["active_nodes"],
+    "search": False
+}
+
+CONCEPT_ROUTE = {
+    "scope": "relevant",
+    "intent": "explanation",
+    "facts": [],
+    "search": False
+}
+
+
+def request_section(call):
+    return call["system_prompt"].split("THIS REQUEST")[1]
+
+
+def test_a_router_picked_fact_is_worded_by_the_model(client, provider):
+    """
+    The router's pick once became a canned reply, and a wrong
+    pick ("blocks in the last hour" -> the 24-hour count)
+    went straight to the user.
+    """
+
+    provider.route_result = {
+        "scope": "relevant",
+        "intent": "direct_live_fact",
+        "facts": ["active_nodes"]
+    }
+
+    response = ask(client, "how many nodes r running rn")
+
+    assert len(provider.generate_calls) == 1
+    assert response.json["answer"] == "answer to how many nodes r running rn"
+
+
+def test_an_explorer_question_sees_every_explorer_value(client, provider):
+    provider.route_result = dict(EXPLORER_ROUTE)
+
+    ask(client, "how many nodes are in canada")
+
+    section = request_section(provider.generate_calls[0])
+
+    # Not only the fact the router picked.
+    assert "Active service nodes: 1,024" in section
+    assert "Block height: 123,456" in section
+
+
+def test_a_concept_question_gets_no_explorer_values(client, provider):
+    provider.route_result = dict(CONCEPT_ROUTE)
+
+    ask(client, "what is staking?")
+
+    section = request_section(provider.generate_calls[0])
+
+    assert "123,456" not in section
+    assert application.LOOKUP_SIGNAL in section
+
+
+@pytest.mark.parametrize("send, reply", [
+    (ask, lambda r: r.json["answer"]),
+    (ask_stream, streamed_answer),
+])
+def test_a_lookup_signal_brings_in_the_explorer_values(
+    client, provider, send, reply
+):
+    provider.route_result = dict(CONCEPT_ROUTE)
+    provider.answers = [["[[LOO", "KUP]]"], "There are 49 nodes in Canada."]
+
+    response = send(client, "nodes joining lately?")
+
+    first, second = provider.generate_calls
+
+    assert "123,456" not in request_section(first)
+    assert "Block height: 123,456" in request_section(second)
+    assert second["web_search"] is False
+    assert reply(response) == "There are 49 nodes in Canada."
+
+
+@pytest.mark.parametrize("send", [ask, ask_stream])
+def test_a_lookup_signal_with_the_explorer_values_brings_a_web_search(
+    client, provider, send
+):
+    provider.route_result = dict(EXPLORER_ROUTE)
+    provider.answers = ["[[LOOKUP]]", "Found it."]
+
+    send(client, "who is the ceo of xeqmlabs")
+
+    first, second = provider.generate_calls
+
+    assert first["web_search"] is False
+    assert second["web_search"] == ai_provider.OPEN_WEB
+    assert "WEB SEARCH: ON" in second["system_prompt"]
+    assert "Block height: 123,456" in request_section(second)
+
+
+def test_a_concept_route_can_climb_all_the_way_to_a_search(client, provider):
+    provider.route_result = dict(CONCEPT_ROUTE)
+    provider.answers = ["[[LOOKUP]]", "[[LOOKUP]]", "Found it."]
+
+    response = ask(client, "who founded xeqmlabs")
+
+    assert [c["web_search"] for c in provider.generate_calls] == [
+        False, False, ai_provider.OPEN_WEB
+    ]
+    assert response.json["answer"] == "Found it."
+
+
+def test_a_market_question_searches_the_listed_sites_first_time(
+    client, provider
+):
+    provider.route_result = dict(SEARCH_ROUTE)
+
+    ask(client, "exiom coin price")
+
+    [call] = provider.generate_calls
+
+    assert call["web_search"] is True
+    assert application.LOOKUP_SIGNAL not in request_section(call)
+
+
+@pytest.mark.parametrize("send, reply", [
+    (ask, lambda r: r.json["answer"]),
+    (ask_stream, streamed_answer),
+])
+def test_a_signal_on_the_last_step_becomes_a_gentle_not_found(
+    client, provider, send, reply
+):
+    provider.route_result = dict(SEARCH_ROUTE)
+    provider.answers = ["[[LOOKUP]]"]
+
+    response = send(client, "how many wallets hold xeqm")
+
+    assert len(provider.generate_calls) == 1
+    assert reply(response) == application.NOT_FOUND_ANSWER
+    assert "explorer.xeqmlabs.com" in application.NOT_FOUND_ANSWER
+
+
+def test_without_a_search_allowance_a_backup_ends_free_and_gently(
+    client, provider, monkeypatch
+):
+    monkeypatch.setattr(
+        application,
+        "usage_controller",
+        usage_control.UsageController(client_web_searches_per_day=0)
+    )
+    provider.route_result = dict(EXPLORER_ROUTE)
+    provider.answers = ["[[LOOKUP]]"]
+
+    response = ask(client, "who is the ceo of xeqmlabs")
+
+    assert len(provider.generate_calls) == 1
+    assert response.json["answer"] == application.NOT_FOUND_ANSWER
+
+
+def test_with_search_off_the_explorer_step_is_the_last(client, provider):
+    provider.web_search_enabled = False
+    provider.route_result = dict(EXPLORER_ROUTE)
+
+    ask(client, "how many nodes in canada")
+
+    [call] = provider.generate_calls
+
+    assert application.LOOKUP_SIGNAL not in request_section(call)
+
+
+def test_answers_that_needed_a_second_step_are_not_reused(client, provider):
+    provider.route_result = dict(CONCEPT_ROUTE)
+    provider.answers = ["[[LOOKUP]]", "49", "[[LOOKUP]]", "50"]
+
+    ask(client, "nodes of canada")
+    response = ask(client, "nodes of canada")
+
+    assert len(provider.generate_calls) == 4
+    assert response.json["answer"] == "50"
+
+
+def test_an_answer_that_merely_starts_with_brackets_is_kept(client, provider):
+    provider.route_result = dict(CONCEPT_ROUTE)
+    provider.answers = [["[", "[not a signal] staking locks XEQM"]]
+
+    response = ask_stream(client, "what is staking?")
+
+    assert len(provider.generate_calls) == 1
+    assert streamed_answer(response) == "[[not a signal] staking locks XEQM"
+
+
+# ---------------------------------------------------------
+# SOURCES ARE ALWAYS LINKS
+# ---------------------------------------------------------
+
+def test_an_unlinked_explorer_mention_gets_the_linked_source(client, provider):
+    provider.route_result = dict(EXPLORER_ROUTE)
+    provider.answer_text = "1,024 nodes. Source: Official EXIOM Explorer."
+
+    response = ask(client, "how many nodes are running right now or so")
+
+    assert response.json["source"] == "Official EXIOM Explorer"
+
+
+def test_a_streamed_unlinked_explorer_mention_gets_the_linked_source(
+    client, provider
+):
+    provider.route_result = dict(EXPLORER_ROUTE)
+    provider.answer_text = "1,024 nodes. Source: Official EXIOM Explorer."
+
+    response = ask_stream(client, "how many nodes are running right now or so")
+
+    [done] = [f for f in frames(response) if f["type"] == "done"]
+
+    assert done["source"] == "Official EXIOM Explorer"
+
+
+def test_a_linked_explorer_mention_gets_no_second_source(client, provider):
+    provider.route_result = dict(EXPLORER_ROUTE)
+    provider.answer_text = (
+        "1,024 nodes. Source: "
+        "[Official EXIOM Explorer](https://explorer.xeqmlabs.com/)"
+    )
+
+    response = ask(client, "how many nodes are running right now or so")
+
+    assert "source" not in response.json
+
+
+@pytest.mark.parametrize("send, reply", [
+    (ask, lambda r: r.json["answer"]),
+    (ask_stream, streamed_answer),
+])
+def test_a_searched_answer_without_links_gets_its_sources(
+    client, provider, send, reply
+):
+    provider.route_result = dict(SEARCH_ROUTE)
+    provider.answer_text = "XEQM is about $0.02."
+    provider.last_sources = [
+        "https://www.coingecko.com/en/coins/xeqm-labs?utm_source=openai",
+        "https://nonkyc.io/market/XEQM_USDT",
+    ]
+
+    text = reply(send(client, "exiom coin price"))
+
+    assert text.startswith("XEQM is about $0.02.")
+    assert (
+        "[coingecko.com](https://www.coingecko.com/en/coins/xeqm-labs"
+        "?utm_source=openai)" in text
+    )
+    assert "[nonkyc.io](https://nonkyc.io/market/XEQM_USDT)" in text
+
+
+def test_a_searched_answer_with_links_is_left_alone(client, provider):
+    provider.route_result = dict(SEARCH_ROUTE)
+    provider.answer_text = "About $0.02 ([coingecko.com](https://coingecko.com/x))."
+    provider.last_sources = ["https://coingecko.com/x"]
+
+    response = ask(client, "exiom coin price")
+
+    assert response.json["answer"] == provider.answer_text
+
+
+# ---------------------------------------------------------
+# PROMPT RULES THE CLIENT ASKED FOR
+# ---------------------------------------------------------
+
+def test_the_prompt_asks_for_plain_words_and_linked_sources(client, provider):
+    prompt = application.STATIC_SYSTEM_PROMPT
+
+    assert "[Official EXIOM Explorer](https://explorer.xeqmlabs.com/)" in prompt
+    assert "PLAIN" in prompt
+
+
+def test_a_question_naming_xeqm_is_never_off_topic(client, provider):
+    provider.route_result = {
+        "scope": "unrelated", "intent": "general", "facts": [],
+        "search": False
+    }
+
+    ask(client, "What is the all-time high price of XEQM?")
+
+    assert provider.off_topic_calls == []
+    [call] = provider.generate_calls
+    assert call["web_search"] is True
+
+
+def test_a_value_question_starts_with_the_explorer_values(client, provider):
+    """
+    The router called "weather in paris and how many nodes are
+    there" general, and the node count was never looked at.
+    """
+
+    provider.route_result = {
+        "scope": "relevant", "intent": "general", "facts": [],
+        "search": False
+    }
+
+    ask(client, "what's the weather in paris and how many nodes are there")
+
+    [call] = provider.generate_calls
+    assert "Active service nodes: 1,024" in request_section(call)
+
+
+def test_an_off_topic_route_naming_nodes_is_treated_as_mixed(client, provider):
+    provider.route_result = {
+        "scope": "unrelated", "intent": "general", "facts": [],
+        "search": False
+    }
+
+    ask(client, "what's the weather in paris and how many nodes are there")
+
+    assert provider.off_topic_calls == []
+    [call] = provider.generate_calls
+    assert "SCOPE: mixed" in call["system_prompt"]
+
+
+def test_a_truly_off_topic_question_stays_off_topic(client, provider):
+    provider.route_result = {
+        "scope": "unrelated", "intent": "general", "facts": [],
+        "search": False
+    }
+
+    ask(client, "how many calories are in rice")
+
+    assert provider.generate_calls == []
+    assert len(provider.off_topic_calls) == 1
+
+
+@pytest.mark.parametrize("send, reply", [
+    (ask, lambda r: r.json["answer"]),
+    (ask_stream, streamed_answer),
+])
+def test_a_closing_offer_is_dropped(client, provider, send, reply):
+    provider.route_result = dict(EXPLORER_ROUTE)
+    provider.answer_text = (
+        "1,024 nodes.\n\nIf you'd like, I can pull the block list."
+    )
+
+    assert reply(send(client, "how many nodes, and why")) == "1,024 nodes."
+
+
+def test_explorer_figures_without_naming_it_still_get_the_source(
+    client, provider
+):
+    provider.route_result = dict(EXPLORER_ROUTE)
+    provider.answer_text = "Canada has 49 nodes."
+
+    response = ask(client, "nodes of canada")
+
+    assert response.json["source"] == "Official EXIOM Explorer"
+
+
+def test_an_explorer_link_does_not_hide_the_web_sources(client, provider):
+    provider.route_result = dict(SEARCH_ROUTE)
+    provider.answer_text = (
+        "About $0.02. Source: "
+        "[Official EXIOM Explorer](https://explorer.xeqmlabs.com/)"
+    )
+    provider.last_sources = ["https://coingecko.com/x"]
+
+    response = ask(client, "exiom coin price")
+
+    assert "[coingecko.com](https://coingecko.com/x)" in response.json["answer"]
+
+
+def test_a_backticked_signal_still_looks_further(client, provider):
+    provider.route_result = dict(CONCEPT_ROUTE)
+    provider.answers = [["`[[LOO", "KUP]]`"], "Found."]
+
+    response = ask_stream(client, "nodes joining lately?")
+
+    assert len(provider.generate_calls) == 2
+    assert streamed_answer(response) == "Found."
+
+
+def test_a_stray_signal_mid_answer_is_removed(client, provider):
+    provider.route_result = dict(EXPLORER_ROUTE)
+    provider.answer_text = "Canada has 49 nodes. [[LOOKUP]]"
+
+    response = ask(client, "nodes of canada")
+
+    assert "[[LOOKUP]]" not in response.json["answer"]
+
+
+def test_an_answer_written_without_search_is_not_reused_once_it_returns(
+    client, provider
+):
+    provider.web_search_enabled = False
+    provider.route_result = dict(EXPLORER_ROUTE)
+
+    ask(client, "nodes of canada please")
+
+    provider.web_search_enabled = True
+    ask(client, "nodes of canada please")
+
+    assert len(provider.generate_calls) == 2

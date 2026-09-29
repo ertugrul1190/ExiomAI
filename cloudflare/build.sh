@@ -11,7 +11,7 @@ cp worker.py src/
 
 for module in ../*.py; do
     case "$(basename "$module")" in
-        conftest.py | loadtest.py | gunicorn.conf.py | test_*.py) ;;
+        conftest.py | loadtest.py | live_eval.py | gunicorn.conf.py | test_*.py) ;;
         *) cp "$module" src/ ;;
     esac
 done

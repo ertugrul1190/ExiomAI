@@ -436,6 +436,12 @@ FACT_PHRASES = {
         "average block time this hour",
     ),
 
+    "average_block_time_12h": (
+        "average block time in the last 12 hours",
+        "average block time last 12 hours",
+        "average block time over the last 12 hours",
+    ),
+
     "average_block_time_7d": (
         "average block time this week",
         "average block time last week",
@@ -453,6 +459,39 @@ FACT_PHRASES = {
         "blocks in 24h",
         "blocks per day",
         "blocks a day",
+    ),
+
+    "blocks_1h": (
+        "blocks in the last hour",
+        "blocks per hour",
+        "blocks this hour",
+    ),
+
+    "blocks_12h": (
+        "blocks in the last 12 hours",
+        "blocks in 12 hours",
+        "blocks in 12h",
+    ),
+
+    "nodes_by_region": (
+        "nodes by region",
+        "nodes by state",
+        "service nodes by region",
+        "service nodes by state",
+    ),
+
+    "nodes_registered_24h": (
+        "new nodes",
+        "new service nodes",
+        "new nodes in the last 24 hours",
+        "nodes added in the last 24 hours",
+        "nodes registered in the last 24 hours",
+    ),
+
+    "next_hard_fork": (
+        "next hard fork",
+        "next hardfork",
+        "upcoming hard fork",
     ),
 
     "hashrate_24h": (
@@ -554,6 +593,7 @@ VALUE_CUE_EXEMPT_FACT_KEYS = {
     # A breakdown has no concept behind it to explain:
     # "nodes by country" can only mean the list.
     "nodes_by_country",
+    "nodes_by_region",
 }
 
 
@@ -595,6 +635,17 @@ def _pick(options, question):
     ) % len(options)
 
     return options[index]
+
+
+def has_value_cue(question):
+    """
+    Whether the question asks for a current value ("how
+    many", "right now"...), whatever else it asks.
+    """
+
+    padded = f" {normalize_question(question)} "
+
+    return any(f" {cue} " in padded for cue in VALUE_CUES)
 
 
 def match_direct_fact(question, fact_registry=None):

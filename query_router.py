@@ -33,6 +33,25 @@ def asks_for_current_market_info(question):
     return bool(MARKET_PATTERN.search(question or ""))
 
 
+EXIOM_NAME = re.compile(r"\b(exiom|xeqm|xeqmlabs|xeqm ?labs)", re.IGNORECASE)
+
+
+def names_exiom(question):
+    return bool(EXIOM_NAME.search(question or ""))
+
+
+# Network terms that, in a chat about EXIOM, mean EXIOM.
+EXIOM_TOPIC = re.compile(
+    r"\b(service nodes?|nodes|staking|stakers?|quorums?|block height"
+    r"|hard ?forks?|hf ?\d+|explorer|mempool|circulating supply)\b",
+    re.IGNORECASE
+)
+
+
+def names_exiom_topic(question):
+    return bool(EXIOM_TOPIC.search(question or ""))
+
+
 def build_fact_catalogue(fact_registry):
     """
     Describe the Explorer facts the router may choose from.
@@ -132,6 +151,10 @@ Explorer facts directly answers.
 "What is the current block height?" → direct_live_fact
 "What's the staking requirement?" → direct_live_fact
 "Nodes by country" → direct_live_fact
+"How many nodes are in Canada?" → direct_live_fact
+"How many nodes joined or left in the last 24 hours?"
+→ direct_live_fact
+"When is the next hard fork?" → direct_live_fact
 
 A message that is only a fact's name, with no question
 around it, asks for that fact's current value.
@@ -181,6 +204,12 @@ block_height.
 "Nodes by country" DOES request nodes_by_country.
 "Where are the nodes located?" DOES request
 nodes_by_country.
+"How many nodes are in Germany?" DOES request
+nodes_by_country.
+
+A question about ANY current EXIOM number, count, status,
+date or recent change selects the closest facts, even when
+none matches exactly.
 
 
 ============================================================

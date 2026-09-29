@@ -267,3 +267,37 @@ def test_paid_work_waits_until_today_is_restored(monkeypatch):
 
     broken["on"] = False
     assert remote.usage_controller.check("a").allowed
+
+
+def reading_with_nodes(time, registered, new_24h="0"):
+    item = reading("available", time)
+    item["data"]["facts"] = {
+        "registered_nodes": {"value": registered},
+        "nodes_registered_24h": {"value": new_24h},
+    }
+    return item
+
+
+def test_the_node_count_change_survives_an_evicted_object():
+    sql = storage()
+
+    json_transport(usage_hub.UsageHub(sql, now=Clock()))(
+        "put_reading", {"item": reading_with_nodes(DAY, "951")}
+    )
+
+    # A new object over the same storage, a day later.
+    remote = json_transport(usage_hub.UsageHub(sql, now=Clock()))
+    remote("put_reading", {"item": reading_with_nodes(DAY + 24 * 60 * 60, "954", "5")})
+
+    facts = remote("get_reading", {})["data"]["facts"]
+
+    assert facts["node_count_change_24h"]["value"] == "+3 (from 951 to 954)"
+    assert facts["nodes_left_24h"]["value"] == "2"
+
+
+def test_a_failed_reading_records_no_node_count(hub):
+    remote = json_transport(hub)
+
+    remote("put_reading", {"item": reading("unavailable", DAY)})
+
+    assert hub.node_history.samples == []

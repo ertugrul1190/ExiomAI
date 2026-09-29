@@ -406,9 +406,10 @@ def retrieve_knowledge(
 
         used += len(content)
 
+        # No file name: the model once cited "core.md" and
+        # made up a URL for it.
         formatted_sections.append(
             f"""
-SOURCE FILE: {section['source_file']}
 SECTION: {section['title']}
 
 {content}

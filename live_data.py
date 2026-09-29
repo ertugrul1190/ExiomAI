@@ -7,6 +7,8 @@ from concurrent.futures import ThreadPoolExecutor, wait
 
 import requests
 
+from node_history import NodeHistory
+
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +112,116 @@ def _nodes_by_country(feeds):
     )
 
 
+# 24 hours of blocks at the 60 s target.
+BLOCKS_PER_DAY = 1440
+
+# A node-list row: status, public key, registration block.
+_NODE_ROW = re.compile(
+    r"\b(Active|At Risk|Awaiting|Decommissioned)\s+([0-9a-f]{64})\s+#(\d+)\b"
+)
+
+
+def _nodes_registered_24h(page_text):
+    # The node list is sorted newest registration first, and
+    # its header gives the height it was drawn at.
+    height = int(re.search(r"\bBlock\s+(\d+)\s+Time\b", page_text).group(1))
+
+    rows = {}
+
+    for status, key, registered in _NODE_ROW.findall(page_text):
+        rows.setdefault(key, (status, int(registered)))
+
+    active = [h for status, h in rows.values() if status != "Awaiting"]
+
+    if not active:
+        raise ValueError("no node rows")
+
+    recent = [
+        status
+        for status, registered in rows.values()
+        if height - registered < BLOCKS_PER_DAY
+    ]
+
+    awaiting = recent.count("Awaiting")
+
+    value = f"{len(recent):,}"
+
+    # Only the first page of the list is read. If even its
+    # oldest node is recent, older pages may hold more.
+    if height - min(active) < BLOCKS_PER_DAY:
+        value = f"at least {value}"
+
+    if awaiting:
+        value += f" ({awaiting} still awaiting contributions)"
+
+    return value
+
+
+def _next_hard_fork(page_text):
+    match = re.search(
+        r"Upcoming HF v([\d.]+)\s*[\u2014-]\s*(.{1,60}?) activates at block "
+        r"(\d+).{0,80}?Blocks Remaining\s*([\d,]+)"
+        r".{0,80}?Estimated Activation\s*(\d{4}-\d\d-\d\d \d\d:\d\d UTC)",
+        page_text
+    )
+
+    if not match:
+        raise ValueError("no upcoming hard fork")
+
+    version, name, height, remaining, when = match.groups()
+
+    return (
+        f"HF v{version} ({name}) at block {int(height):,}: "
+        f"{int(remaining.replace(',', '')):,} blocks to go, estimated {when}"
+    )
+
+
+def _nodes_by_region(feeds):
+    places = feeds["node_map"]["data"]["nodes"]
+
+    # country code -> region -> count, plus the country's
+    # most used spelling and total, as in _nodes_by_country.
+    regions = {}
+    totals = {}
+    spellings = {}
+
+    for place in places:
+        code = place.get("country_code") or place["country"]
+        region = place["region"]
+
+        if not isinstance(region, str) or not region.strip():
+            raise ValueError("region missing")
+
+        count = int(as_number(place["count"]))
+        by_region = regions.setdefault(code, {})
+        by_region[region] = by_region.get(region, 0) + count
+        totals[code] = totals.get(code, 0) + count
+
+        names = spellings.setdefault(code, {})
+        names[place["country"]] = names.get(place["country"], 0) + count
+
+    if not regions:
+        raise ValueError("node map is empty")
+
+    lines = []
+
+    for code in sorted(totals, key=lambda c: -totals[c]):
+        names = spellings[code]
+        country = min(names, key=lambda n: (-names[n], n))
+
+        parts = ", ".join(
+            f"{region} {count:,}"
+            for region, count in sorted(
+                regions[code].items(),
+                key=lambda item: (-item[1], item[0])
+            )
+        )
+
+        lines.append(f"{country}: {parts}")
+
+    return "\n".join(lines)
+
+
 class LiveData:
     def __init__(self):
         self.cache = {}
@@ -204,6 +316,10 @@ class LiveData:
         # a source breaking or recovering is logged once, not
         # every refresh.
         self._source_health = {}
+
+        # Registered-node counts over the last day, for the
+        # 24-hour change facts (node_history.py).
+        self.node_history = NodeHistory()
 
         # These define FACTS available from the Explorer.
         # They are NOT lists of possible user questions.
@@ -433,6 +549,19 @@ class LiveData:
                 ],
             },
 
+            "nodes_by_region": {
+                "label": "Service nodes by region",
+                "meaning": (
+                    "how many EXIOM service nodes are in each "
+                    "state or region, grouped by country"
+                ),
+                "unit": "",
+                "dynamic": True,
+                "api": [
+                    _nodes_by_region,
+                ],
+            },
+
             # The Explorer reports one supply figure: its
             # /api/emission gives circulating supply equal to
             # total emission (no burns, per its tokenomics
@@ -577,7 +706,7 @@ class LiveData:
             },
 
             "max_contributors": {
-                "label": "Maximum contributors per node",
+                "label": "Maximum contributors per node (operator included)",
                 "meaning": (
                     "most wallets, operator included, that can "
                     "stake into one EXIOM service node"
@@ -651,6 +780,22 @@ class LiveData:
                 ],
             },
 
+            "average_block_time_12h": {
+                "label": "Average block time (last 12 hours)",
+                "meaning": (
+                    "average time between EXIOM blocks over "
+                    "the last 12 hours"
+                ),
+                "unit": "",
+                "dynamic": True,
+                "api": [
+                    lambda f: _duration(f["live_slow"]["avg_12h"]),
+                ],
+                "patterns": [
+                    r"Avg Block \(12h\)\s*((?:\d+m )?\d+s)"
+                ],
+            },
+
             "average_block_time_24h": {
                 "label": "Average block time (last 24 hours)",
                 "meaning": (
@@ -716,6 +861,58 @@ class LiveData:
                 ],
             },
 
+            "blocks_1h": {
+                "label": "Blocks in the last hour",
+                "meaning": (
+                    "number of EXIOM blocks produced in the "
+                    "last hour"
+                ),
+                "unit": "",
+                "dynamic": True,
+                "api": [
+                    lambda f: format_count(f["live_slow"]["blocks_1h"]),
+                ],
+            },
+
+            "blocks_12h": {
+                "label": "Blocks in the last 12 hours",
+                "meaning": (
+                    "number of EXIOM blocks produced in the "
+                    "last 12 hours"
+                ),
+                "unit": "",
+                "dynamic": True,
+                "api": [
+                    lambda f: format_count(f["live_slow"]["blocks_12h"]),
+                ],
+                "patterns": [
+                    r"\b12h\s+(?:\d+m )?\d+s\s+([\d,]+)\s"
+                ],
+            },
+
+            "nodes_registered_24h": {
+                "label": "New service nodes (last 24 hours)",
+                "meaning": (
+                    "EXIOM service nodes registered in the last "
+                    "24 hours that are still registered"
+                ),
+                "unit": "",
+                "dynamic": True,
+                "page": "service_nodes",
+                "read": [_nodes_registered_24h],
+            },
+
+            "next_hard_fork": {
+                "label": "Next hard fork",
+                "meaning": (
+                    "the next scheduled EXIOM network upgrade: "
+                    "its block, blocks to go and estimated date"
+                ),
+                "unit": "",
+                "dynamic": True,
+                "read": [_next_hard_fork],
+            },
+
             "hashrate_24h": {
                 "label": "Average hashrate (last 24 hours)",
                 "meaning": (
@@ -736,7 +933,7 @@ class LiveData:
             },
 
             "total_transactions": {
-                "label": "Total transactions",
+                "label": "Total transactions (all time)",
                 "meaning": (
                     "number of transactions recorded on the "
                     "EXIOM blockchain since genesis"
@@ -801,7 +998,7 @@ class LiveData:
             },
 
             "network_version": {
-                "label": "Mainnet version",
+                "label": "Mainnet version (current software release)",
                 "meaning": (
                     "EXIOM mainnet version shown by the Explorer"
                 ),
@@ -956,6 +1153,13 @@ class LiveData:
         page_text = page_texts.get(
             definition.get("page", "dashboard")
         )
+
+        for reader in definition.get("read", []) if page_text else []:
+            try:
+                return reader(page_text), "page"
+
+            except (AttributeError, ValueError):
+                continue
 
         if page_text:
             value = self._extract(
@@ -1273,6 +1477,8 @@ class LiveData:
                 "source": "Official EXIOM Explorer",
                 "via": via,
             }
+
+        self.node_history.add_facts(facts, self._now())
 
         self._log_source_changes(health)
 

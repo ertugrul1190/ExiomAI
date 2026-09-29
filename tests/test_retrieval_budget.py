@@ -69,7 +69,7 @@ def test_unmatched_question_falls_back_to_a_small_slice():
         sections
     )
 
-    assert knowledge.count("SOURCE FILE:") <= 3
+    assert knowledge.count("SECTION:") <= 3
 
 
 def test_no_sections_returns_empty_context():
@@ -122,3 +122,11 @@ def test_the_startup_index_never_changes_what_is_retrieved():
     ):
         assert retrieval.retrieve_knowledge(question, indexed) == \
             retrieval.retrieve_knowledge(question, raw)
+
+
+def test_file_names_never_reach_the_prompt():
+    sections = make_sections(count=3, size=200)
+
+    knowledge = retrieval.retrieve_knowledge("staking", sections)
+
+    assert ".md" not in knowledge

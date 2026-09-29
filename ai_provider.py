@@ -137,6 +137,12 @@ WEB_SEARCH_DOMAINS = parse_search_domains(
 )
 
 
+# web_search=OPEN_WEB searches the whole web, not just the
+# listed sites. It is the backup when neither the Explorer
+# nor the listed sites are known to hold the answer.
+OPEN_WEB = "open"
+
+
 def answer_output_ceiling(web_search):
     return (
         SEARCH_MAX_OUTPUT_TOKENS
@@ -158,6 +164,34 @@ def count_web_searches(response):
 
     except TypeError:
         return 0
+
+
+def cited_sources(response):
+    """
+    The web pages a response cites, in order, once each.
+    Only http(s) links: they are shown to the user.
+    """
+
+    sources = []
+
+    try:
+        for item in getattr(response, "output", None) or []:
+            for part in getattr(item, "content", None) or []:
+                for note in getattr(part, "annotations", None) or []:
+                    url = getattr(note, "url", "")
+
+                    if (
+                        getattr(note, "type", "") == "url_citation"
+                        and isinstance(url, str)
+                        and re.match(r"https?://", url)
+                        and url not in sources
+                    ):
+                        sources.append(url)
+
+    except TypeError:
+        return []
+
+    return sources
 
 
 # Router context. The router decides how to handle the
@@ -361,6 +395,15 @@ class AIProvider:
         return getattr(self._thread_state, "web_searches", 0)
 
 
+    @property
+    def last_sources(self):
+        """
+        Web pages cited by this thread's most recent call.
+        """
+
+        return getattr(self._thread_state, "sources", [])
+
+
     # -----------------------------------------------------
     # REQUEST BUILDING
     # -----------------------------------------------------
@@ -390,13 +433,17 @@ class AIProvider:
 
         if web_search and self.web_search_enabled:
 
-            request["tools"] = [{
+            tool = {
                 "type": "web_search",
-                "filters": {"allowed_domains": WEB_SEARCH_DOMAINS},
                 # A price or a release number needs a snippet,
                 # not whole pages: fewer tokens read.
                 "search_context_size": "low",
-            }]
+            }
+
+            if web_search != OPEN_WEB:
+                tool["filters"] = {"allowed_domains": WEB_SEARCH_DOMAINS}
+
+            request["tools"] = [tool]
 
             # The router already decided a search is needed;
             # an answer from memory would be stale.
@@ -594,6 +641,7 @@ class AIProvider:
         # request that failed or was served from cache.
         self._thread_state.usage = None
         self._thread_state.web_searches = 0
+        self._thread_state.sources = []
 
         while True:
 
@@ -644,6 +692,7 @@ class AIProvider:
         searches = count_web_searches(response)
 
         self._thread_state.web_searches = searches
+        self._thread_state.sources = cited_sources(response)
         self.cost_meter.record_web_searches(searches, route)
 
 
@@ -759,7 +808,8 @@ class AIProvider:
             "answer": response.output_text,
             "provider": "openai",
             "model": self.primary_model,
-            "searched": self.last_web_searches > 0
+            "searched": self.last_web_searches > 0,
+            "sources": self.last_sources,
         }
 
 
@@ -839,6 +889,7 @@ class AIProvider:
         # request that failed or was served from cache.
         self._thread_state.usage = None
         self._thread_state.web_searches = 0
+        self._thread_state.sources = []
 
         while True:
 

@@ -28,6 +28,7 @@ import json
 import sqlite3
 
 import security
+from node_history import NodeHistory
 from usage_control import CostMeter, UsageController, _env_int
 from usage_ledger import SCHEMA, UsageLedger, utc_day
 
@@ -92,6 +93,38 @@ class DurableLedger(UsageLedger):
             self._ready = True
 
         return connection
+
+
+class DurableNodeCounts:
+    """
+    NodeHistory's samples in the object's SQL storage, so the
+    24-hour node change survives the object being evicted.
+    """
+
+    def __init__(self, sql):
+        self._sql = sql
+        sql(
+            "CREATE TABLE IF NOT EXISTS node_counts "
+            "(time REAL PRIMARY KEY, count INTEGER NOT NULL)",
+            ()
+        )
+
+    def load(self):
+        return [
+            (time, count)
+            for time, count in self._sql(
+                "SELECT time, count FROM node_counts", ()
+            )
+        ]
+
+    def add(self, time, count):
+        self._sql(
+            "INSERT OR REPLACE INTO node_counts VALUES (?, ?)",
+            (time, count)
+        )
+
+    def drop_before(self, time):
+        self._sql("DELETE FROM node_counts WHERE time < ?", (time,))
 
 
 # An answer runs for well under a minute. A slot still held
@@ -193,6 +226,13 @@ class UsageHub:
         )
 
         self.reading = None
+
+        try:
+            self.node_history = NodeHistory(store=DurableNodeCounts(sql))
+
+        except Exception as error:
+            print("EXIOM usage hub could not read node counts:", error)
+            self.node_history = NodeHistory()
 
         self._restored = False
         self._restore_today()
@@ -321,6 +361,19 @@ class UsageHub:
             and item["time"] - current["time"] <= current["ttl"]
         ):
             return
+
+        # The copies' own history restarts with them; this one
+        # is kept, so its change facts are the ones served.
+        if item["data"].get("status") == "available":
+
+            try:
+                self.node_history.add_facts(
+                    item["data"].setdefault("facts", {}),
+                    item["time"]
+                )
+
+            except Exception as error:
+                print("EXIOM usage hub could not record node counts:", error)
 
         self.reading = item
 

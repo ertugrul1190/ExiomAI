@@ -667,3 +667,103 @@ def test_search_domains_are_capped_at_the_api_limit():
     configured = ",".join(f"site{index}.com" for index in range(150))
 
     assert len(ai_provider.parse_search_domains(configured)) == 100
+
+
+def test_an_open_search_is_not_limited_to_the_listed_sites(monkeypatch):
+    provider = build_provider([searched_response()], monkeypatch)
+
+    provider.generate(
+        "system", [], "who runs xeqmlabs", web_search=ai_provider.OPEN_WEB
+    )
+
+    request = provider.client.responses.requests[0]
+    [tool] = request["tools"]
+
+    assert tool["type"] == "web_search"
+    assert "filters" not in tool
+    assert request["tool_choice"] == "required"
+
+
+class Citation:
+    type = "url_citation"
+
+    def __init__(self, url, title="Page"):
+        self.url = url
+        self.title = title
+
+
+class OutputText:
+    type = "output_text"
+
+    def __init__(self, *citations):
+        self.annotations = list(citations)
+
+
+class CitedMessage:
+    type = "message"
+
+    def __init__(self, *parts):
+        self.content = list(parts)
+
+
+def cited_response(*urls):
+    response = FakeResponse("price")
+    response.output = [
+        SearchCall(),
+        CitedMessage(OutputText(*(Citation(url) for url in urls))),
+    ]
+    return response
+
+
+def test_cited_pages_are_reported_once_each(monkeypatch):
+    provider = build_provider(
+        [cited_response(
+            "https://www.coingecko.com/en/coins/xeqm",
+            "https://www.coingecko.com/en/coins/xeqm",
+            "https://xeqmlabs.com/news",
+        )],
+        monkeypatch
+    )
+
+    result = provider.generate("system", [], "price", web_search=True)
+
+    assert result["sources"] == [
+        "https://www.coingecko.com/en/coins/xeqm",
+        "https://xeqmlabs.com/news",
+    ]
+
+
+def test_only_web_links_are_reported_as_sources(monkeypatch):
+    provider = build_provider(
+        [cited_response("javascript:alert(1)", "https://ok.io/a")],
+        monkeypatch
+    )
+
+    result = provider.generate("system", [], "price", web_search=True)
+
+    assert result["sources"] == ["https://ok.io/a"]
+
+
+def test_a_streamed_answer_reports_its_sources(monkeypatch):
+    provider = build_provider([], monkeypatch)
+
+    stream = FakeStream(["$0.017"])
+    stream.get_final_response = lambda: cited_response("https://ok.io/p")
+
+    attach_stream(provider, [stream])
+
+    list(provider.stream_generate("system", [], "price", web_search=True))
+
+    assert provider.last_sources == ["https://ok.io/p"]
+
+
+def test_sources_are_cleared_before_each_call(monkeypatch):
+    provider = build_provider(
+        [cited_response("https://ok.io/p"), FakeResponse("answer")],
+        monkeypatch
+    )
+
+    provider.generate("system", [], "price", web_search=True)
+    result = provider.generate("system", [], "what is staking?")
+
+    assert result["sources"] == []

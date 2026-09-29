@@ -6,7 +6,19 @@ these are only examples.
 
 Live numbers come from the **Official EXIOM Explorer**
 (`explorer.xeqmlabs.com`) at the moment of the question. Each
-answer names the Explorer as its source.
+answer links its source: the Explorer, or the web pages a
+search used.
+
+**Where an answer comes from, in order:**
+
+1. The Explorer's live data (every value below).
+2. If the Explorer doesn't have it: a web search.
+3. If neither has it: a short, friendly "I couldn't find
+   that right now", with a link to the Explorer. Never a
+   guess.
+
+Answers are written in plain, everyday words, with technical
+terms explained.
 
 
 ## 1. Live network numbers
@@ -30,6 +42,11 @@ uses the live number.
 | Nodes on the latest software release | How many nodes are on the latest version? |
 | Countries with nodes | How many countries have nodes? |
 | Nodes in each country | Nodes by country |
+| Nodes in one country | How many nodes are in Canada? |
+| Nodes in each state or region | Nodes by region / Which US states have nodes? |
+| New nodes in the last 24 hours | How many nodes joined in the last 24 hours? |
+| Nodes that left in the last 24 hours, and the net change | How many nodes left today? Did the node count go up? |
+| Next hard fork (block, blocks to go, estimated date) | When is the next hard fork? |
 
 "Nodes by country" returns the full list, largest first:
 
@@ -40,8 +57,18 @@ uses the live number.
 > - United States: 121
 > - …
 
-Follow-ups also work, such as "How many nodes are in
-Germany?" or "Which countries have the most nodes?".
+Questions about one entry work too: "How many nodes are in
+Germany?", "Which country has the fewest nodes?", "What share
+of nodes is in France?", "Are there any nodes in Japan?", and
+follow-ups such as "and Canada?" or "what states?".
+
+**Nodes that left, and the net change**, are not published by
+the Explorer: EXIOM AI works them out by counting the
+registered nodes itself. They become available 24 hours after
+EXIOM AI starts counting (on the Cloudflare hosting, counting
+survives restarts); until then the answer says they aren't
+known yet. New nodes (last 24 hours) come straight from the
+Explorer's node list.
 
 ### Quorums
 
@@ -84,10 +111,11 @@ never promises returns.
 | --- | --- |
 | Block height | What is the current block height? |
 | Average block time (last hour) | Average block time in the last hour right now |
+| Average block time (last 12 hours) | Average block time over the last 12 hours |
 | Average block time (last 24 hours) | Current average block time |
 | Average block time (last 7 days) | Current average block time this week |
 | Target block time | What is the target block time? |
-| Blocks in the last 24 hours | How many blocks in the last 24 hours? |
+| Blocks in the last hour / 12 hours / 24 hours | How many blocks in the last hour? |
 | Hashrate | What is the current hashrate? |
 | Total transactions ever | How many total transactions? |
 | Blockchain database size | What is the current database size? |
@@ -105,7 +133,9 @@ never promises returns.
 
 Users can ask for more than one value in a single question,
 for example "What's the block height and how many nodes are
-active?". The answer includes each value.
+active?", or combine values ("How many nodes still need to
+upgrade?", "How many days until HF22?"). The answer includes
+each value.
 
 
 ## 2. Looking up one node, block or transaction
@@ -169,7 +199,12 @@ price, market cap and volume, where XEQM is traded, the latest
 software release and recent announcements. For these, EXIOM AI
 runs a quick web search limited to XEQMLabs' own sites, its
 GitHub and the price trackers and exchanges that list XEQM,
-and names the site each figure comes from.
+and links the site each figure comes from.
+
+**Anything else** the Explorer and EXIOM AI's own knowledge
+can't answer ("Who runs XEQMLabs?", "What's the all-time high
+price?") gets a wider web search as a backup. It only uses
+pages that name XEQM or XEQMLabs.
 
 | You can ask about | Example question |
 | --- | --- |
@@ -178,11 +213,14 @@ and names the site each figure comes from.
 | Where to buy right now | Where can I buy XEQM right now? |
 | Latest software release | What's the latest XEQM release? |
 | Recent announcements | Any recent XEQMLabs news? |
+| Price history | What's the all-time high price of XEQM? |
+| Exchange listings | Is XEQM listed on Binance? |
 
 - Prices differ slightly between sites and exchanges, and the
   answer says so.
-- Network numbers (supply, nodes, block height) always come
-  from the Explorer, never from a web page.
+- Network numbers (supply, nodes, block height) come from the
+  Explorer. A web page is used for one only when the Explorer
+  doesn't show it, and the answer says which page.
 - No price predictions, and no advice to buy or sell.
 - Searches take a few seconds longer than other answers.
 - Searches have a daily limit. Past it, EXIOM AI says it can't
@@ -195,9 +233,10 @@ and names the site each figure comes from.
   get a friendly decline.
 - **Financial advice**: it gives no price predictions and
   never promises profits, yields or returns.
-- **Made-up numbers**: if a live value is unavailable, it says
-  so and points to the Explorer. It never invents a value or
-  passes off an old one as current.
+- **Made-up numbers**: if neither the Explorer nor a web
+  search has a value, it says so kindly and links the
+  Explorer. It never invents a value or passes off an old one
+  as current.
 - **Private details**: it never shows node IP addresses or
   ports.
 
@@ -205,15 +244,17 @@ and names the site each figure comes from.
 ## 6. Good to know
 
 - **Numbers are live.** Most values refresh every 30 seconds.
-  Quorum counts and "nodes on the latest release" change
-  slowly and refresh every 2 minutes.
-- **Right after a restart**, quorum counts and "nodes on the
-  latest release" can take up to a minute to appear, because
-  they come from larger Explorer pages that load in the
-  background. Until then, questions about them get a
-  "not available right now" answer.
+  Quorum counts, "nodes on the latest release" and new nodes
+  in the last 24 hours change slowly and refresh every 2
+  minutes.
+- **Right after a restart**, those three can take up to a
+  minute to appear, because they come from larger Explorer
+  pages that load in the background. Until then, a question
+  about them goes to the web-search backup, and failing that
+  gets a "couldn't find it right now" answer.
 - **If the Explorer changes**, most values have a backup
-  source. Inactive and registered nodes, country figures and
-  total transactions have no backup. If the Explorer changes
+  source. Inactive and registered nodes, country and region
+  figures, blocks in the last hour and total transactions
+  have no backup. If the Explorer changes
   how it provides them, the bot says they're unavailable
   (never a wrong number) until the code is updated.
