@@ -1,111 +1,304 @@
 {
-  "knowledge_snapshot": "2026-08",
+  "knowledge_snapshot": "2026-10-18",
   "project": "EXIOM / XEQM",
   "source_priority": [
     "official_core_releases",
     "official_whitepaper",
     "official_technical_documentation",
+    "official_source_code",
     "official_live_explorer",
-    "official_explanatory_pages"
+    "official_explanatory_page"
   ],
-  "conflict_rule": "When official sources conflict, prefer newer production implementation or mandatory core release information, then newer technical documentation. Preserve the conflict in changelog.md rather than silently merging claims.",
+  "conflict_rule": "Prefer the newer production release, then the newer whitepaper, then the technical documentation. Older pages are kept only for what they alone cover. Every conflict found is recorded in changelog.md.",
+  "excluded": [
+    "GitBook 'Guides > Mainnet / Testnet' pages: legacy Equilibria (XEQ) testnet guides with old ports (18091), binaries (xeq-wallet-cli) and stakes (100k / 25k XEQ). They do not describe the XEQM mainnet.",
+    "GitBook legacy swap walkthroughs: the swap closed in April 2026; only its dates and audit facts are kept (history.md)."
+  ],
   "sources": [
     {
-      "id": "xeqm_whitepaper_v11",
-      "name": "XEQMLabs Technical Whitepaper",
-      "publisher": "XEQMLabs",
-      "type": "official_whitepaper",
-      "status": "authoritative_draft",
-      "version": "Draft v11",
-      "date": "2026-07-26",
-      "url": "https://github.com/XEQMLabs/whitepaper",
+      "id": "gitbook_docs",
+      "name": "XEQMLabs Docs (GitBook)",
+      "type": "official_technical_documentation",
+      "url": "https://xeqmlabs.gitbook.io/docs",
+      "checked": "2026-10-18",
       "covers": [
-        "network architecture",
-        "mainnet status",
-        "XEQM supply",
+        "complete documentation",
+        "mission statement"
+      ]
+    },
+    {
+      "id": "gitbook_service_nodes",
+      "name": "Service Nodes (SN)",
+      "type": "official_technical_documentation",
+      "url": "https://xeqmlabs.gitbook.io/docs/documentation/whitepaper/service-nodes-sn",
+      "checked": "2026-10-18",
+      "covers": [
+        "node uptime",
+        "decommission credits",
+        "penalties",
+        "deregistration",
+        "quorum tests",
+        "Pulse",
+        "Blink"
+      ],
+      "notes": "Its 7-day involuntary deregistration lock predates HF22 (now 14 days). Its 'HF19 batching' predates HF21 weekly batching."
+    },
+    {
+      "id": "gitbook_operator_guide",
+      "name": "SN Operator Guide",
+      "type": "official_technical_documentation",
+      "url": "https://xeqmlabs.gitbook.io/docs/documentation/sn-operator-guide",
+      "checked": "2026-10-18",
+      "covers": [
+        "node setup",
+        "Docker",
+        "ports",
+        "registration",
+        "wallet",
+        "troubleshooting",
+        "pool staking"
+      ]
+    },
+    {
+      "id": "gitbook_tokenomics",
+      "name": "Tokenomics",
+      "type": "official_technical_documentation",
+      "url": "https://xeqmlabs.gitbook.io/docs/documentation/whitepaper/tokenomics",
+      "checked": "2026-10-18",
+      "covers": [
+        "supply",
         "emissions",
-        "service nodes",
-        "staking",
-        "unbonding",
-        "governance",
+        "governance emission",
+        "allocation",
+        "staking rewards"
+      ],
+      "notes": "Its stake-based API tiers and 35/35/30 fee split are replaced by whitepaper Draft v12."
+    },
+    {
+      "id": "xeqm_whitepaper",
+      "name": "EXIOM Tokenomics Whitepaper",
+      "type": "official_whitepaper",
+      "version": "Draft v12",
+      "date": "2026-09-27",
+      "url": "https://github.com/XEQMLabs/whitepaper",
+      "checked": "2026-10-18",
+      "covers": [
+        "live vs planned status",
+        "supply",
+        "emissions",
+        "node economics",
         "HF22",
         "HF23",
-        "quorum diversity",
-        "network survivability",
-        "Lokinet",
-        "Developer API",
+        "survivability",
+        "EXIOM Oracle",
         "Privacy Oracle",
-        "RFQ platform",
-        "migration"
+        "RFQ",
+        "developer access",
+        "governance",
+        "roadmap"
+      ]
+    },
+    {
+      "id": "sybil_resistance",
+      "name": "Sybil Risk and EXIOM's Mitigation Model",
+      "type": "official_whitepaper",
+      "date": "2026-07-26",
+      "url": "https://github.com/XEQMLabs/xeqm-sybil-resistance",
+      "checked": "2026-10-18",
+      "covers": [
+        "sybil threat model",
+        "concentration signals",
+        "wallet splitting"
+      ]
+    },
+    {
+      "id": "ai_instructions",
+      "name": "EXIOM AI Instructions",
+      "type": "official_explanatory_page",
+      "date": "2026-07-18",
+      "url": "https://xeqmlabs.com/ai-instructions",
+      "checked": "2026-10-18",
+      "covers": [
+        "naming",
+        "disambiguation",
+        "how to describe the project"
       ],
-      "notes": "Draft technical specification. Production core implementation and later mandatory releases take priority if they conflict."
+      "notes": "Fixed-supply wording, stake-based tiers and 35/35/30 split are superseded by whitepaper v12."
+    },
+    {
+      "id": "faq",
+      "name": "EXIOM FAQ",
+      "type": "official_explanatory_page",
+      "url": "https://xeqmlabs.com/faq",
+      "checked": "2026-10-18",
+      "covers": [
+        "fundamentals",
+        "programmable privacy",
+        "legitimacy",
+        "where to buy"
+      ]
+    },
+    {
+      "id": "platform_whitepaper",
+      "name": "EXIOM Platform Whitepaper",
+      "type": "official_explanatory_page",
+      "date": "2026-08",
+      "url": "https://xeqmlabs.com/blog/exiom-platform-whitepaper",
+      "checked": "2026-10-18",
+      "covers": [
+        "platform architecture",
+        "EXIOMoracle",
+        "EXIOMnet",
+        "business model",
+        "go-to-market",
+        "regulatory context"
+      ]
+    },
+    {
+      "id": "what_is_xeqm",
+      "name": "What Is XEQM?",
+      "type": "official_explanatory_page",
+      "url": "https://xeqmlabs.com/blog/what-is-xeqm",
+      "checked": "2026-10-18",
+      "covers": [
+        "XEQM fundamentals"
+      ]
+    },
+    {
+      "id": "developer_platform_blog",
+      "name": "The EXIOM Developer Platform",
+      "type": "official_explanatory_page",
+      "url": "https://xeqmlabs.com/blog/xeqmlabs-developer-platform",
+      "checked": "2026-10-18",
+      "covers": [
+        "APIs",
+        "developer tools"
+      ],
+      "notes": "Still shows the stake-based tiers that whitepaper v12 replaced."
+    },
+    {
+      "id": "vision",
+      "name": "The XEQMLabs Vision",
+      "type": "official_explanatory_page",
+      "version": "Community Vision v1.4",
+      "url": "https://xeqmlabs.com/blog/xeqmlabs-vision",
+      "checked": "2026-10-18",
+      "covers": [
+        "vision",
+        "reference applications",
+        "sustainability"
+      ]
+    },
+    {
+      "id": "github_org",
+      "name": "XEQMLabs on GitHub",
+      "type": "official_source_code",
+      "url": "https://github.com/XEQMLabs",
+      "checked": "2026-10-18",
+      "covers": [
+        "all official repositories"
+      ]
+    },
+    {
+      "id": "xeqm_core",
+      "name": "XEQM Core",
+      "type": "official_source_code",
+      "url": "https://github.com/XEQMLabs/xeqm-core",
+      "checked": "2026-10-18",
+      "covers": [
+        "daemon",
+        "binaries",
+        "ports",
+        "building",
+        "monitoring",
+        "consensus rules"
+      ]
     },
     {
       "id": "xeqm_core_releases",
-      "name": "XEQM Core Official Releases",
-      "publisher": "XEQMLabs",
+      "name": "XEQM Core Releases",
       "type": "official_core_releases",
-      "status": "production_implementation",
       "url": "https://github.com/XEQMLabs/xeqm-core/releases",
+      "checked": "2026-10-18",
+      "latest": "core-v1.1.2 (2026-10-12)",
       "covers": [
-        "current core releases",
-        "mandatory upgrades",
-        "hard-fork activation",
-        "consensus changes",
         "HF21",
-        "reward batching"
-      ],
-      "notes": "Use release information for behavior actually activated in production. Do not assume the historically referenced v1.0.7 remains the latest release; latest-version questions require current verification."
+        "HF22",
+        "HF22 revision 1 Pulse-recovery",
+        "mandatory upgrades"
+      ]
     },
     {
-      "id": "xeqm_ai_instructions_20260718",
-      "name": "XEQMLabs AI Instructions",
-      "publisher": "XEQMLabs",
-      "type": "official_explanatory_page",
-      "status": "official_but_lower_priority_when_conflicting",
-      "date": "2026-07-18",
-      "url": "https://xeqmlabs.com/ai-instructions",
+      "id": "gui_wallet",
+      "name": "XEQMLabs GUI Wallet",
+      "type": "official_source_code",
+      "url": "https://github.com/XEQMLabs/XEQMLabs-GUI",
+      "checked": "2026-10-18",
+      "latest": "v2.3.3 (2026-10-12)",
       "covers": [
-        "project overview",
-        "privacy",
-        "service nodes",
-        "developer tiers",
-        "platform fees",
-        "migration",
-        "ecosystem terminology"
-      ],
-      "notes": "Useful official reference, but its fixed-supply wording conflicts with the newer July 26 whitepaper. Use the newer whitepaper for the supply model."
+        "GUI wallet install",
+        "features",
+        "file locations",
+        "backups"
+      ]
     },
     {
-      "id": "xeqm_explorer",
-      "name": "EXIOM Blockchain Explorer",
-      "publisher": "XEQMLabs",
+      "id": "gui_wallet_releases",
+      "name": "XEQMLabs GUI Wallet Releases",
+      "type": "official_core_releases",
+      "url": "https://github.com/XEQMLabs/XEQMLabs-GUI/releases",
+      "checked": "2026-10-18",
+      "covers": [
+        "GUI downloads"
+      ]
+    },
+    {
+      "id": "exiom_samples",
+      "name": "EXIOM API Sample Applications",
+      "type": "official_source_code",
+      "url": "https://github.com/XEQMLabs/exiom-samples",
+      "checked": "2026-10-18",
+      "covers": [
+        "API examples",
+        "API key",
+        "base URL"
+      ]
+    },
+    {
+      "id": "exiom_api_docs",
+      "name": "EXIOM API Docs",
+      "type": "official_technical_documentation",
+      "url": "https://api.exiom.network/docs",
+      "checked": "2026-10-18",
+      "covers": [
+        "OpenAPI reference"
+      ],
+      "notes": "Linked from exiom-samples; not read directly."
+    },
+    {
+      "id": "community_nodes",
+      "name": "XEQM Community Public Nodes",
+      "type": "official_source_code",
+      "url": "https://github.com/XEQMLabs/xeqm-community-nodes",
+      "checked": "2026-10-18",
+      "covers": [
+        "community public nodes",
+        "wallet RPC HTTPS"
+      ]
+    },
+    {
+      "id": "explorer",
+      "name": "Official EXIOM Explorer",
       "type": "official_live_explorer",
-      "status": "live_dynamic_source",
-      "url": "https://explorer.xeqmlabs.com/",
+      "url": "https://explorer.xeqmlabs.com",
+      "checked": "2026-10-18",
       "covers": [
         "blocks",
         "transactions",
-        "network observations",
-        "service-node observations",
-        "dynamic blockchain information"
+        "network statistics",
+        "service nodes"
       ],
-      "notes": "Dynamic explorer values must be fetched at runtime. Never treat a previously observed explorer value as permanently current."
-    },
-    {
-      "id": "xeqm_core_repository",
-      "name": "XEQM Core Repository",
-      "publisher": "XEQMLabs",
-      "type": "official_source_code",
-      "status": "implementation_reference",
-      "url": "https://github.com/XEQMLabs/xeqm-core",
-      "covers": [
-        "protocol implementation",
-        "consensus implementation",
-        "network code",
-        "release history"
-      ],
-      "notes": "Source code is an implementation reference. Exact behavior should be tied to the applicable release/version rather than inferred from arbitrary branches."
+      "notes": "Read live at runtime by live_data.py and explorer_lookup.py."
     }
   ]
 }

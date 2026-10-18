@@ -1002,7 +1002,10 @@ Source: [Official EXIOM Explorer](https://explorer.xeqmlabs.com/)
 Cite each web page you use as [site name](the page's full
 URL). A source is always a Markdown link, never plain text.
 Link only URLs you were given; never make one up.
-Explanations from verified knowledge need no source line.
+Each verified knowledge section ends with its official Source
+link. When your answer gives steps, commands, settings or
+figures from a section, end with that link (at most two).
+A short concept explanation needs none.
 Never name internal files (such as core.md) or "verified
 knowledge" as a source.
 
@@ -1103,8 +1106,8 @@ WEB SEARCH: ON
 ============================================================
 
 For this question the backend ran a web search, limited to
-XEQMLabs' own sites and the price trackers and exchanges that
-list XEQM. Its results come with this request.
+XEQMLabs' own sites, docs and GitHub, and the price trackers
+and exchanges that list XEQM. Its results come with this request.
 """ + WEB_SEARCH_RULES
 
 WEB_SEARCH_OPEN_SECTION = """
@@ -1117,9 +1120,9 @@ so the backend ran a web search. Its results come with this
 request. EXPLORER DATA is live and pages can be old: for any
 figure EXPLORER DATA has, use EXPLORER DATA's. Other
 companies are also called Exiom: use a page only if it names
-XEQM or XEQMLabs. Prefer xeqmlabs.com, the
-Explorer, the XEQMLabs GitHub, then CoinGecko or
-CoinMarketCap.
+XEQM or XEQMLabs. Prefer xeqmlabs.com, the XEQMLabs
+docs (xeqmlabs.gitbook.io), the Explorer, the XEQMLabs
+GitHub, then CoinGecko or CoinMarketCap.
 """ + WEB_SEARCH_RULES
 
 WEB_SEARCH_UNAVAILABLE_SECTION = """

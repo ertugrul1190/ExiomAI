@@ -13,10 +13,29 @@ STOP_WORDS = {
 }
 
 
+def stem(word):
+    """
+    Drop a common English suffix, so "earn" meets "earnings"
+    and "deregistered" meets "deregister". Applied to the
+    question and the knowledge alike; a stem shorter than
+    three letters keeps the word whole.
+    """
+
+    for suffix in ("ings", "ing", "ed", "s"):
+        if (
+            word.endswith(suffix)
+            and not word.endswith("ss")
+            and len(word) - len(suffix) >= 3
+        ):
+            return word[:-len(suffix)]
+
+    return word
+
+
 def normalize_words(text):
     words = re.findall(r"[a-zA-Z0-9]+", text.lower())
     return {
-        word for word in words
+        stem(word) for word in words
         if word not in STOP_WORDS and len(word) > 1
     }
 
@@ -138,6 +157,11 @@ def build_knowledge_sections(documents):
 
 # Important XEQM concepts. A section that shares one with the
 # question earns extra weight in _score().
+#
+# A term matches whole words (plural "s" allowed): "pos"
+# never matches "purpose", nor "apy" "happy". A trailing "*"
+# makes it a stem: "deregist*" matches deregister,
+# deregistered and deregistration.
 CONCEPT_GROUPS = {
     "service node": [
         "service node",
@@ -148,26 +172,26 @@ CONCEPT_GROUPS = {
         "stake",
         "staking",
         "staked",
-        "contribution",
-        "contributor"
+        "contribut*",
+        "collateral",
+        "how many xeqm",
+        "how much xeqm",
+        "operator fee",
+        "operator cut"
     ],
     "unbonding": [
-        "unbond",
-        "unbonding",
-        "withdraw",
-        "withdrawal"
+        "unbond*",
+        "withdraw*"
     ],
     "supply": [
         "supply",
         "emission",
-        "mint",
+        "mint*",
         "inflation"
     ],
     "rewards": [
         "reward",
-        "rewards",
-        "earn",
-        "earning",
+        "earn*",
         "yield"
     ],
     "privacy": [
@@ -216,7 +240,83 @@ CONCEPT_GROUPS = {
         "pos",
         "quorum",
         "pulse"
+    ],
+
+    # Operator topics from the official GitBook and core
+    # README.
+    "penalties": [
+        "offline",
+        "downtime",
+        "decomm*",
+        "deregist*",
+        "slash*",
+        "penalt*",
+        "credits",
+        "grace period"
+    ],
+    "uptime": [
+        "uptime"
+    ],
+    "earnings": [
+        "apy",
+        "per month",
+        "monthly",
+        "income",
+        "profit",
+        "roi"
+    ],
+    "payout": [
+        "payout",
+        "paid out",
+        "pay out",
+        "batch"
+    ],
+    "registration": [
+        "register*",
+        "registration"
+    ],
+    "setup": [
+        "set up",
+        "setup",
+        "install*",
+        "docker",
+        "hardware",
+        "vps"
+    ],
+    "ports": [
+        "port",
+        "firewall"
+    ],
+    "upgrade": [
+        "update*",
+        "upgrade*",
+        "latest version",
+        "new version"
+    ],
+    "wallet": [
+        "wallet",
+        "seed"
     ]
+}
+
+
+def _terms_pattern(terms):
+    return re.compile(
+        r"\b(?:" + "|".join(
+            re.escape(term[:-1]) if term.endswith("*")
+            else re.escape(term) + r"s?\b"
+            for term in terms
+        ) + ")"
+    )
+
+
+# canonical -> (name or variants, variants only)
+CONCEPT_PATTERNS = {
+    canonical: (
+        _terms_pattern((canonical, *variants)),
+        _terms_pattern(variants),
+    )
+    for canonical, variants in CONCEPT_GROUPS.items()
 }
 
 
@@ -228,12 +328,8 @@ def _mentioned_concepts(*texts):
 
     return frozenset(
         canonical
-        for canonical, variants in CONCEPT_GROUPS.items()
-        if any(
-            term in text
-            for text in texts
-            for term in (canonical, *variants)
-        )
+        for canonical, (any_term, _) in CONCEPT_PATTERNS.items()
+        if any(any_term.search(text) for text in texts)
     )
 
 
@@ -279,11 +375,8 @@ def _question_index(question):
         "words": normalize_words(question),
         "concepts": frozenset(
             canonical
-            for canonical, variants in CONCEPT_GROUPS.items()
-            if any(
-                variant in question_lower
-                for variant in variants
-            )
+            for canonical, (_, variant) in CONCEPT_PATTERNS.items()
+            if variant.search(question_lower)
         ),
     }
 
@@ -339,7 +432,7 @@ def retrieve_knowledge(
     limit=6,
     char_budget=7000,
     max_section_chars=2200,
-    min_score_ratio=0.2
+    min_score_ratio=0.6
 ):
     """
     Select the verified knowledge worth paying to send.
@@ -347,7 +440,9 @@ def retrieve_knowledge(
     Three limits apply, strongest first:
 
     1. relevance   — a section far weaker than the best match
-                     adds tokens without adding evidence
+                     adds tokens without adding evidence (below
+                     0.6 of the best score; tests/test_knowledge.py
+                     keeps every golden answer at that cut)
     2. section size — one enormous section cannot consume the
                      whole budget
     3. total size  — the combined context stays predictable

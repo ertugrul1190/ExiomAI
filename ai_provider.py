@@ -83,7 +83,8 @@ SEARCH_MAX_OUTPUT_TOKENS = 2400
 # Search and Usage Page.md".
 #
 # Searches are restricted to these domains (subdomains
-# included): XEQMLabs' own sites, its code, and the price
+# included): XEQMLabs' own sites and docs (GitBook, the
+# API at exiom.network), its code, and the price
 # trackers and exchanges that list XEQM. Overridable with a
 # comma-separated EXIOM_WEB_SEARCH_DOMAINS; EXIOM_WEB_SEARCH=0
 # switches search off.
@@ -91,12 +92,15 @@ SEARCH_MAX_OUTPUT_TOKENS = 2400
 
 DEFAULT_WEB_SEARCH_DOMAINS = (
     "xeqmlabs.com",
+    "xeqmlabs.gitbook.io",
+    "exiom.network",
     "github.com",
     "coingecko.com",
     "coinmarketcap.com",
     "livecoinwatch.com",
     "coinpaprika.com",
     "nonkyc.io",
+    "nonlogs.io",
     "mexc.com",
     "lbank.com",
 )

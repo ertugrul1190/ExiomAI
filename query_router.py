@@ -77,10 +77,19 @@ def names_exiom(question):
     return bool(EXIOM_NAME.search(question or ""))
 
 
-# Network terms that, in a chat about EXIOM, mean EXIOM.
+# Network terms that, in a chat about EXIOM, mean EXIOM. The
+# operator, wallet and platform words come from the official
+# docs (knowledge/sources.json). Only unambiguous ones: "port",
+# "oracle", "stake" or "blink" alone are everyday words too,
+# and the router prompt covers "which ports do I open?".
 EXIOM_TOPIC = re.compile(
     r"\b(service nodes?|nodes|staking|stakers?|quorums?|block height"
-    r"|hard ?forks?|hf ?\d+|explorer|mempool|circulating supply)\b",
+    r"|hard ?forks?|hf ?\d+|explorer|mempool|circulating supply"
+    r"|pulse[- ]recovery|uptime proofs?"
+    r"|decommission\w*|deregist\w*|recommission\w*"
+    r"|registration command|operator (fee|cut)"
+    r"|unstake|unstaking|unbond\w*|pool nodes?"
+    r"|(gui|cli) wallet|wallet rpc|oracle sidecar|lokinet|llarp)\b",
     re.IGNORECASE
 )
 
@@ -154,6 +163,10 @@ RELEVANT means the message concerns:
 - EXIOM, XEQM, or ExiomAI itself
 - cryptocurrency/blockchain concepts reasonably useful for
   understanding EXIOM
+- running, staking on or fixing a node, wallet, oracle or
+  the API, even unnamed: "Which ports do I open?",
+  "What is Pulse-recovery?", "Why was I decommissioned?",
+  "What sample apps are there for the API?"
 - a follow-up to an EXIOM conversation
 
 ANY question about THIS assistant is RELEVANT, including its

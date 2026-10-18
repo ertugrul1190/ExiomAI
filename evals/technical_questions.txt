@@ -1,0 +1,46 @@
+# Technical questions for live_eval.py, written from the
+# official sources in knowledge/sources.json (see "Task Docs/
+# Official Sources - Knowledge Refresh.md"). Each answer is
+# checked by eye against the documented fact noted after it.
+#
+#   python live_eval.py evals/technical_questions.txt --parallel 2
+#
+# Service nodes: uptime, credits, penalties, deregistration
+How do decommission credits work?
+How long can my node be offline before it gets deregistered?
+My node got decommissioned, what do I do?
+How often does a service node send uptime proofs?
+If my node gets deregistered, how long is my stake locked and do I lose it?
+What tests does a quorum run on my node?
+# Operator guide: setup and troubleshooting
+What do I need to run a service node?
+Which ports do I need to open?
+How do I generate the registration command for a pool node?
+My RPC calls say connection closed on Windows, how do I fix it?
+My last uptime proof is 40 minutes old, what should I check?
+How do I update my node, do I need to resync?
+How do I stake 20,000 XEQM into someone else's node?
+# Tokenomics: supply, emissions, staking rewards
+Does XEQM have a maximum supply?
+How much XEQM is created every day?
+How much does one service node earn per month?
+How often are staking rewards paid?
+What is the emission allocation?
+Can XEQM be burned?
+# Hard forks and releases
+What did HF22 change?
+What is Pulse-recovery and when does it activate?
+What version of XEQM core should I run?
+Is HF23 live?
+# Developer platform
+Do I need to stake XEQM to use the EXIOM API?
+How is platform revenue split?
+Is the EXIOM Oracle live and how is it secured?
+What sample apps are there for the API?
+# Wallets and community nodes
+Where do I get the GUI wallet and which platforms are supported?
+The XEQM GUI on my Mac says the app is damaged
+How do I add HTTPS to a community public node?
+# Fundamentals
+Is EXIOM just a Monero clone?
+What is the difference between EXIOM and XEQM?

@@ -1,360 +1,66 @@
-# EXIOM / XEQM CORE KNOWLEDGE
+# EXIOM OVERVIEW
 
-SOURCE PRIORITY:
-1. Official XEQMLabs whitepaper / GitHub
-2. Official XEQMLabs website
-3. Official EXIOM explorer
-4. Other official XEQMLabs documentation
+## What EXIOM and XEQM are
 
-If sources conflict, prefer the newest official source and clearly distinguish LIVE, IN DEVELOPMENT, and PLANNED features.
+EXIOM is a privacy-preserving, pure Proof-of-Stake Layer 1 network and commercial developer platform, run by a global set of service nodes and built by XEQMLabs (XEQM Labs), its parent organization. Tagline: "Privacy you can build on."
 
----
+XEQM is EXIOM's native coin: the access and usage coin of the platform. It is a native Layer 1 coin, not an ERC-20, not wrapped, not bridged and not tokenized on another chain. XEQM is the coin; EXIOM is the network and platform.
 
-## WHAT EXIOM IS
+The idea: most privacy coins stop at the wallet. EXIOM makes privacy programmable, a developer API for private identity, private data delivery, private access control and private value transfer inside any application.
 
-EXIOM is a privacy-focused Layer 1 blockchain network and developer platform created by XEQM Labs.
+Source: [EXIOM Tokenomics Whitepaper](https://github.com/XEQMLabs/whitepaper)
 
-XEQM is the native coin used on the EXIOM network.
+## Names: Equilibria, XEQ, Horizon, Ragnarok
 
-EXIOM was previously known as Equilibria, whose ticker was XEQ. The project migrated from XEQ to XEQM and launched the EXIOM mainnet on May 6, 2026.
+EXIOM is the current identity of the project formerly called Equilibria (ticker XEQ). The Horizon migration replaced XEQ with XEQM; Equilibria/XEQ is the legacy name, now sunset. They are one project, not separate or competing ones. The mainnet is code-named "Ragnarok" (core releases are named XEQMLabs 'Ragnarok'). The project has a continuous history of more than seven years: it started as a Proof-of-Work coin and became pure Proof-of-Stake through Horizon.
 
-EXIOM uses 100% Proof-of-Stake consensus. It does not currently use Proof-of-Work mining.
+Source: [EXIOM AI Instructions](https://xeqmlabs.com/ai-instructions)
 
-The main idea behind EXIOM is to make privacy useful not only for private cryptocurrency transactions, but also for software and applications built by developers.
+## Live today vs planned (October 2026)
 
----
+- LIVE: EXIOM mainnet (since May 6, 2026); service node network (943 active nodes on Sep 27, 2026; the Explorer has today's count); GUI wallet; node explorer; EXIOM Oracle (on Robinhood Chain, 12-member operator committee); HF22 (active since block 219,120, Oct 5, 2026).
+- LIVE IN BETA: EXIOM developer API (self-serve keys, signed compliance claims, verification engine, OpenAPI docs).
+- COMPLETED: XEQ to XEQM coin swap (35 days, closed).
+- SCHEDULED: HF22 revision 1, Pulse-recovery, at block 236,920 (~Oct 18, 2026 19:00 UTC).
+- FOUNDATIONS LIVE, FULL PRODUCT PHASE 3: EXIOM Privacy Oracle (TLSNotary / zero-knowledge).
+- IN DEVELOPMENT: EXIOM RFQ trading platform (XEQM/BTC first).
+- IN DESIGN, TARGET Q4 2026: HF23 (proximity cluster cap, zero-reward modifier, Lokinet transport).
+- PLANNED: formal on-chain governance (Phase 6).
 
-## SIMPLE EXPLANATION OF A SERVICE NODE
+Sources: [EXIOM Tokenomics Whitepaper](https://github.com/XEQMLabs/whitepaper), [XEQM Core Releases](https://github.com/XEQMLabs/xeqm-core/releases)
 
-A service node is a computer running EXIOM software that stays connected to the network and helps operate and secure it.
+## Privacy technology
 
-People lock XEQM into a service node as a commitment to the network.
+XEQM uses Monero-based cryptography from the CryptoNote lineage: ring signatures (hide which participant signed), stealth addresses (one-time destinations, so payments can't be linked to a public address) and confidential amounts. On-chain, a transaction reveals neither sender, receiver nor amount; balances and transaction graphs are unreadable by design. The core code descends from Monero, then Loki/Oxen (service nodes, Pulse, obligations quorums, OxenMQ, checkpointing). EXIOM shares Monero's privacy model but is a distinct network with its own consensus and platform: never call it a Monero clone. The docs do not state EXIOM-specific ring size or range-proof parameters.
 
-The locked XEQM is called a stake.
+Sources: [EXIOM FAQ](https://xeqmlabs.com/faq), [XEQM Core](https://github.com/XEQMLabs/xeqm-core)
 
-A service node can be funded by one person or by several people together.
+## Consensus: Pulse and Blink
 
----
+EXIOM is 100% Proof-of-Stake, with no Proof-of-Work mining. Service nodes run Pulse, the consensus mechanism: each block needs a quorum of active service nodes; block production is deterministic and stake-weighted. Pulse rounds have a 30-second timeout and target 60-second blocks. Pulse needs at least 12 active service nodes; since HF22 it skips a block when fewer than 12 distinct operators are available. Block rewards are assigned by wait-time ordering, independent of quorum seats.
 
-## SERVICE NODE STAKING
+Blink transactions give near-instant confirmation through quorum-based validation. In the CLI wallet, blink is the default transfer priority.
 
-One complete EXIOM service node requires:
+Sources: [Service Nodes (SN)](https://xeqmlabs.gitbook.io/docs/documentation/whitepaper/service-nodes-sn), [XEQM Core Releases](https://github.com/XEQMLabs/xeqm-core/releases)
 
-200,000 XEQM total.
+## Official links and community
 
-There are two common ways to reach that amount.
+- Website: xeqmlabs.com. Explorer: explorer.xeqmlabs.com.
+- Docs: xeqmlabs.gitbook.io/docs (the older equilibria-network.gitbook.io address on the AI Instructions page is the legacy one).
+- Whitepaper: github.com/XEQMLabs/whitepaper. Code: github.com/XEQMLabs.
+- GUI wallet: github.com/XEQMLabs/XEQMLabs-GUI. API docs: api.exiom.network/docs.
+- Telegram: t.me/XEQCommunity (also linked: t.me/ExiomXEQM). X: x.com/ExiomXEQM.
 
-### SOLO NODE
+Sources: [XEQM Core](https://github.com/XEQMLabs/xeqm-core), [XEQMLabs Docs](https://xeqmlabs.gitbook.io/docs)
 
-One person provides the full 200,000 XEQM.
+## Where XEQM trades
 
-That person operates the node alone.
+Official pages list the XEQM/USDT market on NonKYC (nonkyc.io/market/XEQM_USDT). The XEQM Core README also lists NonLogs: XEQM/BTC (nonlogs.io/trade/XEQM-BTC) and XEQM/USDT (nonlogs.io/trade/XEQM-USDT). Listings can change: say these are the official listings, not a guarantee the market is open right now. XEQMLabs gives no financial advice and does not encourage buying for price appreciation.
 
-### SHARED NODE
+Sources: [XEQM Core](https://github.com/XEQMLabs/xeqm-core), [EXIOM FAQ](https://xeqmlabs.com/faq)
 
-Several people can combine their XEQM to reach the same 200,000 XEQM total.
+## Is XEQM legitimate
 
-The person who creates and runs the shared node is called the operator.
+Points from official material: more than seven years of continuous operation; open-source code; a live public explorer; auditable supply; a "no trust required" migration in which every swap deposit was recorded in a public ledger with a SHA-256 fingerprint and the spend keys of the deposit, genesis and distribution wallets were published, so anyone can audit the full history. The governance wallet address and view key are published too.
 
-The operator must personally provide at least:
-
-100,000 XEQM.
-
-Other people may then contribute XEQM toward the remaining space in the node.
-
-These people are community contributors.
-
-The minimum contribution for one community contributor slot is:
-
-10,000 XEQM.
-
-IMPORTANT:
-
-10,000 XEQM is the minimum contribution, not a rule saying every contributor must contribute exactly 10,000 XEQM.
-
-A contributor may be able to contribute more than 10,000 XEQM as long as the shared node still has room available before reaching its 200,000 XEQM total.
-
-A shared node can have up to 10 community contributor slots in addition to the operator.
-
-The total community contribution space is up to 100,000 XEQM because the operator must provide at least half of the 200,000 XEQM node requirement.
-
----
-
-## WITHDRAWING FROM A SERVICE NODE
-
-The current voluntary unbonding period is 14 days.
-
-In simple terms:
-
-If someone chooses to remove their XEQM stake from a service node, the coins are not immediately released.
-
-They enter a waiting period of about 14 days before becoming available again.
-
-According to the current whitepaper, rewards continue during voluntary withdrawal's 14-day unbonding period.
-
-Forced deregistration also uses a 14-day unbonding period, but rewards do not continue during that period.
-
----
-
-## SERVICE NODE REWARDS
-
-EXIOM creates a new block approximately every 60 seconds.
-
-The current protocol block reward is 8.25 XEQM per block.
-
-This results in approximately 11,880 XEQM of service-node block emissions per day across the network.
-
-Rewards depend on network conditions and the number of active nodes.
-
-Do not guarantee any user's earnings or future return.
-
-Starting with HF21, accumulated block rewards are paid on approximately weekly batches rather than every few minutes.
-
----
-
-## OPERATOR FEE
-
-A shared-node operator may charge an operator fee.
-
-The current maximum operator fee is 10%.
-
-The operator fee should not be confused with the operator's stake.
-
-The stake is XEQM locked into the node.
-
-The operator fee is the percentage arrangement used when distributing rewards from a shared node.
-
----
-
-## XEQM SUPPLY
-
-At EXIOM mainnet launch on May 6, 2026, the verified starting supply was:
-
-276,917,604 XEQM.
-
-This was created after the migration from legacy XEQ holdings.
-
-XEQM does NOT have a hard maximum supply.
-
-The total supply grows over time through scheduled protocol emissions.
-
-There are currently two protocol-level emission streams:
-
-- service-node block rewards
-- governance emissions
-
-There are no discretionary or arbitrary mints according to the current design.
-
-In simple words:
-
-The team cannot simply decide to create any amount of XEQM whenever it wants.
-
-New XEQM enters supply according to predefined network rules.
-
-XEQM does not use a conventional provable coin-burn mechanism.
-
----
-
-## GOVERNANCE EMISSIONS
-
-The current whitepaper describes governance emissions of approximately:
-
-17,857 XEQM per day.
-
-These emissions fund areas such as:
-
-- core development
-- marketing and awareness
-- ecosystem/community work
-- security and audits
-- long-term reserves
-
-These parameters may change as the project develops, so current values should be checked against the newest official documentation when necessary.
-
----
-
-## PRIVACY
-
-EXIOM is designed around privacy-preserving technology.
-
-Its privacy architecture builds on CryptoNote/Monero-derived cryptographic technology.
-
-Relevant concepts include:
-
-- ring signatures
-- stealth addresses
-- confidential transaction amounts
-
-Do not tell a beginner only the names of these technologies.
-
-Explain what they mean in simple language when they are relevant.
-
-For example:
-
-A stealth address helps prevent an observer from easily linking a payment on the blockchain to the recipient's normal public address.
-
----
-
-## DEVELOPER PLATFORM
-
-STATUS: IN DEVELOPMENT
-
-The EXIOM Private Developer API is currently described by XEQM Labs as being in active development.
-
-Its goal is to let developers use EXIOM's privacy capabilities through software APIs.
-
-Do not describe the developer API as fully live today unless newer official information confirms that status.
-
-Current planned access tiers in the whitepaper are:
-
-Free:
-- no XEQM stake
-- 10,000 testnet calls per month
-
-Builder:
-- 1,000 XEQM staked
-- 100,000 mainnet calls per month
-
-Production:
-- 10,000 XEQM staked
-- 1,000,000 calls per month
-- webhooks
-- priority support
-
-Enterprise:
-- 50,000 XEQM staked
-- unlimited calls
-- custom rate limits
-- SLA
-
-Developer-tier stakes are described as access commitments rather than payments.
-
-The current planned developer-tier unbonding period is 7 days.
-
----
-
-## PLATFORM FEES
-
-For the planned EXIOM developer platform, the current fee distribution model is:
-
-35% to API node operators
-
-35% to the XEQM Labs treasury
-
-30% to community governance
-
-Because the developer platform is still in development, do not imply that all platform fee flows are already operating at full production scale.
-
----
-
-## EXIOM PRIVACY ORACLE
-
-STATUS: DESIGNED / PRE-IMPLEMENTATION
-
-The Privacy Oracle is not currently a finished public product.
-
-Its intended purpose is to let an application prove something about private data without exposing the underlying private data itself.
-
-Example:
-
-Instead of revealing someone's exact account balance, an application might prove only that the balance is above a required amount.
-
-The current roadmap places the Privacy Oracle after the developer API work.
-
----
-
-## EXIOM RFQ TRADING PLATFORM
-
-STATUS: IN DEVELOPMENT
-
-The EXIOM RFQ trading platform is intended to be a peer-to-peer over-the-counter trading system built on the EXIOM API.
-
-The first planned pair is XEQM/BTC.
-
-Do not describe it as a currently finished public exchange unless newer official information confirms that.
-
----
-
-## LOKINET
-
-STATUS: ENGINEERING ASSESSMENT / FUTURE NETWORK TRANSPORT
-
-Lokinet technology exists in the EXIOM codebase, but its activation is still being assessed according to the current whitepaper.
-
-The intended future goal is to hide direct network addresses by routing traffic through privacy-preserving paths.
-
-Do not tell users Lokinet is already fully active on EXIOM unless current official information confirms it.
-
----
-
-## CURRENT MAINNET STATUS
-
-The EXIOM mainnet is live.
-
-It launched on May 6, 2026.
-
-The service-node network is live.
-
-The GUI wallet is live.
-
-The node explorer is live.
-
-The developer API is still in development.
-
-The Privacy Oracle is designed but not yet implemented as a finished public product.
-
-The RFQ trading platform is in development.
-
----
-
-## XEQM AS A NATIVE COIN
-
-XEQM is the native coin of the EXIOM Layer 1 blockchain.
-
-It is not an ERC-20 token.
-
-It is not simply a token running on Ethereum.
-
-It is not a wrapped asset or bridged representation according to the current whitepaper.
-
----
-
-## MIGRATION HISTORY
-
-The project previously operated as Equilibria using ticker XEQ.
-
-The legacy XEQ-to-XEQM migration has been completed and closed.
-
-The migration ran for 35 days.
-
-The project says the migration records were published in a cryptographically auditable ledger.
-
----
-
-## BUYING / TRADING XEQM
-
-Exchange availability and market pairs can change.
-
-Never treat an old exchange listing as guaranteed current information.
-
-When the user asks where XEQM can currently be bought or what its current price is, live/current information should be checked rather than relying only on this knowledge file.
-
----
-
-## ACCURACY RULES
-
-Never invent an XEQM fact.
-
-Never guarantee price appreciation, node profit, staking profit, or investment returns.
-
-Clearly distinguish:
-
-LIVE
-IN DEVELOPMENT
-PLANNED
-
-If a value may have changed, say so and use current official data when live-data access is available.
-
-When newer official documentation conflicts with older information, use the newer official documentation.
-
-The current official whitepaper is a draft and may itself be updated as EXIOM develops.
+Source: [EXIOM FAQ](https://xeqmlabs.com/faq)

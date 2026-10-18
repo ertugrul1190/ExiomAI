@@ -203,3 +203,39 @@ def test_market_questions_are_recognised(question):
 ])
 def test_other_questions_are_not(question):
     assert not query_router.asks_for_current_market_info(question)
+
+
+# Operator questions that name neither EXIOM nor XEQM (the
+# router sent "What is Pulse-recovery?" off-topic).
+@pytest.mark.parametrize("question", [
+    "What is Pulse-recovery and when does it activate?",
+    "my uptime proof is 40 minutes old",
+    "why was I decommissioned",
+    "how long after deregistration can I withdraw",
+    "how do I generate the registration command",
+    "what is the max operator fee",
+    "how do I unstake",
+    "the GUI wallet won't open",
+    "how do I start wallet rpc",
+    "what is the oracle sidecar",
+    "is lokinet live",
+    "how do I stake into a pool node",
+])
+def test_operator_terms_count_as_exiom_topics(question):
+    assert query_router.names_exiom_topic(question)
+
+
+@pytest.mark.parametrize("question", [
+    "how many calories are in rice",
+    "write me a poem about the sea",
+    "what's the weather in paris",
+    "best pizza in rome",
+    "what port does postgres use",
+    "how do I write an oracle sql join",
+    "what's at stake in the election",
+    "renew my car registration",
+    "why do eyes blink",
+    "what is the aws uptime sla",
+])
+def test_everyday_questions_are_not_exiom_topics(question):
+    assert not query_router.names_exiom_topic(question)
