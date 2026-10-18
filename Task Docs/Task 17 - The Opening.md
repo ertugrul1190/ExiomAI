@@ -330,3 +330,47 @@ its one column took the footer line's full width. It is now
 **Verified.** Measured with Playwright WebKit (table above),
 and checked by screenshot. The chat column is 320px on a
 320px screen.
+
+## 17.13 The name in the bar, one small print
+
+- **Name beside the logo.** The chat bar reads [logo] ExiomAI
+  on every screen. The name is set in Audiowide with the same
+  flowing gradient as the landing title (`.brand-name`). The
+  screen-reader label is unchanged: "ExiomAI, back to the
+  intro".
+- **Status chip off on phones.** "Awake and ready to help" is
+  hidden under 600px, so the name has the bar to itself.
+- **Small print on desktop too.** The full privacy note no
+  longer sits under the composer on wide screens. Every width
+  now shows the one-line gist and a Small print toggle that
+  opens the note as a card above the composer. The card
+  lines up with the chat column.
+- **Landing copy up on phones.** The arrow gets a 44px top
+  margin. The hero is bottom-anchored, so the arrow stays
+  where it was and the copy from "Welcome to" to Start
+  chatting rises 44px, closing the gap under the brain. Short
+  phones (≤620px tall) keep the old spacing, since the title
+  already only just clears the top bar there.
+
+**Verified.** Chat screen checked by headless Chrome screenshot
+at 1400px and 412px. The landing intro doesn't render
+headless, so the lift is checked in CSS only.
+
+## 17.14 Answers in Inter, a softer network on phones
+
+- **Answer type.** ExiomAI's answers (`.msg-body`) are set in
+  Inter, the nearest free match to OpenAI Sans, the face of
+  ChatGPT's answers (that one is licensed, so it can't be
+  hosted). Inter is self-hosted as `fonts/inter-latin-wght.woff2`
+  (OFL, with its license beside it). The user's bubbles keep
+  Mona Sans.
+- **Bigger and heavier.** Answers are 17px on desktop (was 16)
+  and 15px on phones (was 14), at weight 500. Bold text inside
+  them goes to 700 and headings to 650, so both still stand
+  out.
+- **Blur on phones.** The chat's network canvas (`.chamber`)
+  gets `blur(1.5px)` under 600px wide. The landing brain is
+  untouched.
+
+**Verified.** A sample answer and the phone chat screen were
+checked by headless Chrome screenshot.
