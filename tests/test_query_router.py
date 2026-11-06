@@ -166,7 +166,7 @@ def test_an_unrelated_question_never_searches():
 def test_router_prompt_asks_for_the_search_flag():
     prompt = build_router_prompt({})
 
-    assert '"search":false' in prompt
+    assert '"search":<true|false>' in prompt
     assert "price" in prompt.lower()
 
 
@@ -239,3 +239,124 @@ def test_operator_terms_count_as_exiom_topics(question):
 ])
 def test_everyday_questions_are_not_exiom_topics(question):
     assert not query_router.names_exiom_topic(question)
+
+
+# ---------------------------------------------------------
+# ANSWER QUALITY (Task Docs/Answer Quality and Image Upload)
+# ---------------------------------------------------------
+
+def test_the_output_example_names_no_real_intent():
+    # At minimal reasoning the router echoed the example: every
+    # question came back as "explanation".
+    prompt = build_router_prompt(REGISTRY)
+    output = prompt.split("OUTPUT")[1]
+    example = next(
+        line for line in output.splitlines() if line.startswith("{")
+    )
+
+    for intent in ("direct_live_fact", "explanation", "general", "mixed"):
+        assert f'"{intent}"' not in example
+
+
+def test_the_prompt_works_through_price_tracker_and_can_i_questions():
+    prompt = " ".join(build_router_prompt(REGISTRY).split())
+
+    assert '"whats the coin price" → scope relevant, intent general, search true' in prompt
+    assert '"what does nonkyc and coinpaprika say" → scope relevant' in prompt
+    assert '"can I stake 60k?" → intent general, search false' in prompt
+
+
+@pytest.mark.parametrize("question", [
+    "what does market cap mean?",
+    "Meaning of trading volume",
+    "define market cap",
+    "explain the 24h volume",
+    "how is the market cap calculated",
+    "what is a market cap",
+    "what is market cap",
+])
+def test_concept_questions_are_recognised(question):
+    assert query_router.asks_what_it_means(question)
+
+
+@pytest.mark.parametrize("question", [
+    "whats the coin price",
+    "what is the market cap",
+    "whats xeqm market cap",
+    "what does nonkyc and coinpaprika say",
+    "price?",
+])
+def test_value_questions_are_not_concept_questions(question):
+    assert not query_router.asks_what_it_means(question)
+
+
+@pytest.mark.parametrize("question", [
+    "whats the coin price",
+    "what does nonkyc and coinpaprika say",
+    "coingecko?",
+    "what does CMC show",
+    "check coinmarketcap",
+    "livecoinwatch",
+    "what do the trackers say",
+    "what do price trackers show",
+    "how much is my 60k worth",
+])
+def test_tracker_names_ask_for_the_price(question):
+    assert query_router.asks_for_price(question)
+
+
+@pytest.mark.parametrize("question", [
+    "is it worth running a node?",
+    "is staking worth it",
+])
+def test_worth_it_is_not_a_price_question(question):
+    assert not query_router.asks_for_price(question)
+    assert not query_router.asks_for_current_market_info(question)
+
+
+@pytest.mark.parametrize("question, named", [
+    ("what does nonkyc and coinpaprika say", True),
+    ("CoinGecko?", True),
+    ("whats the coin price", True),
+    ("price of the coin?", True),
+    ("price of eggs", False),
+    ("flip a coin", False),
+    ("the cmcs of brazil", False),
+    ("whats the best fitness tracker", False),
+    ("is the cmc api free", False),
+])
+def test_xeqm_price_wording_is_recognised(question, named):
+    assert query_router.names_xeqm_price(question) is named
+
+
+def test_named_trackers_are_listed_in_the_order_asked():
+    assert query_router.named_trackers(
+        "what does coinpaprika and NonKYC say, and Coin Gecko?"
+    ) == ["coinpaprika", "nonkyc", "coingecko"]
+    assert query_router.named_trackers("whats the coin price") == []
+    assert query_router.named_trackers("livecoinwatch price") == []
+
+
+@pytest.mark.parametrize("answer", [
+    "I don't have the current figures from NonKYC in this chat, but",
+    "I do not have live prices right now.",
+    "I can't access real-time prices.",
+    "You can check the price on CoinGecko.",
+    "Check it at nonkyc.io for the latest.",
+    "Please visit CoinPaprika for the latest price.",
+    "I can guide you to the exact pages where it is listed.",
+    "Search for XEQM on their site to see it.",
+])
+def test_deflections_are_recognised(answer):
+    assert query_router.is_deflection(answer)
+
+
+@pytest.mark.parametrize("answer", [
+    "XEQM is $0.0203 on NonKYC right now.",
+    "Yes: as a contributor to a pool node (minimum 10,000 XEQM).",
+    "Find an open node on the Explorer, then run `stake`.",
+    "Check that port 9230 is open on your firewall.",
+    "I don't have to stake all 200,000 myself: a pool node works.",
+])
+def test_real_answers_are_not_deflections(answer):
+    assert not query_router.is_deflection(answer)

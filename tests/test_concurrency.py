@@ -19,7 +19,7 @@ import app as application
 import loadtest
 import usage_control
 
-from test_ask_endpoint import FakeProvider, provider  # noqa: F401
+from test_ask_endpoint import OPENING, FakeProvider, provider  # noqa: F401
 
 
 PROVIDER_DELAY = 0.05
@@ -39,6 +39,11 @@ class SlowProvider(FakeProvider):
         return super().generate(*args, **kwargs)
 
     def stream_generate(self, *args, **kwargs):
+        # An opening past app.DEFLECTION_WINDOW, so the rest
+        # streams straight through.
+        time.sleep(PROVIDER_DELAY)
+        yield OPENING
+
         for chunk in super().stream_generate(*args, **kwargs):
             time.sleep(PROVIDER_DELAY)
             yield chunk
@@ -107,7 +112,7 @@ def test_concurrent_streams_arrive_progressively(server):
     for result in results:
 
         assert result["status"] == 200
-        assert result["answer"] == f"answer to {result['question']}"
+        assert result["answer"] == OPENING + f"answer to {result['question']}"
 
         # Text starts well before the answer is finished.
         assert result["ttfb_ms"] < result["latency_ms"] - PROVIDER_DELAY * 1000

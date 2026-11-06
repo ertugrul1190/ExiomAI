@@ -231,3 +231,33 @@ def test_the_prompt_text_says_which_way_it_moved():
     assert "Market cap" not in text
     assert "- Updated: 3 min ago" in text
     assert f"[CoinGecko]({market_data.COINGECKO_PAGE})" in text
+
+
+# A question naming trackers ("what does nonkyc and
+# coinpaprika say") gets each one's own quote.
+
+def test_named_trackers_are_each_read():
+    data, log = market({
+        market_data.NONKYC_URL: FakeResponse(200, NONKYC),
+        market_data.COINPAPRIKA_URL: FakeResponse(200, COINPAPRIKA),
+    })
+
+    quotes = data.get_quotes(["coinpaprika", "nonkyc"])
+
+    assert [quote["source"] for quote in quotes] == ["CoinPaprika", "NonKYC"]
+
+    # Each is reused for a minute, by name.
+    data.get_quotes(["coinpaprika"])
+    data.get_quote()
+    assert len(log) == 2
+
+
+def test_a_named_tracker_that_fails_is_left_out():
+    data, _ = market({
+        market_data.NONKYC_URL: FakeResponse(200, NONKYC),
+        market_data.COINPAPRIKA_URL: requests.ConnectionError("down"),
+    })
+
+    assert [q["source"] for q in data.get_quotes(["coinpaprika", "nonkyc"])] \
+        == ["NonKYC"]
+    assert data.get_quotes(["coinpaprika"]) == []

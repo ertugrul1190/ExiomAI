@@ -13,12 +13,22 @@ import re
 # non-explanation question (see app.py).
 # ---------------------------------------------------------
 
+# "How much is it worth", never "is it worth running a node".
+WORTH = r"worth(?! it\b| \w+ing\b)"
+
+# The price trackers and the exchange XEQM trades on. Naming
+# one asks what it says the price is.
+TRACKERS = (
+    r"nonkyc|coin ?paprika|coin ?gecko|coin ?market ?cap|cmc"
+    r"|live ?coin ?watch|(the|price) trackers"
+)
+
 MARKET_PATTERN = re.compile(
     r"\b("
     r"prices?|priced"
     r"|market\s?caps?|marketcap"
     r"|(trading|24h|24 hour|daily)\s+volume"
-    r"|worth"
+    r"|" + WORTH +
     r"|how much is (xeqm|exiom|it|one)"
     r"|where (can|do|should|to) (i |we |you )?(buy|trade|get|purchase)"
     r"|exchanges?|listed|listings?"
@@ -38,7 +48,7 @@ def asks_for_current_market_info(question):
 # XEQM up today?" wants the 24h change.
 PRICE_PATTERN = re.compile(
     r"\b("
-    r"prices?|priced|worth|value"
+    r"prices?|priced|value|" + WORTH + "|" + TRACKERS +
     r"|how much is (xeqm|exiom|it|one)"
     r"|market\s?caps?|marketcap"
     r"|(trading|24h|24 hour|daily)\s+volume"
@@ -70,11 +80,94 @@ def asks_beyond_price(question):
     return bool(BEYOND_PRICE_PATTERN.search(question or ""))
 
 
+# A question about what a market term means, not its current
+# value: "what does market cap mean?" needs no price. Decided
+# here rather than by the router's intent, which once labelled
+# every price question "explanation".
+CONCEPT_PATTERN = re.compile(
+    r"\b(mean|means|meaning|define|definition|explain\w*)\b"
+    r"|\bhow (is|are) (the )?[\w\s]{0,40}?\b(calculated|computed|worked out)\b"
+    r"|\bwhat(['’]s| is| are)( an?)? (market\s?caps?|marketcap|trading volume)\b",
+    re.IGNORECASE
+)
+
+
+def asks_what_it_means(question):
+    return bool(CONCEPT_PATTERN.search(question or ""))
+
+
+# The trackers market_data.py reads, by the names users type.
+TRACKER_NAMES = {
+    "nonkyc": re.compile(r"\bnonkyc", re.IGNORECASE),
+    "coinpaprika": re.compile(r"\bcoin ?paprika", re.IGNORECASE),
+    "coingecko": re.compile(r"\bcoin ?gecko", re.IGNORECASE),
+}
+
+
+def named_trackers(question):
+    """
+    The trackers we read that the question names, in the
+    order it names them.
+    """
+
+    found = [
+        (match.start(), name)
+        for name, pattern in TRACKER_NAMES.items()
+        if (match := pattern.search(question or ""))
+    ]
+
+    return [name for _, name in sorted(found)]
+
+
+# ---------------------------------------------------------
+# DEFLECTIONS
+# ---------------------------------------------------------
+#
+# "I don't have the current figures in this chat, check
+# CoinGecko": the model sending the user off for something
+# the backend could have given it. app.py treats one like
+# [[LOOKUP]] at a step that can still look further. Only the
+# answer's opening is checked (see app.DEFLECTION_WINDOW).
+# ---------------------------------------------------------
+
+DEFLECTION_PATTERN = re.compile(
+    r"\bI (don['’]t|do not|can['’]t|cannot|am unable to|['’]m unable to)"
+    r" (have|access|see|fetch|pull|get|check)\b[^.!?\n]{0,80}?"
+    r"\b(in this chat|right now|at the moment|currently|real[- ]time|live)\b"
+    r"|\bcheck (it|them|the (latest |current |live )?(price|prices|figures?|numbers?|rates?))"
+    r" (on|at|via)\b"
+    r"|\bvisit\b[^.!?\n]{0,60}\bfor (the )?(latest|current|live|up[- ]to[- ]date)\b"
+    r"|\bI can guide you to\b"
+    r"|\bsearch (for )?[^.!?\n]{0,40}\bon (their|its|the official) (site|website|page)",
+    re.IGNORECASE
+)
+
+
+def is_deflection(answer):
+    return bool(DEFLECTION_PATTERN.search(answer or ""))
+
+
 EXIOM_NAME = re.compile(r"\b(exiom|xeqm|xeqmlabs|xeqm ?labs)", re.IGNORECASE)
 
 
 def names_exiom(question):
     return bool(EXIOM_NAME.search(question or ""))
+
+
+# A price tracker, or "the coin's" price: in a chat about
+# XEQM, both mean XEQM. The router sent "what does nonkyc and
+# coinpaprika say" and "whats the coin price" off-topic.
+# Never bare "cmc" here: "is the cmc api free" is unrelated.
+XEQM_PRICE_WORDING = re.compile(
+    r"\b(" + TRACKERS.replace("|cmc", "") + r")\b"
+    r"|\bcoin(['’]?s)? (price|value|worth|market\s?cap)"
+    r"|\b(price|value|worth) of (the|this|your|ur) coin\b",
+    re.IGNORECASE
+)
+
+
+def names_xeqm_price(question):
+    return bool(XEQM_PRICE_WORDING.search(question or ""))
 
 
 # Network terms that, in a chat about EXIOM, mean EXIOM. The
@@ -289,12 +382,31 @@ answers, and every unrelated message.
 
 
 ============================================================
+WORKED EXAMPLES
+============================================================
+
+"whats the coin price" → scope relevant, intent general,
+search true ("the coin" is XEQM)
+"what does nonkyc and coinpaprika say" → scope relevant,
+intent general, search true (XEQM's price trackers)
+"and now?" after a price answer → intent general, search true
+"can I stake 60k?" → intent general, search false (what the
+user can do with that amount)
+"i have 50000 xeqm what can i do" → intent general, search
+false
+"what does market cap mean?" → intent explanation, search
+false
+
+
+============================================================
 OUTPUT
 ============================================================
 
 Return ONLY valid JSON, exactly this structure:
 
-{{"scope":"relevant","intent":"explanation","facts":[],"search":false}}
+{{"scope":"<scope>","intent":"<intent>","facts":[<keys>],"search":<true|false>}}
+
+Replace every <...> with your decision for this message.
 
 "facts" must contain zero or more exact keys from AVAILABLE
 LIVE EXPLORER FACTS. Never invent a fact key.

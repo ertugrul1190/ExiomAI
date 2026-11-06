@@ -59,6 +59,10 @@ class FakeMarketData:
         self.calls += 1
         return self.quote
 
+    def get_quotes(self, names):
+        self.named = list(names)
+        return [self.quote] if names and self.quote else []
+
 
 LIVE_QUOTE = {
     "source": "NonKYC",
@@ -698,13 +702,20 @@ def test_separate_clients_behind_the_proxy_are_independent(
 # STREAMING TRANSPORT
 # ---------------------------------------------------------
 
+# Past the opening a deflection is looked for in (see
+# app.DEFLECTION_WINDOW), every chunk flows straight through.
+OPENING = "Staking means locking up coins to help run the network. " * 3
+
+
 def test_streamed_answer_arrives_as_deltas(client, provider):
+    provider.answers = [[OPENING, "more ", "text"]]
+
     response = ask_stream(client, "what is staking?")
 
     assert response.status_code == 200
     assert response.mimetype == "text/event-stream"
 
-    assert streamed_answer(response) == "answer to what is staking?"
+    assert streamed_answer(response) == OPENING + "more text"
 
     assert [frame["type"] for frame in frames(response)] == [
         "delta",
@@ -848,6 +859,7 @@ def test_a_failure_before_the_first_token_keeps_its_status_code(
 
 
 def test_a_failure_after_the_first_token_arrives_in_band(client, provider):
+    provider.answers = [[OPENING, "more"]]
     provider.stream_error_after = 1
 
     response = ask_stream(client, "what is staking?")
@@ -858,7 +870,7 @@ def test_a_failure_after_the_first_token_arrives_in_band(client, provider):
 
     sent = frames(response)
 
-    assert streamed_answer(response) == "answer "
+    assert streamed_answer(response) == OPENING
     assert sent[-1]["type"] == "error"
     assert sent[-1]["answer"]
 
@@ -1516,7 +1528,7 @@ def test_explorer_figures_without_naming_it_still_get_the_source(
     client, provider
 ):
     provider.route_result = dict(EXPLORER_ROUTE)
-    provider.answer_text = "Canada has 49 nodes."
+    provider.answer_text = "There are 1,024 active nodes."
 
     response = ask(client, "nodes of canada")
 
@@ -1724,3 +1736,226 @@ def test_a_searched_non_price_answer_has_no_price_warning(client, provider):
     text = ask(client, "What is the latest xeqm release?").json["answer"]
 
     assert "may be out of date" not in text
+
+
+# ---------------------------------------------------------
+# ANSWER QUALITY (Task Docs/Answer Quality and Image Upload)
+# ---------------------------------------------------------
+
+@pytest.mark.parametrize("send", [ask, ask_stream])
+def test_a_price_question_labelled_explanation_still_gets_the_live_price(
+    client, provider, send
+):
+    # The router echoed its prompt's example: "explanation".
+    provider.route_result = dict(CONCEPT_ROUTE)
+    application.market_data.quote = dict(LIVE_QUOTE)
+
+    send(client, "whats the coin price")
+
+    [call] = provider.generate_calls
+    assert call["web_search"] is False
+    assert "WEB SEARCH: NOT NEEDED" in call["system_prompt"]
+    assert "- Price: $0.02215 (USD)" in call["system_prompt"]
+
+
+def test_a_named_tracker_gets_its_own_quote(client, provider):
+    provider.route_result = dict(EXPLORER_ROUTE)
+    application.market_data.quote = dict(LIVE_QUOTE)
+
+    ask(client, "what does nonkyc and coinpaprika say")
+
+    assert application.market_data.named == ["nonkyc", "coinpaprika"]
+    [call] = provider.generate_calls
+    assert call["web_search"] is False
+    assert "MARKET DATA (live" in call["system_prompt"]
+
+
+def test_a_question_naming_a_tracker_is_never_off_topic(client, provider):
+    provider.route_result = {
+        "scope": "unrelated", "intent": "general", "facts": [], "search": False
+    }
+    application.market_data.quote = dict(LIVE_QUOTE)
+
+    ask(client, "what does nonkyc and coinpaprika say")
+
+    assert provider.off_topic_calls == []
+    assert "MARKET DATA (live" in provider.generate_calls[0]["system_prompt"]
+
+
+def test_what_a_market_term_means_gets_no_price(client, provider):
+    provider.route_result = {**CONCEPT_ROUTE, "intent": "general"}
+    application.market_data.quote = dict(LIVE_QUOTE)
+
+    ask(client, "what does market cap mean?")
+
+    assert application.market_data.calls == 0
+    assert "MARKET DATA (live" not in provider.generate_calls[0]["system_prompt"]
+
+
+DEFLECTION = (
+    "I don't have the current figures from NonKYC or CoinPaprika in "
+    "this chat, but I can guide you to the exact pages."
+)
+
+
+@pytest.mark.parametrize("send, reply", [
+    (ask, lambda r: r.json["answer"]),
+    (ask_stream, streamed_answer),
+])
+def test_a_deflection_moves_to_the_next_step(client, provider, send, reply):
+    provider.route_result = dict(CONCEPT_ROUTE)
+    provider.answers = [DEFLECTION, "Canada has 49 nodes."]
+
+    text = reply(send(client, "nodes of canada"))
+
+    assert len(provider.generate_calls) == 2
+    assert request_section(provider.generate_calls[1]).count("EXPLORER DATA")
+    assert text == "Canada has 49 nodes."
+
+
+@pytest.mark.parametrize("send, reply", [
+    (ask, lambda r: r.json["answer"]),
+    (ask_stream, streamed_answer),
+])
+def test_a_deflection_after_a_real_search_is_kept(client, provider, send, reply):
+    provider.route_result = dict(SEARCH_ROUTE)
+    provider.answers = [DEFLECTION]
+
+    text = reply(send(client, "where can i buy xeqm"))
+
+    assert provider.generate_calls[0]["web_search"] is True
+    assert text.startswith(DEFLECTION)
+
+
+@pytest.mark.parametrize("send, reply", [
+    (ask, lambda r: r.json["answer"]),
+    (ask_stream, streamed_answer),
+])
+def test_a_deflection_with_nowhere_further_and_no_search_is_not_found(
+    client, provider, send, reply
+):
+    provider.web_search_enabled = False
+    provider.route_result = dict(EXPLORER_ROUTE)
+    provider.answers = [DEFLECTION]
+
+    assert reply(send(client, "nodes of canada")) == \
+        application.NOT_FOUND_ANSWER
+
+
+def test_the_last_step_is_not_asked_for_the_lookup_signal(client, provider):
+    provider.route_result = dict(SEARCH_ROUTE)
+
+    ask(client, "where can i buy xeqm")
+
+    prompt = provider.generate_calls[0]["system_prompt"]
+    assert "[[LOOKUP]]" not in prompt.split("THIS REQUEST")[1]
+
+
+# Today's bad staking answer: plain-text sources, and the
+# Explorer footer though no Explorer figure was used.
+BAD_STAKING = (
+    "Short answer: not by itself. A node needs 200,000 XEQM; a pool "
+    "operator needs 100,000 and contributors 10,000.\n\n"
+    "Sources: EXIOM Tokenomics Whitepaper; XEQM Core Releases"
+)
+
+
+@pytest.mark.parametrize("send, reply", [
+    (ask, lambda r: r.json["answer"]),
+    (ask_stream, streamed_answer),
+])
+def test_plain_text_sources_become_links_and_no_explorer_footer(
+    client, provider, send, reply
+):
+    provider.route_result = dict(EXPLORER_ROUTE)
+    provider.answers = [BAD_STAKING]
+
+    response = send(client, "can i stake 60k coins")
+    text = reply(response)
+
+    assert text.endswith(
+        "Sources: [EXIOM Tokenomics Whitepaper]"
+        "(https://github.com/XEQMLabs/whitepaper); [XEQM Core Releases]"
+        "(https://github.com/XEQMLabs/xeqm-core/releases)"
+    )
+
+    meta = response.json if send is ask else frames(response)[-1]
+    assert "source" not in meta
+
+
+def test_a_searched_price_gets_no_explorer_footer(client, provider):
+    # Today's bad price answer, which the Explorer footer
+    # credited to the Explorer.
+    provider.route_result = dict(SEARCH_ROUTE)
+    provider.answer_text = (
+        "XEQM is $0.0196 ([CoinGecko](https://www.coingecko.com/x))."
+    )
+    provider.last_sources = ["https://www.coingecko.com/x"]
+
+    response = ask(client, "exiom coin price")
+
+    assert "source" not in response.json
+
+
+def test_a_figure_from_the_knowledge_gets_that_sections_source(
+    client, provider
+):
+    provider.route_result = dict(CONCEPT_ROUTE)
+    provider.answer_text = "You can join a pool node with 10,000 XEQM."
+
+    text = ask(client, "minimum to join a pool").json["answer"]
+
+    assert text.startswith("You can join a pool node with 10,000 XEQM.")
+    assert "\n\nSources: [" in text
+    assert "](https://xeqmlabs.gitbook.io/docs/documentation/" in text
+
+
+def test_a_concept_explanation_gets_no_added_source(client, provider):
+    provider.route_result = dict(CONCEPT_ROUTE)
+    provider.answer_text = "Staking means locking coins to help run the network."
+
+    assert ask(client, "what is staking").json["answer"] == \
+        provider.answer_text
+
+
+def test_example_figures_and_earlier_answers_are_not_evidence():
+    supplied, asked = application.grounding_inputs(
+        application.build_system_prompt(
+            "relevant", "general", None, "Minimum: 10,000 XEQM.", None
+        ),
+        "can i stake 60k",
+        [
+            {"role": "user", "content": "i have 120k"},
+            {"role": "assistant", "content": "about 77,777 XEQM"},
+        ]
+    )
+
+    # 933 is the instructions' example Explorer count.
+    assert application.grounding.unsupported_numbers(
+        "933 nodes, 77,777 XEQM, 10,000 XEQM, 60,000 and 120,000", supplied, asked
+    ) == ["933", "77777"]
+
+
+def test_unsupported_numbers_are_logged_as_a_count_only(
+    client, provider, capsys
+):
+    provider.route_result = dict(CONCEPT_ROUTE)
+    provider.answer_text = "You need 77,777 XEQM."
+
+    ask(client, "secret question text")
+
+    log = capsys.readouterr().out
+    assert "EXIOM grounding: route=explanation unsupported_numbers=1" in log
+    assert "secret question" not in log
+
+
+def test_a_market_figure_that_matches_an_explorer_value_gets_no_footer(
+    client, provider
+):
+    # Seen live: a tracker's figure equal to an Explorer value
+    # credited the price answer to the Explorer.
+    provider.route_result = dict(EXPLORER_ROUTE)
+    application.market_data.quote = {**LIVE_QUOTE, "volume_24h_usd": 1024}
+    provider.answer_text = "NonKYC: $0.02215, volume about $1,024."
+
+    assert "source" not in ask(client, "what does nonkyc say").json

@@ -1,4 +1,6 @@
+import math
 import re
+from collections import Counter
 from pathlib import Path
 
 
@@ -15,10 +17,11 @@ STOP_WORDS = {
 
 def stem(word):
     """
-    Drop a common English suffix, so "earn" meets "earnings"
-    and "deregistered" meets "deregister". Applied to the
-    question and the knowledge alike; a stem shorter than
-    three letters keeps the word whole.
+    Drop a common English suffix, then a final "e", so "earn"
+    meets "earnings", "deregistered" meets "deregister" and
+    stake, stakes, staked and staking all become "stak".
+    Applied to the question and the knowledge alike; a stem
+    shorter than three letters keeps the word whole.
     """
 
     for suffix in ("ings", "ing", "ed", "s"):
@@ -27,17 +30,33 @@ def stem(word):
             and not word.endswith("ss")
             and len(word) - len(suffix) >= 3
         ):
-            return word[:-len(suffix)]
+            word = word[:-len(suffix)]
+            break
+
+    if word.endswith("e") and len(word) > 3:
+        return word[:-1]
 
     return word
 
 
+# Everyday words for the coin. Without this, a rare word like
+# "coins" outweighs everything else and pulls in the coin-burn
+# sections for "can i stake 60k coins".
+SYNONYMS = {
+    "coin": "xeqm",
+    "token": "xeqm",
+}
+
+
+def _words(text):
+    for word in re.findall(r"[a-zA-Z0-9]+", text.lower()):
+        if word not in STOP_WORDS and len(word) > 1:
+            word = stem(word)
+            yield SYNONYMS.get(word, word)
+
+
 def normalize_words(text):
-    words = re.findall(r"[a-zA-Z0-9]+", text.lower())
-    return {
-        stem(word) for word in words
-        if word not in STOP_WORDS and len(word) > 1
-    }
+    return set(_words(text))
 
 
 def load_markdown_file(file_path):
@@ -296,8 +315,27 @@ CONCEPT_GROUPS = {
     "wallet": [
         "wallet",
         "seed"
+    ],
+
+    # The staking amounts a section names. A question names
+    # one in its own words instead ("60k", "150k xeqm"), see
+    # STAKE_AMOUNT.
+    "stake amount": [
+        "200,000 xeqm",
+        "100,000 xeqm",
+        "10,000 xeqm"
     ]
 }
+
+
+# An amount of XEQM in a question: "60k", "60,000", "150k
+# xeqm", "50000 coins". Never a bare number: "is 9231 safe to
+# expose" is a port, "block 236920" a height.
+STAKE_AMOUNT = re.compile(
+    r"\b\d+(?:\.\d+)?\s?k\b"
+    r"|\b\d{1,3}(?:,\d{3})+\b"
+    r"|\b\d+(?:\.\d+)?\s?(?:xeqm|coins?|tokens?)\b"
+)
 
 
 def _terms_pattern(terms):
@@ -348,15 +386,18 @@ def _section_index(section):
     if index is not None:
         return index
 
+    title = section["title"] + " " + section["parent"]
+    content_words = list(_words(section["content"]))
+
     return {
-        "title_words": normalize_words(
-            section["title"] + " " + section["parent"]
-        ),
-        "content_words": normalize_words(section["content"]),
+        "title_words": normalize_words(title),
+        "content_counts": Counter(content_words),
+        "length": len(content_words),
         "concepts": _mentioned_concepts(
             section["title"].lower(),
             section["content"].lower()
         ),
+        "title_concepts": _mentioned_concepts(title.lower()),
     }
 
 
@@ -371,35 +412,110 @@ def _question_index(question):
 
     question_lower = question.lower()
 
+    concepts = {
+        canonical
+        for canonical, (_, variant) in CONCEPT_PATTERNS.items()
+        if variant.search(question_lower)
+    }
+
+    if STAKE_AMOUNT.search(question_lower):
+        concepts.add("stake amount")
+
     return {
         "words": normalize_words(question),
-        "concepts": frozenset(
-            canonical
-            for canonical, (_, variant) in CONCEPT_PATTERNS.items()
-            if variant.search(question_lower)
-        ),
+        "concepts": frozenset(concepts),
     }
 
 
-def _score(query, index):
+# ---------------------------------------------------------
+# RARITY-WEIGHTED SCORING (BM25)
+# ---------------------------------------------------------
+#
+# The standard keyword-search ranking. A word or concept
+# counts more the fewer sections contain it: "contributor"
+# outweighs "node", which 35 of 78 sections share. A long
+# section does not win by length alone, a title match counts
+# triple, and a concept counts as two words (it stands for
+# several wordings). Before this, every match counted the
+# same, and in 74 of 92 eval questions the last places sent
+# were decided by file order. See "Task Docs/Answer Quality
+# and Image Upload.md".
+# ---------------------------------------------------------
 
-    score = 0
-
-    # Heading matches matter more than ordinary body matches.
-    score += len(query["words"] & index["title_words"]) * 6
-    score += len(query["words"] & index["content_words"]) * 2
-
-    score += len(query["concepts"] & index["concepts"]) * 12
-
-    return score
+BM25_K1 = 1.2
+BM25_B = 0.75
+TITLE_WEIGHT = 3
+CONCEPT_WEIGHT = 2
 
 
-def score_section(question, section):
+def _idf(containing, total):
+    return math.log(1 + (total - containing + 0.5) / (containing + 0.5))
 
-    return _score(
-        _question_index(question),
-        _section_index(section)
+
+def _saturate(frequency, length_ratio):
+    return frequency * (BM25_K1 + 1) / (
+        frequency + BM25_K1 * (1 - BM25_B + BM25_B * length_ratio)
     )
+
+
+def _rank(query, indexes):
+    """
+    (score, title words matched) per section, in order.
+    """
+
+    total = len(indexes)
+    average_length = sum(index["length"] for index in indexes) / total or 1
+
+    word_idf = {
+        word: _idf(
+            sum(
+                word in index["title_words"] or word in index["content_counts"]
+                for index in indexes
+            ),
+            total
+        )
+        for word in query["words"]
+    }
+
+    concept_idf = {
+        concept: _idf(
+            sum(concept in index["concepts"] for index in indexes),
+            total
+        )
+        for concept in query["concepts"]
+    }
+
+    ranked = []
+
+    for index in indexes:
+
+        length_ratio = index["length"] / average_length
+        score = 0.0
+
+        for word, idf in word_idf.items():
+            frequency = (
+                index["content_counts"].get(word, 0)
+                + TITLE_WEIGHT * (word in index["title_words"])
+            )
+
+            if frequency:
+                score += idf * _saturate(frequency, length_ratio)
+
+        for concept, idf in concept_idf.items():
+            if concept in index["concepts"]:
+                frequency = 1 + TITLE_WEIGHT * (concept in index["title_concepts"])
+                score += CONCEPT_WEIGHT * idf * _saturate(frequency, length_ratio)
+
+        ranked.append((
+            round(score, 9),
+            len(query["words"] & index["title_words"])
+        ))
+
+    return ranked
+
+
+# Between the sections retrieve_knowledge() returns.
+SECTION_SEPARATOR = "\n\n---\n\n"
 
 
 def _truncate_section(content, max_chars):
@@ -448,22 +564,24 @@ def retrieve_knowledge(
     3. total size  — the combined context stays predictable
     """
 
-    scored = []
-
     query = _question_index(question)
 
-    for section in sections:
-        score = _score(query, _section_index(section))
+    ranks = _rank(
+        query,
+        [_section_index(section) for section in sections]
+    ) if sections else []
 
-        if score > 0:
-            scored.append((score, section))
-
-    scored.sort(
-        key=lambda item: item[0],
+    # On an equal score, the section whose title matches more
+    # of the question wins; file order only after that.
+    scored = sorted(
+        (
+            (score, title_matches, section)
+            for (score, title_matches), section in zip(ranks, sections)
+            if score > 0
+        ),
+        key=lambda item: (item[0], item[1]),
         reverse=True
-    )
-
-    scored = scored[:limit]
+    )[:limit]
 
     if scored:
 
@@ -473,7 +591,7 @@ def retrieve_knowledge(
 
         selected = [
             section
-            for score, section in scored
+            for score, _, section in scored
             if score >= threshold
         ]
 
@@ -511,4 +629,4 @@ SECTION: {section['title']}
 """.strip()
         )
 
-    return "\n\n---\n\n".join(formatted_sections)
+    return SECTION_SEPARATOR.join(formatted_sections)

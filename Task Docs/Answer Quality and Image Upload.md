@@ -1,0 +1,298 @@
+# EXIOM AI — Answer Quality and Image Upload
+
+What was built on 6 November 2026, following
+`Answer Quality and Image Upload - Plan.md`. This record
+covers Parts 1 and 2 (answer quality). Part 3 (image upload)
+is not built yet and will be added here when it is.
+
+Not deployed yet: deploy with `cloudflare/deploy.sh` (plan
+step 8), then re-ask the three repro questions live.
+
+
+## 1. The three repros, after
+
+| Repro (plan §1) | Before | After (real model, `live_eval.py --checks`) |
+| --- | --- | --- |
+| "whats the coin price" | $0.0196 from a web search's stale CoinGecko copy | the live NonKYC price from the tracker API, no search, no Explorer footer |
+| "what does nonkyc and coinpaprika say" | "I can guide you to the exact pages" | each tracker's own live figures, side by side |
+| "can i stake 60k coins" | "Short answer: not by itself", Explorer footer, plain-text sources | "Yes, as a contributor to a pool node": options, steps, risks, linked sources (with `gpt-5-mini`, §2.8) |
+
+
+## 2. What changed
+
+### 2.1 Router: no more "explanation" default
+
+- The OUTPUT example is now a placeholder,
+  `{"scope":"<scope>","intent":"<intent>","facts":[<keys>],"search":<true|false>}`,
+  so a router at minimal reasoning has no real intent to echo.
+- New WORKED EXAMPLES section: coin price, tracker names,
+  "and now?", "can I stake 60k?", "I have 50000 xeqm",
+  "what does market cap mean?".
+- Measured on `evals/questions.txt` (nano router): 28
+  direct_live_fact, 22 explanation, 5 mixed, 4 general. It
+  was all "explanation".
+
+### 2.2 Prices: the live price whenever one is wanted
+
+- `app.py` no longer reads the router's intent to decide on a
+  price. `query_router.asks_what_it_means()` (mean, define,
+  explain, "how is … calculated", "what is a market cap")
+  decides it from the wording.
+- `PRICE_PATTERN` knows the trackers: nonkyc, coinpaprika,
+  coingecko, coinmarketcap/cmc, livecoinwatch, "trackers".
+- "worth" no longer means price in "is it worth running a
+  node?" or "is staking worth it". Before, only the
+  explanation guard kept those away from market data.
+- Named trackers get their own quote:
+  `MarketData.get_quotes(["nonkyc", "coinpaprika"])`, cached
+  per tracker. "What does CoinPaprika say?" is answered with
+  CoinPaprika's figures. Other questions still get the
+  freshest tracker (`get_quote()`).
+- Found in the live eval: the router twice sent "what does
+  nonkyc and coinpaprika say" and "whats the coin price"
+  off-topic. `query_router.names_xeqm_price()` (a tracker
+  name, "coin price", "price of the coin") now makes an
+  "unrelated" route relevant, the same way `names_exiom()`
+  already did.
+
+### 2.3 Never "go look it up yourself"
+
+- Prompt: `LOOKUP_SECTION` no longer exempts concepts. It now
+  asks for `[[LOOKUP]]` whenever a figure, price, date,
+  release, person or fact is missing, and forbids sending the
+  user to a site. `WEB_SEARCH_RULES` rule 5 and
+  `WEB_SEARCH_UNAVAILABLE_SECTION` say: what was found, the
+  closest verified facts, then at most one link.
+- `REMINDER` gets a deflection line. On a step that can look
+  further it says "ask for it with [[LOOKUP]]". On the last
+  step it only says "never tell the user to search for it",
+  so the model isn't asked for a signal that would turn into
+  "not found".
+- Code backstop: `query_router.is_deflection()` checks the
+  answer's first 160 characters (`app.DEFLECTION_WINDOW`)
+  for "I don't have … in this chat / right now", "check the
+  price on", "visit … for the latest", "I can guide you to"
+  and "search for … on their site".
+  - At a step that can look further, a deflection counts as
+    `[[LOOKUP]]`: the next step runs.
+  - At the last step, a deflection stays only if a real web
+    search ran. Otherwise the answer is `NOT_FOUND_ANSWER`.
+  - Streaming: `watch_for_lookup(…, hold_opening=True)` holds
+    the opening 160 characters, only on those steps (about
+    0.3 s of first-token latency). Both transports check the
+    same 160 characters, so they give the same answer.
+
+### 2.4 "Can I …?" answers
+
+- `knowledge/instructions.md`: new **CAN I …? QUESTIONS**
+  section with its shape (direct answer, Your options, How to
+  do it, Good to know, Sources), today's 60k answer as BAD and
+  the right one as GOOD.
+- ANSWER LENGTH, in `instructions.md` and the static prompt:
+  "1-2 sentences" now applies to "a single current value"
+  only, and a "can I…?" question is never a bare yes or no.
+- `test_every_number_in_the_instructions_is_in_the_knowledge`:
+  every figure in `instructions.md` must appear in the
+  knowledge files. The only exceptions are the example
+  Explorer counts (933, 932) and the user amounts in the
+  examples (60k, 120k).
+
+### 2.5 Retrieval: rarity-weighted scoring (BM25)
+
+`retrieval.py`. No API call, deterministic.
+
+- **BM25**: a word or concept counts more the fewer sections
+  contain it. Title matches count triple
+  (`TITLE_WEIGHT`), a concept counts as two words
+  (`CONCEPT_WEIGHT`), and section length is normalised
+  (k1 1.2, b 0.75). Statistics are computed from the
+  sections passed in, so a raw section list and the startup
+  index still rank the same.
+- **Stemmer**: a final "e" is dropped after the suffix, so
+  stake/stakes/staked/staking are all `stak`.
+- **Synonyms**: coin, token → xeqm.
+- **Amounts** (`STAKE_AMOUNT`): "60k", "60,000", "150k xeqm",
+  "50000 coins" add the concept "stake amount". Sections get
+  it by naming 200,000/100,000/10,000 XEQM. A bare number
+  ("9231", "block 236920") never counts.
+- **Tie-break**: on equal scores, more title words matched
+  wins. File order only comes after that.
+- Results: ties at the 6th place fell from 74 of 92 eval
+  questions to 0 of 92 (a test now keeps it at 0). All 66
+  existing golden questions pass. The 6 staking questions
+  ("can i stake 60k coins", "i have 50000 xeqm what can i
+  do", "can i run a node with 120k", "minimum to contribute",
+  "how do i join a pool node", "whats the minimum to stake")
+  each retrieve both staking sections.
+- Embeddings were not needed.
+
+### 2.6 Sources: always links, never the wrong one
+
+`source_additions(answer, evidence, web_sources)`, where
+`evidence` is what the answer was given: Explorer text,
+knowledge text, market text.
+
+- **Explorer footer** only when the answer quotes the
+  Explorer:
+  - one of its figures that the Explorer alone supplied (a
+    figure the knowledge or market data also has may have
+    come from there), or
+  - an unlinked "Source: … Explorer".
+
+  Never when the answer cites a page that isn't a knowledge
+  source or the Explorer (a web page, a tracker). This
+  replaces "any digit".
+- **Plain-text titles become links.** In a source line
+  ("Sources:", "**Source:**", "📚 Sources:"), a known title
+  becomes its link. Titles come from the knowledge files'
+  Source links plus `sources.json` names
+  (`app.SOURCE_TITLES`).
+  - Non-streaming: `link_source_lines`.
+  - Streaming: `stream_linking_source_lines`. It holds back
+    only a line that opens like a source line, and its output
+    is identical to the non-streaming version (tested at
+    several chunk sizes).
+- **Missing citation**: when an answer cites nothing,
+  `knowledge_links()` adds "Sources:" from the retrieved
+  sections it drew on, at most two. A section counts when it
+  holds one of the answer's `commands` or a figure that is
+  100 or over or has decimals, and that the Explorer didn't
+  also supply. Smaller figures ("50 nodes") are too common to
+  tell, so they add nothing rather than a wrong source.
+
+### 2.7 Grounding check (`grounding.py`)
+
+- `unsupported_numbers(answer, context, question)` returns
+  the answer's numbers that nothing supplied contains.
+  - Forms are normalised (100k = 100,000 = 100000; -8.2% =
+    8.2).
+  - A rounded price counts ($0.0203 for $0.02029).
+  - So does a sum or difference of the user's own amount and
+    a supplied figure (the other 80,000 for "120k").
+  - Single-digit integers and versions (v1.1.2) are ignored.
+- Production log, a monitor only: `EXIOM grounding:
+  route=… unsupported_numbers=N`. It gives the count only,
+  never the question (Task 13). Searched answers are skipped,
+  since their pages are never seen here.
+- Seen in the full eval: derived figures (blocks remaining,
+  a country's share of nodes). Seen with nano: `stake
+  <pubkey> 120000000000000`, an invented amount in atomic
+  units. That is the kind of error it exists to surface.
+
+### 2.8 Answer model
+
+- New `EXIOM_ANSWER_MODEL`, for answers only. The router and
+  off-topic banter stay on `gpt-5-nano`. Metering records the
+  model each call used. `MODEL_RATES["gpt-5-mini"]` = $0.25 /
+  $0.025 cached / $2.00 per 1M tokens (checked on OpenAI's
+  pricing page, 6 Nov 2026).
+- **The default stays `gpt-5-nano`.** Results on
+  `evals/answer_checks.json`:
+
+  | Model | Runs | Passed |
+  | --- | --- | --- |
+  | gpt-5-nano | 3 | 5/8, 4/8, 7/8 |
+  | gpt-5-mini | 6 | 5/8, 8/8, 7/8, 8/8, 8/8, 8/8 |
+
+  Mini's misses were the router and eval-check issues fixed
+  in §2.2 and §2.9. The last three mini runs (JSON, stream,
+  JSON after the review fixes) passed 8/8. Nano still opens "can I…?" answers with "Short
+  answer: no", and invented the atomic-unit stake above.
+- **Recommendation: set `EXIOM_ANSWER_MODEL=gpt-5-mini`.** At
+  about 10 answers a day it costs roughly $0.006 an answer,
+  around $2 a month. But the daily caps count tokens, not
+  dollars: the 20M-token global cap is worth about 5× more
+  money with mini. Lower `EXIOM_GLOBAL_TOKENS_PER_DAY` with
+  it if the worst case must stay where it is. This is the
+  client's budget decision, so it is a setting, not the
+  default.
+
+### 2.9 Answer eval set
+
+- `evals/answer_checks.json`: 8 questions with
+  `must_contain`, `must_match`, `must_not_contain` and
+  `must_not_start` checks.
+  - Zero unsupported numbers is required too, unless the
+    check says `"grounded": false` (illustrative arithmetic
+    in a concept answer).
+  - `only_if_tracker` applies `must_contain` only while that
+    tracker is the live source.
+- `python live_eval.py --checks evals/answer_checks.json
+  --parallel 2 [--stream]` prints PASS/FAIL and the grounding
+  count per answer, and exits 1 on any failure. Plain runs
+  print the grounding count too.
+
+
+## 3. Tests changed on purpose
+
+- `test_router_prompt_asks_for_the_search_flag`: checks the
+  new placeholder, `"search":<true|false>`.
+- `test_explorer_figures_without_naming_it_still_get_the_source`:
+  now quotes a real Explorer value. "Canada has 49 nodes"
+  with no 49 in the Explorer data no longer gets the footer.
+  That is §2.6.
+- `test_streamed_answer_arrives_as_deltas`,
+  `test_a_failure_after_the_first_token_arrives_in_band` and
+  the concurrency stream tests: their fake answers start
+  with an opening longer than `DEFLECTION_WINDOW`. A 26-
+  character answer is now held whole, by design.
+
+`pytest`: 877 passed. Run it with `EXIOM_USAGE_TOKEN=` set
+empty: a token in the local `.env` makes two usage-page tests
+fail, before and after this work.
+
+
+## 4. Code review
+
+A two-axis review (standards, spec) ran after the build. The
+fixes:
+
+- Tracker words matched unrelated questions: "whats the best
+  fitness tracker", "is the cmc api free". The pattern is now
+  "the trackers" / "price trackers" only, and the off-topic
+  backstop never uses bare "cmc".
+- The grounding check took the whole prompt as evidence, so
+  a figure copied from an instructions example (933, 60k)
+  passed. It now reads only the request's material plus the
+  conflict notes (`app.grounding_inputs`), and only the
+  user's own turns count as "their amounts". Earlier
+  assistant answers count as neither. A lowercase "30m" is
+  minutes, not 30 million.
+- Smaller cleanups:
+  - `source_links()` replaces three copies of the
+    Source-line loop.
+  - `evidence` is built once per step.
+  - `retrieval.SECTION_SEPARATOR` is shared with
+    `knowledge_links`.
+  - `_link_line` is shared by both linking functions.
+  - `concept` is renamed `asks_meaning`.
+
+Kept as they are, on purpose:
+
+- **"A real search ran" means a search was requested.**
+  Searches are requested with `tool_choice: "required"`, so a
+  requested search always runs.
+- **Only the first 160 characters are checked for a
+  deflection,** in both transports, so the two give the same
+  answer. A deflection later in an answer is left to the
+  prompt rules.
+- **A named tracker that fails falls back to the freshest
+  tracker.** Its figures are labelled with their real
+  source.
+- **Not refactored:** tracker names live in both
+  `query_router` and `market_data`. Only three exist.
+
+
+## 5. Files
+
+| File | Change |
+| --- | --- |
+| `query_router.py` | placeholder example + worked examples; `asks_what_it_means`, `named_trackers`, `names_xeqm_price`, `is_deflection`; tracker names and "worth it" in the patterns |
+| `app.py` | price decision; named-tracker quotes; prompt sections; deflection diversion; `source_additions` by evidence; `knowledge_links`; source-title linking; grounding log |
+| `retrieval.py` | BM25, stemmer, synonyms, stake amounts, tie-break |
+| `market_data.py` | per-tracker cache, `get_quotes(names)` |
+| `answer_filters.py` | `link_source_lines`, `stream_linking_source_lines` |
+| `grounding.py` | new: the grounding check |
+| `ai_provider.py`, `usage_control.py`, `.env.example` | `EXIOM_ANSWER_MODEL`, gpt-5-mini rates |
+| `knowledge/instructions.md` | CAN I …? QUESTIONS, ANSWER LENGTH |
+| `live_eval.py`, `evals/answer_checks.json` | `--checks`, grounding count |

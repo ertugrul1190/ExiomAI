@@ -37,6 +37,7 @@ from retrieval import (
     load_knowledge_directory,
     build_knowledge_sections,
     retrieve_knowledge,
+    SECTION_SEPARATOR,
 )
 
 from openai import (
@@ -57,8 +58,11 @@ import fast_path
 
 from answer_filters import (
     drop_closing_offer,
+    link_source_lines,
+    stream_linking_source_lines,
     stream_without_closing_offer,
 )
+import grounding
 
 from token_budget import (
     trim_conversation,
@@ -112,6 +116,58 @@ knowledge_sections = build_knowledge_sections(
 knowledge_changelog = load_markdown_file(
     "knowledge/changelog.md"
 )
+
+
+# Lowercased official page title -> URL, for turning a source
+# the model named as plain text into its link: the link texts
+# the knowledge cites, then the registered names.
+SOURCE_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^)\s]+)\)")
+
+
+def source_links(text):
+    """
+    (title, URL) of every link on the text's Source lines.
+    """
+
+    return [
+        link
+        for line in (text or "").splitlines()
+        if line.startswith("Source")
+        for link in SOURCE_LINK.findall(line)
+    ]
+
+
+def load_source_titles():
+
+    titles = {}
+
+    try:
+        registered = json.loads(
+            load_markdown_file("knowledge/sources.json") or "{}"
+        ).get("sources", [])
+
+    except ValueError:
+        registered = []
+
+    for source in registered:
+        if source.get("name") and source.get("url"):
+            titles[source["name"].lower()] = source["url"]
+
+    for document in knowledge_documents:
+        for title, url in source_links(document["text"]):
+            titles[title.lower()] = url
+
+    return {title: url for title, url in titles.items() if len(title) >= 4}
+
+
+SOURCE_TITLES = load_source_titles()
+
+# The pages the knowledge sections cite.
+KNOWLEDGE_URLS = {
+    url
+    for document in knowledge_documents
+    for _, url in source_links(document["text"])
+}
 
 
 # ---------------------------------------------------------
@@ -907,8 +963,12 @@ ANSWER LENGTH
 
 Answer only what the user actually asked.
 
-Simple factual question:
+A single current value (a count, a price, a date):
 Usually 1-2 sentences.
+
+A "can I...?" question is not a single value: lead with
+what the user CAN do, then every route the knowledge gives
+(see CAN I ...? QUESTIONS). Never a bare "no".
 
 Simple explanatory question:
 Usually a few short paragraphs.
@@ -1090,10 +1150,11 @@ Rules for this answer, in order of importance:
    [site name](full URL).
 4. For where to buy: listings, deposits and withdrawals can
    change, so the user should confirm on the exchange first.
-5. State only what the results say. If they do not answer
-   the question, say kindly that you couldn't find it right
-   now and point to the [Official EXIOM Explorer](https://explorer.xeqmlabs.com/)
-   or CoinGecko. Never fill the gap from memory.
+5. State only what the results say; never fill the gap from
+   memory. If they do not answer the question, say what was
+   found, give the closest verified facts above, then at most
+   one link. Never tell the user to search for it, check it
+   or visit a site instead.
 6. Never repeat a price prediction or forecast, and never
    suggest buying or selling.
 7. Your LAST sentence is never an offer or a question
@@ -1131,11 +1192,13 @@ WEB SEARCH: UNAVAILABLE
 ============================================================
 
 A web search is needed for this and is unavailable right
-now. Say kindly that you can't check it at the moment, share
-anything related you do have, and point to the
+now. Never present a price, listing or release from memory
+as current. Say kindly that you can't check that part at
+the moment, give the closest verified facts above, then at
+most one link: the
 [Official EXIOM Explorer](https://explorer.xeqmlabs.com/), or
-for prices [CoinGecko](https://www.coingecko.com/). Never
-present a price, listing or release from memory as current.
+for prices [NonKYC](https://nonkyc.io/market/XEQM_USDT). Never
+tell the user to search for it or visit a site instead.
 """
 
 # Added under a price answer by the code, never left to the
@@ -1192,21 +1255,30 @@ LOOKUP_SECTION = f"""
 MISSING INFORMATION
 ============================================================
 
-If ANY part of the question needs a current EXIOM/XEQM
-figure, count, status, date, person, event or fact that is
-NOT in the EXPLORER DATA or verified knowledge above, reply
-with exactly {LOOKUP_SIGNAL} and nothing else: the backend will
-look further and ask you again. Never do this when the above
-answers every part, or for a concept or explanation.
+If any part needs a figure, price, date, release, person or
+fact that isn't in the EXPLORER DATA, MARKET DATA or
+verified knowledge above, reply with exactly {LOOKUP_SIGNAL}
+and nothing else: the backend will look further and ask you
+again. Never tell the user to look it up or visit a site
+instead. When the above answers every part, just answer.
 """
 
 # Last in the prompt, where a small model weighs it most.
 REMINDER = """
 Reminder: plain everyday words; every source as a Markdown
-link; never say "the data you provided/shared". End when the
-answer ends: never finish with "If you'd like, I can...",
-"Want me to...?" or any other offer.
+link; never say "the data you provided/shared". {deflection}
+End when the answer ends: never finish with "If you'd like,
+I can...", "Want me to...?" or any other offer.
 """
+
+# Only a step that can look further can be asked to.
+DEFLECTION_REMINDER = {
+    True: (
+        "Never tell the user to check, search or visit a site for "
+        f"something you could be given: ask for it with {LOOKUP_SIGNAL}."
+    ),
+    False: "Never tell the user to search for it themselves.",
+}
 
 # The last step asked to look further anyway.
 NOT_FOUND_ANSWER = (
@@ -1216,6 +1288,21 @@ NOT_FOUND_ANSWER = (
 )
 
 EXPLORER_SOURCE = "Official EXIOM Explorer"
+
+# Heads the per-request part of the prompt.
+THIS_REQUEST = "THIS REQUEST"
+
+# A deflection ("I don't have that in this chat, check
+# CoinGecko") is looked for in this many opening characters.
+# A streamed answer holds them back, about 0.3 s, but only at
+# a step where a deflection would be diverted.
+DEFLECTION_WINDOW = 160
+
+
+def is_deflection(answer):
+    return query_router.is_deflection(
+        (answer or "").lstrip()[:DEFLECTION_WINDOW]
+    )
 
 
 def explorer_data_text(facts, connection_state):
@@ -1246,15 +1333,60 @@ def explorer_data_text(facts, connection_state):
     return "\n".join(lines)
 
 
-def source_additions(answer, explorer_given, web_sources):
+def knowledge_links(knowledge, answer, explorer_text=None):
     """
-    Make sure an answer's sources are links.
+    The source links of the supplied knowledge sections that
+    an answer drew on: a section holding one of its figures
+    or `commands`. At most two, in retrieval order.
+
+    Never a wrong source: a figure under 100 ("50 nodes") is
+    too common to tell, and one the Explorer also supplied
+    may have come from there.
+    """
+
+    figures = {
+        figure
+        for figure in grounding.numbers(answer)
+        if "." in figure or int(figure) >= 100
+    } - grounding.numbers(explorer_text)
+    commands = set(re.findall(r"`([^`\n]+)`", answer))
+
+    links = []
+
+    for section in (knowledge or "").split(SECTION_SEPARATOR):
+
+        used = (
+            figures & grounding.numbers(section)
+            or any(command in section for command in commands)
+        )
+
+        if not used:
+            continue
+
+        for title, url in source_links(section):
+            link = f"[{title}]({url})"
+
+            if link not in links:
+                links.append(link)
+
+    return links[:2]
+
+
+def source_additions(answer, evidence, web_sources):
+    """
+    Make sure an answer's sources are links, and only the
+    sources it used.
+
+    evidence: what this answer was given, {"explorer": the
+    EXPLORER DATA text or None, "knowledge": the verified
+    knowledge text, "market": the MARKET DATA text or None}.
 
     Returns (text to append, whether to add the linked
     Explorer source line under the answer).
     """
 
     extra = ""
+    web_cited = False
 
     links = [
         f"[{urlsplit(url).hostname.removeprefix('www.')}]({url})"
@@ -1262,18 +1394,47 @@ def source_additions(answer, explorer_given, web_sources):
         if urlsplit(url).hostname and not re.search(r"[\s()\[\]]", url)
     ]
 
-    # The Explorer's own link doesn't cite the web pages used.
     cited = re.findall(r"\]\((https?://[^)\s]+)", answer)
 
+    # The Explorer's own link doesn't cite the web pages used.
     if links and not any("explorer.xeqmlabs.com" not in url for url in cited):
         extra = "\n\nSources: " + ", ".join(links)
+        web_cited = True
 
-    # Named, or quoted: any figure in an answer that saw the
-    # Explorer's values may be one of them.
-    explorer_footer = (
-        explorer_given
+    # Knowledge figures or commands with no source at all.
+    elif not cited:
+        used = knowledge_links(
+            evidence.get("knowledge"),
+            answer,
+            evidence.get("explorer")
+        )
+
+        if used:
+            extra = "\n\nSources: " + ", ".join(used)
+
+    explorer_text = evidence.get("explorer")
+
+    # Only when the answer quotes the Explorer: a figure only
+    # the Explorer supplied (one the knowledge or market data
+    # also has may have come from there), or an unlinked
+    # "Source: ... Explorer". Never when it cites a web page
+    # or the price tracker instead.
+    explorer_footer = bool(
+        explorer_text is not None
         and "explorer.xeqmlabs.com" not in answer
-        and bool(re.search(r"explorer|\d", answer, re.IGNORECASE))
+        and not web_cited
+        and all(
+            url in KNOWLEDGE_URLS or "explorer.xeqmlabs.com" in url
+            for url in cited
+        )
+        and (
+            re.search(r"\bsources?\b[^\n]*\bexplorer\b", answer, re.IGNORECASE)
+            or grounding.numbers(answer) & (
+                grounding.numbers(explorer_text)
+                - grounding.numbers(evidence.get("knowledge"))
+                - grounding.numbers(evidence.get("market"))
+            )
+        )
     )
 
     return extra, explorer_footer
@@ -1315,7 +1476,7 @@ def build_system_prompt(
     return f"""{STATIC_SYSTEM_PROMPT}
 
 ============================================================
-THIS REQUEST
+{THIS_REQUEST}
 ============================================================
 
 SCOPE: {scope}
@@ -1326,7 +1487,8 @@ RELEVANT VERIFIED KNOWLEDGE:
 
 {relevant_knowledge}
 {WEB_SEARCH_SECTIONS.get(web_search_state, "")}\
-{LOOKUP_SECTION if can_look_further else ""}{REMINDER}"""
+{LOOKUP_SECTION if can_look_further else ""}\
+{REMINDER.format(deflection=DEFLECTION_REMINDER[bool(can_look_further)])}"""
 
 
 # ---------------------------------------------------------
@@ -1453,7 +1615,7 @@ def has_text(answer):
 # STREAMED ANSWER
 # ---------------------------------------------------------
 
-def watch_for_lookup(chunks, signalled):
+def watch_for_lookup(chunks, signalled, hold_opening=False):
 
     """
     Pass a stream's chunks through, unless the answer is
@@ -1462,7 +1624,9 @@ def watch_for_lookup(chunks, signalled):
     gets an entry.
 
     Only the opening characters are held back, and only
-    while they could still be the signal.
+    while they could still be the signal. With hold_opening,
+    the first DEFLECTION_WINDOW characters are held too, and
+    a deflection signals like LOOKUP_SIGNAL.
     """
 
     chunks = iter(chunks)
@@ -1484,17 +1648,82 @@ def watch_for_lookup(chunks, signalled):
         if LOOKUP_SIGNAL.startswith(opening):
             continue
 
+        if hold_opening:
+
+            if len(held.lstrip()) < DEFLECTION_WINDOW:
+                continue
+
+            if is_deflection(held):
+                signalled.append(True)
+
+                for _ in chunks:
+                    pass
+
+                return
+
         yield held
         yield from chunks
         return
 
     # The stream ended mid-signal ("[[LOOK"), or empty.
-    if held.strip():
+    if held.strip() and (
+        LOOKUP_SIGNAL.startswith(held.lstrip().lstrip("`"))
+        or is_deflection(held)
+    ):
         signalled.append(True)
+
+    elif held:
+        yield held
 
 
 def is_lookup_signal(answer):
     return (answer or "").lstrip().lstrip("`").startswith(LOOKUP_SIGNAL)
+
+
+def grounding_inputs(system_prompt, question, conversation):
+
+    """
+    (what the answer was given, the user's own words) for
+    grounding.unsupported_numbers: the request's material and
+    the conflict notes, never the static prompt, whose example
+    figures ("933 nodes", "60k") are not evidence. Arithmetic
+    on the user's amounts is supported; the assistant's
+    earlier turns support nothing.
+    """
+
+    return (
+        system_prompt.split(THIS_REQUEST, 1)[-1] + "\n" + knowledge_changelog,
+        "\n".join([
+            question,
+            *(
+                turn.get("content", "")
+                for turn in conversation
+                if turn.get("role") == "user"
+            ),
+        ])
+    )
+
+
+def log_grounding(answer, context, meta):
+
+    """
+    Log how many of an answer's numbers nothing supplied: a
+    monitor, never a block. The route and the count only,
+    never the question (Task 13).
+    """
+
+    if context is None:
+        return
+
+    supplied, asked = context
+    count = len(grounding.unsupported_numbers(answer, supplied, asked))
+
+    if count:
+        print(
+            "EXIOM grounding:",
+            f"route={meta.get('route')}",
+            f"unsupported_numbers={count}"
+        )
 
 
 def stream_answer(
@@ -1503,14 +1732,21 @@ def stream_answer(
     meta,
     reuse_key=None,
     can_look_further=False,
-    explorer_given=False,
-    caveat=""
+    evidence=None,
+    caveat="",
+    divert_deflection=False,
+    grounding_context=None
 ):
 
     """
     Drain a provider stream into pipeline events.
 
+    evidence: what the answer was given (source_additions).
     caveat: text added under a real answer (STALE_PRICE_NOTE).
+    divert_deflection: a deflecting opening counts as
+    LOOKUP_SIGNAL. grounding_context: (what the model was
+    given, the user's words), to count unsupported numbers;
+    None skips the check.
 
     Returns LOOKUP_SIGNAL, having sent nothing, when the model
     asked to look further and a further step exists.
@@ -1525,8 +1761,11 @@ def stream_answer(
 
     try:
 
-        for chunk in stream_without_closing_offer(
-            watch_for_lookup(chunks, signalled)
+        for chunk in stream_linking_source_lines(
+            stream_without_closing_offer(
+                watch_for_lookup(chunks, signalled, divert_deflection)
+            ),
+            SOURCE_TITLES
         ):
             parts.append(chunk)
             yield "delta", chunk
@@ -1565,9 +1804,11 @@ def stream_answer(
         yield "done", meta
         return None
 
+    log_grounding(answer, grounding_context, meta)
+
     extra, explorer_footer = source_additions(
         answer,
-        explorer_given,
+        evidence or {},
         getattr(ai_provider, "last_sources", [])
     )
 
@@ -1809,7 +2050,11 @@ def answer_pipeline(
     # both kinds off-topic).
     if scope == "unrelated":
 
-        if lookup_facts or query_router.names_exiom(question):
+        if (
+            lookup_facts
+            or query_router.names_exiom(question)
+            or query_router.names_xeqm_price(question)
+        ):
             scope = "relevant"
 
         # "Weather in Paris and how many nodes are there?"
@@ -1820,11 +2065,17 @@ def answer_pipeline(
     # listings, latest release); never for an unrelated
     # question. The keyword backstop covers the router
     # forgetting the flag, but never turns a concept question
-    # ("what does market cap mean?") into a search. Claimed
-    # from the allowance only just before the answer call.
+    # ("what does market cap mean?") into a search. That is
+    # decided from the wording, not the router's intent: the
+    # router once labelled "whats the coin price"
+    # "explanation", and the answer came from a stale page.
+    # Claimed from the allowance only just before the answer
+    # call.
+    asks_meaning = query_router.asks_what_it_means(question)
+
     wants_price = (
         scope != "unrelated"
-        and intent != "explanation"
+        and not asks_meaning
         and query_router.asks_for_price(question)
     )
 
@@ -1833,7 +2084,7 @@ def answer_pipeline(
         and (
             route.get("search") is True
             or (
-                intent != "explanation"
+                not asks_meaning
                 and query_router.asks_for_current_market_info(question)
             )
         )
@@ -1972,9 +2223,23 @@ def answer_pipeline(
     # search at all.
     # -----------------------------------------------------
 
-    market_quote = market_data.get_quote() if wants_search else None
+    # "What does CoinPaprika say?" gets CoinPaprika's own
+    # figures; anything else the freshest tracker's.
+    market_quotes = (
+        market_data.get_quotes(query_router.named_trackers(question))
+        if wants_search else []
+    )
 
-    market_text = market_data_text(market_quote) if market_quote else None
+    if wants_search and not market_quotes:
+        market_quotes = [
+            quote for quote in [market_data.get_quote()] if quote
+        ]
+
+    market_quote = market_quotes[0] if market_quotes else None
+
+    market_text = "\n\n".join(
+        market_data_text(quote) for quote in market_quotes
+    ) or None
 
     price_only = (
         market_quote is not None
@@ -2021,6 +2286,13 @@ def answer_pipeline(
 
         cached_answer = answer_cache.get(reuse_key) if reuse_key else None
 
+        # What this step's answer is given (source_additions).
+        evidence = {
+            "explorer": explorer_data if explorer_given else None,
+            "knowledge": relevant_knowledge,
+            "market": market_text,
+        }
+
         if cached_answer:
 
             cost_meter.record_free_response(
@@ -2029,7 +2301,7 @@ def answer_pipeline(
 
             payload = {"answer": cached_answer, **meta}
 
-            if source_additions(cached_answer, explorer_given, [])[1]:
+            if source_additions(cached_answer, evidence, [])[1]:
                 payload["source"] = EXPLORER_SOURCE
 
             yield "whole", payload
@@ -2098,6 +2370,17 @@ def answer_pipeline(
             market_text
         )
 
+        # A deflection goes to the next step, and reaches the
+        # user only as an honest "couldn't find it" after a
+        # real search ran; otherwise NOT_FOUND_ANSWER says so.
+        divert_deflection = can_look_further or not web_search
+
+        # A search's pages are never seen here, so a searched
+        # answer can't be checked.
+        grounding_context = None if web_search else grounding_inputs(
+            system_prompt, question, conversation
+        )
+
         if streaming:
 
             outcome = yield from stream_answer(
@@ -2111,8 +2394,10 @@ def answer_pipeline(
                 meta,
                 reuse_key=reuse_key,
                 can_look_further=can_look_further,
-                explorer_given=explorer_given,
-                caveat=caveat
+                evidence=evidence,
+                caveat=caveat,
+                divert_deflection=divert_deflection,
+                grounding_context=grounding_context
             )
 
             if outcome == LOOKUP_SIGNAL:
@@ -2136,13 +2421,18 @@ def answer_pipeline(
 
         charge_last_call(client_id)
 
-        answer = drop_closing_offer(result["answer"] or "")
+        answer = link_source_lines(
+            drop_closing_offer(result["answer"] or ""),
+            SOURCE_TITLES
+        )
 
         # Mid-answer, the signal can only be removed.
         if not is_lookup_signal(answer):
             answer = answer.replace(LOOKUP_SIGNAL, "").strip()
 
-        if is_lookup_signal(answer):
+        if is_lookup_signal(answer) or (
+            divert_deflection and is_deflection(answer)
+        ):
 
             if can_look_further:
                 continue
@@ -2157,9 +2447,12 @@ def answer_pipeline(
 
         else:
 
+            if answer != NOT_FOUND_ANSWER:
+                log_grounding(answer, grounding_context, meta)
+
             extra, explorer_footer = source_additions(
                 answer,
-                explorer_given,
+                evidence,
                 getattr(ai_provider, "last_sources", [])
             )
 

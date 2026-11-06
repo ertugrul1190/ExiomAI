@@ -43,6 +43,9 @@ COINGECKO_PAGE = f"https://www.coingecko.com/en/coins/{COINGECKO_ID}"
 COINPAPRIKA_PAGE = f"https://coinpaprika.com/coin/{COINPAPRIKA_ID}/"
 NONKYC_PAGE = "https://nonkyc.io/market/XEQM_USDT"
 
+# Freshest first (see above).
+TRACKERS = ("nonkyc", "coinpaprika", "coingecko")
+
 
 def _number(value):
     # bool is an int in Python; a missing or odd field is
@@ -209,8 +212,8 @@ class MarketData:
 
         self.session_factory = requests.Session
 
-        self._quote = None
-        self._quote_at = 0
+        # name -> (quote, read at)
+        self._quotes = {}
         self._failed_at = {}
 
     def _now(self):
@@ -250,6 +253,34 @@ class MarketData:
     def _from_nonkyc(self):
         return parse_nonkyc(self._get_json(NONKYC_URL))
 
+    def _read(self, name, now):
+        """
+        One tracker's quote: reused for a minute, and None
+        while the tracker is left alone after failing.
+        """
+
+        cached = self._quotes.get(name)
+
+        if cached and now - cached[1] < self.cache_seconds:
+            return cached[0]
+
+        if now - self._failed_at.get(name, -1e9) < self.failure_cache_seconds:
+            return None
+
+        try:
+            quote = getattr(self, f"_from_{name}")()
+
+        except (
+            requests.RequestException, ValueError, KeyError, TypeError,
+            AttributeError
+        ) as error:
+            logger.warning("Market data from %s failed: %s", name, error)
+            self._failed_at[name] = now
+            return None
+
+        self._quotes[name] = (quote, now)
+        return quote
+
     def get_quote(self):
         """
         The current quote, or None when no tracker answered.
@@ -259,31 +290,26 @@ class MarketData:
 
         now = self._now()
 
-        if self._quote and now - self._quote_at < self.cache_seconds:
-            return self._quote
+        for name in TRACKERS:
 
-        for name, read in (
-            ("nonkyc", self._from_nonkyc),
-            ("coinpaprika", self._from_coinpaprika),
-            ("coingecko", self._from_coingecko),
-        ):
+            quote = self._read(name, now)
 
-            if now - self._failed_at.get(name, -1e9) < self.failure_cache_seconds:
-                continue
-
-            try:
-                quote = read()
-
-            except (
-                requests.RequestException, ValueError, KeyError, TypeError,
-                AttributeError
-            ) as error:
-                logger.warning("Market data from %s failed: %s", name, error)
-                self._failed_at[name] = now
-                continue
-
-            self._quote = quote
-            self._quote_at = now
-            return quote
+            if quote:
+                return quote
 
         return None
+
+    def get_quotes(self, names):
+        """
+        The quotes of the named trackers that answered, in
+        the order given: "what does CoinPaprika say?" is
+        answered with CoinPaprika's own figures.
+        """
+
+        now = self._now()
+
+        return [
+            quote
+            for name in names
+            if name in TRACKERS and (quote := self._read(name, now))
+        ]

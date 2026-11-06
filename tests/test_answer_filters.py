@@ -1,6 +1,11 @@
 import pytest
 
-from answer_filters import drop_closing_offer, stream_without_closing_offer
+from answer_filters import (
+    drop_closing_offer,
+    link_source_lines,
+    stream_linking_source_lines,
+    stream_without_closing_offer,
+)
 
 
 SOURCE = "Source: [Official EXIOM Explorer](https://explorer.xeqmlabs.com/)"
@@ -86,3 +91,63 @@ def test_ordinary_text_is_not_held_back():
 
     # Each chunk goes out as it arrives.
     assert passed == chunks
+
+
+# ---------------------------------------------------------
+# PLAIN-TEXT SOURCES BECOME LINKS (Answer Quality 2.6)
+# ---------------------------------------------------------
+
+TITLES = {
+    "exiom tokenomics whitepaper": "https://github.com/XEQMLabs/whitepaper",
+    "xeqm core releases": "https://github.com/XEQMLabs/xeqm-core/releases",
+    "service nodes (sn)": "https://x.io/sn",
+}
+
+BAD_STAKING_ANSWER = (
+    "Short answer: not by itself.\n\n"
+    "Sources: EXIOM Tokenomics Whitepaper; XEQM Core Releases"
+)
+
+
+def test_a_plain_title_in_a_sources_line_becomes_its_link():
+    assert link_source_lines(BAD_STAKING_ANSWER, TITLES).endswith(
+        "Sources: [EXIOM Tokenomics Whitepaper]"
+        "(https://github.com/XEQMLabs/whitepaper); "
+        "[XEQM Core Releases](https://github.com/XEQMLabs/xeqm-core/releases)"
+    )
+
+
+def test_titles_outside_a_sources_line_and_existing_links_are_left_alone():
+    text = (
+        "The EXIOM Tokenomics Whitepaper says so.\n"
+        "**Source:** [Service Nodes (SN)](https://x.io/sn)"
+    )
+
+    assert link_source_lines(text, TITLES) == text
+
+
+@pytest.mark.parametrize("line", [
+    "Source: Service Nodes (SN)",
+    "**Sources:** Service Nodes (SN)",
+    "📚 Sources: service nodes (sn)",
+])
+def test_every_way_of_writing_a_source_line_is_linked(line):
+    assert "](https://x.io/sn)" in link_source_lines(line, TITLES)
+
+
+@pytest.mark.parametrize("size", [1, 2, 3, 5, 7, 13])
+def test_the_streamed_version_gives_exactly_the_same_text(size):
+    text = (
+        "So, yes.\nSoon more.\n\n**Sources:** EXIOM Tokenomics Whitepaper\n"
+        "Source line two: XEQM Core Releases\n\nSourcery is not one."
+    )
+    chunks = [text[i:i + size] for i in range(0, len(text), size)]
+
+    assert "".join(stream_linking_source_lines(chunks, TITLES)) == \
+        link_source_lines(text, TITLES)
+
+
+def test_only_a_possible_source_line_is_held_back():
+    stream = stream_linking_source_lines(iter(["Yes, you can", " stake."]), TITLES)
+
+    assert next(stream) == "Yes, you can"

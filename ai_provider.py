@@ -352,6 +352,16 @@ class AIProvider:
 
         self.primary_model = "gpt-5-nano"
 
+        # Answers only; the router and off-topic banter stay on
+        # primary_model. gpt-5-mini follows the answer rules
+        # more reliably, at 5x the price (usage_control.
+        # MODEL_RATES). See "Task Docs/Answer Quality and
+        # Image Upload.md", 2.8.
+        self.answer_model = (
+            os.getenv("EXIOM_ANSWER_MODEL", "").strip()
+            or self.primary_model
+        )
+
         # We control retries ourselves (see reliability.py) so
         # behavior is predictable and bounded.
         self.max_attempts = MAX_ATTEMPTS
@@ -412,13 +422,18 @@ class AIProvider:
     # REQUEST BUILDING
     # -----------------------------------------------------
 
+    def _model_for(self, route):
+        return self.answer_model if route == "answer" else self.primary_model
+
+
     def _build_request(
         self,
         messages,
         max_output_tokens,
         reasoning_effort,
         json_output,
-        web_search=False
+        web_search=False,
+        route="unknown"
     ):
 
         # store=False: the Responses API otherwise keeps every
@@ -427,7 +442,7 @@ class AIProvider:
         # sends its own context. Not a cost control, so never
         # dropped.
         request = {
-            "model": self.primary_model,
+            "model": self._model_for(route),
             "input": messages,
             "store": False,
         }
@@ -654,7 +669,8 @@ class AIProvider:
                 max_output_tokens,
                 reasoning_effort,
                 json_output,
-                web_search
+                web_search,
+                route
             )
 
             try:
@@ -688,7 +704,7 @@ class AIProvider:
         """
 
         self._thread_state.usage = self.cost_meter.record_usage(
-            self.primary_model,
+            self._model_for(route),
             getattr(response, "usage", None),
             route
         )
@@ -811,7 +827,7 @@ class AIProvider:
         return {
             "answer": response.output_text,
             "provider": "openai",
-            "model": self.primary_model,
+            "model": self._model_for("answer"),
             "searched": self.last_web_searches > 0,
             "sources": self.last_sources,
         }
@@ -902,7 +918,8 @@ class AIProvider:
                 max_output_tokens,
                 reasoning_effort,
                 json_output=False,
-                web_search=web_search
+                web_search=web_search,
+                route=route
             )
 
             # Nothing has reached the caller yet, so this

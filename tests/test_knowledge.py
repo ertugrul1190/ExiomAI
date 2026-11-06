@@ -252,3 +252,134 @@ def test_concepts_match_whole_words_and_stems(question, concept):
 ])
 def test_concepts_never_match_inside_other_words(question):
     assert retrieval._question_index(question)["concepts"] == frozenset()
+
+
+# ---------------------------------------------------------
+# RARITY-WEIGHTED RETRIEVAL (Answer Quality 2.5)
+# ---------------------------------------------------------
+#
+# "can i stake 60k coins" got neither staking section: the
+# stemmer split "stake" from "staking", and the many sections
+# tied on the staking concept were ordered by file.
+# ---------------------------------------------------------
+
+STAKING_SECTIONS = (
+    "SECTION: Staking requirements, pool nodes and operator fee",
+    "SECTION: Staking as a contributor in a pool node",
+)
+
+
+@pytest.mark.parametrize("question", [
+    "can i stake 60k coins",
+    "i have 50000 xeqm what can i do",
+    "can i run a node with 120k",
+    "minimum to contribute",
+    "how do i join a pool node",
+    "whats the minimum to stake",
+])
+def test_staking_questions_retrieve_both_staking_sections(question):
+    knowledge = retrieved(question)
+
+    for title in STAKING_SECTIONS:
+        assert title in knowledge, question
+
+
+@pytest.mark.parametrize("word", ["stake", "stakes", "staked", "staking"])
+def test_every_form_of_stake_has_one_stem(word):
+    assert retrieval.stem(word) == "stak"
+
+
+def test_coins_and_tokens_mean_xeqm():
+    assert retrieval.normalize_words("coins tokens") == {"xeqm"}
+
+
+@pytest.mark.parametrize("question, amount", [
+    ("can i stake 60k", True),
+    ("i have 60,000", True),
+    ("150k xeqm", True),
+    ("50000 coins", True),
+    ("is 9231 safe to expose", False),
+    ("why upgrade before block 236920", False),
+    ("offline for 3 days", False),
+])
+def test_only_a_written_amount_counts_as_a_stake_amount(question, amount):
+    concepts = retrieval._question_index(question)["concepts"]
+
+    assert ("stake amount" in concepts) is amount
+
+
+def section(title, content):
+    return {"source_file": "x.md", "parent": "", "title": title,
+            "content": content}
+
+
+def test_a_rare_word_outweighs_a_common_one():
+    sections = [
+        section(f"Node topic {n}", "node node node details") for n in range(8)
+    ] + [section("Contributors", "contributor slots for a node")]
+
+    knowledge = retrieval.retrieve_knowledge(
+        "contributor node", sections, limit=1
+    )
+
+    assert "SECTION: Contributors" in knowledge
+
+
+def test_a_tie_goes_to_the_better_title_not_file_order(monkeypatch):
+    sections = [section("Overview", "a"), section("Lokinet", "b")]
+
+    # Equal scores; only the second title matches the question.
+    monkeypatch.setattr(
+        retrieval, "_rank", lambda query, indexes: [(5.0, 0), (5.0, 1)]
+    )
+
+    assert retrieval.retrieve_knowledge(
+        "lokinet", sections, limit=1
+    ).startswith("SECTION: Lokinet")
+
+
+def test_retrieval_never_ties_at_the_cutoff_on_the_eval_questions():
+    questions = [
+        line.split("||")[-1].strip()
+        for name in ("questions.txt", "technical_questions.txt")
+        for line in (ROOT / "evals" / name).read_text().splitlines()
+        if line.strip() and not line.startswith("#")
+    ]
+
+    tied = []
+
+    for question in questions:
+        ranks = sorted(
+            (rank for rank in retrieval._rank(
+                retrieval._question_index(question),
+                [retrieval._section_index(s) for s in SECTIONS]
+            ) if rank[0] > 0),
+            reverse=True
+        )
+
+        if len(ranks) > 6 and ranks[5] == ranks[6]:
+            tied.append(question)
+
+    assert len(questions) > 80 and tied == []
+
+
+# Numbers in the teaching examples that are not facts: the
+# Explorer counts in DIRECT FACTS and the user's own amounts in
+# CAN I ...? QUESTIONS.
+EXAMPLE_ONLY_NUMBERS = {"933", "932", "60000", "120000"}
+
+
+def test_every_number_in_the_instructions_is_in_the_knowledge():
+    # The model reads instructions.md on every answer: an
+    # example figure that drifts from the knowledge teaches a
+    # wrong one.
+    import grounding
+
+    knowledge = grounding.numbers(
+        " ".join(document["text"] for document in DOCUMENTS)
+    )
+    instructions = grounding.numbers(
+        (KNOWLEDGE / "instructions.md").read_text()
+    )
+
+    assert instructions - knowledge - EXAMPLE_ONLY_NUMBERS == set()

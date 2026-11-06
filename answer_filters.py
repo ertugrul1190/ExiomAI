@@ -156,3 +156,138 @@ def stream_without_closing_offer(chunks):
 
     if len(final) > sent:
         yield final[sent:]
+
+
+# ---------------------------------------------------------
+# PLAIN-TEXT SOURCES
+# ---------------------------------------------------------
+#
+# "Sources: EXIOM Tokenomics Whitepaper; XEQM Core Releases"
+# names official pages without linking them. In a source line,
+# each known title becomes its link. Titles anywhere else, and
+# titles already linked, are left alone.
+#
+# The streamed version gives exactly the same text. It holds
+# back only a line that opens like a source line, until the
+# line ends.
+# ---------------------------------------------------------
+
+_SOURCE_LINE = re.compile(r"\W{0,6}sources?\b", re.IGNORECASE)
+_LINE_OPENING = re.compile(r"\W{0,6}")
+_MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\([^)]*\)")
+
+
+def _is_source_line(line):
+    return bool(_SOURCE_LINE.match(line))
+
+
+def _could_be_source_line(line):
+    rest = line[_LINE_OPENING.match(line).end():].lower()
+
+    if not rest:
+        return len(line) <= 6
+
+    return "sources".startswith(rest) or rest.startswith("source")
+
+
+def _title_pattern(titles):
+    if not titles:
+        return None
+
+    return re.compile(
+        r"(?<![\w\[])(" + "|".join(
+            re.escape(title)
+            for title in sorted(titles, key=len, reverse=True)
+        ) + r")(?![\w\]])",
+        re.IGNORECASE
+    )
+
+
+def _link_titles(line, titles, pattern):
+    if pattern is None:
+        return line
+
+    def link(match):
+        return f"[{match.group(1)}]({titles[match.group(1).lower()]})"
+
+    # Only the text between existing links.
+    parts = []
+    last = 0
+
+    for existing in _MARKDOWN_LINK.finditer(line):
+        parts.append(pattern.sub(link, line[last:existing.start()]))
+        parts.append(existing.group(0))
+        last = existing.end()
+
+    parts.append(pattern.sub(link, line[last:]))
+
+    return "".join(parts)
+
+
+def _link_line(line, titles, pattern):
+    if _is_source_line(line):
+        return _link_titles(line, titles, pattern)
+
+    return line
+
+
+def link_source_lines(text, titles):
+    """
+    The text with each known title in a source line linked.
+
+    titles: lowercased title -> URL.
+    """
+
+    pattern = _title_pattern(titles)
+
+    return "\n".join(
+        _link_line(line, titles, pattern) for line in text.split("\n")
+    )
+
+
+def stream_linking_source_lines(chunks, titles):
+    """
+    Pass a stream through, giving in total exactly
+    link_source_lines(the whole text, titles).
+    """
+
+    pattern = _title_pattern(titles)
+
+    def finish(line):
+        return _link_line(line, titles, pattern)
+
+    text = ""
+    sent = 0
+    line_start = 0
+
+    for chunk in chunks:
+        text += chunk
+
+        while True:
+            end = text.find("\n", line_start)
+
+            if end == -1:
+                line = text[line_start:]
+
+                # Undecided lines wait; others flow.
+                if sent > line_start or not _could_be_source_line(line):
+                    if len(text) > sent:
+                        yield text[sent:]
+                        sent = len(text)
+
+                break
+
+            if sent > line_start:
+                yield text[sent:end + 1]
+
+            else:
+                yield finish(text[line_start:end]) + "\n"
+
+            sent = line_start = end + 1
+
+    if sent > line_start:
+        if len(text) > sent:
+            yield text[sent:]
+
+    elif len(text) > line_start:
+        yield finish(text[line_start:])

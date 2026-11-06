@@ -767,3 +767,45 @@ def test_sources_are_cleared_before_each_call(monkeypatch):
     result = provider.generate("system", [], "what is staking?")
 
     assert result["sources"] == []
+
+
+# ---------------------------------------------------------
+# ANSWER MODEL (Answer Quality 2.8)
+# ---------------------------------------------------------
+
+def test_answers_can_use_their_own_model(monkeypatch):
+    monkeypatch.setenv("EXIOM_ANSWER_MODEL", "gpt-5-mini")
+
+    provider = build_provider(
+        [
+            FakeResponse('{"scope":"relevant","intent":"general","facts":[]}'),
+            FakeResponse("answer"),
+        ],
+        monkeypatch
+    )
+    recorded = []
+    record = provider.cost_meter.record_usage
+    provider.cost_meter.record_usage = (
+        lambda model, *rest: recorded.append(model) or record(model, *rest)
+    )
+
+    provider.route_question("hello", [], REGISTRY)
+    result = provider.generate("system", [], "question")
+
+    router, answer = provider.client.responses.requests
+    assert router["model"] == "gpt-5-nano"
+    assert answer["model"] == "gpt-5-mini"
+    assert result["model"] == "gpt-5-mini"
+    assert recorded == ["gpt-5-nano", "gpt-5-mini"]
+
+
+def test_the_answer_model_defaults_to_the_primary_model(monkeypatch):
+    monkeypatch.delenv("EXIOM_ANSWER_MODEL", raising=False)
+
+    assert ai_provider.AIProvider().answer_model == "gpt-5-nano"
+
+
+def test_every_answer_model_has_its_price():
+    import usage_control
+
+    assert "gpt-5-mini" in usage_control.MODEL_RATES

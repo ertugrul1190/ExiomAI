@@ -31,6 +31,12 @@ MODEL_RATES = {
         "cached_input": 0.005,
         "output": 0.40,
     },
+    # Checked on OpenAI's pricing page, 2026-11-06.
+    "gpt-5-mini": {
+        "input": 0.25,
+        "cached_input": 0.025,
+        "output": 2.00,
+    },
 }
 
 

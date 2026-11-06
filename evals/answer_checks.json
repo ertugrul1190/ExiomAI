@@ -1,0 +1,97 @@
+{
+  "_about": "Answer checks for live_eval.py --checks (Task Docs/Answer Quality and Image Upload.md, 2.9). Case-insensitive. Every answer must also have zero unsupported numbers, unless a web search ran (its pages can't be checked). only_if_tracker: the must_contain checks apply only while that tracker is the live source. \"grounded\": false allows illustrative arithmetic in a concept explanation.",
+  "checks": [
+    {
+      "question": "can i stake 60k coins",
+      "must_not_start": [
+        "No",
+        "Short answer: no",
+        "Short answer: not",
+        "Short answer: you can't",
+        "Short answer: you can’t"
+      ],
+      "must_contain": [
+        "contribut"
+      ],
+      "must_match": [
+        "10,000|10k\\b"
+      ]
+    },
+    {
+      "question": "i have 50000 xeqm what can i do",
+      "must_not_start": [
+        "No",
+        "Short answer: no",
+        "Short answer: not",
+        "Short answer: you can't",
+        "Short answer: you can’t"
+      ],
+      "must_contain": [
+        "contribut"
+      ],
+      "must_match": [
+        "10,000|10k\\b"
+      ]
+    },
+    {
+      "question": "can i run a node with 120k",
+      "must_not_start": [
+        "No",
+        "Short answer: no",
+        "Short answer: not",
+        "Short answer: you can't",
+        "Short answer: you can’t"
+      ],
+      "must_match": [
+        "100,000|100k\\b",
+        "200,000|200k\\b"
+      ]
+    },
+    {
+      "question": "whats the coin price",
+      "must_contain": [
+        "nonkyc.io"
+      ],
+      "only_if_tracker": "NonKYC",
+      "must_not_contain": [
+        "coingecko",
+        "livecoinwatch"
+      ]
+    },
+    {
+      "question": "what does nonkyc and coinpaprika say",
+      "must_match": [
+        "0\\.0\\d+"
+      ],
+      "must_not_contain": [
+        "I don't have",
+        "guide you",
+        "check"
+      ]
+    },
+    {
+      "question": "what does market cap mean?",
+      "must_not_contain": [
+        "I don't have",
+        "guide you"
+      ],
+      "grounded": false
+    },
+    {
+      "question": "how much downtime is allowed",
+      "must_contain": [
+        "48"
+      ]
+    },
+    {
+      "question": "How many active nodes are there?",
+      "must_match": [
+        "\\d"
+      ],
+      "must_not_contain": [
+        "I don't have",
+        "guide you"
+      ]
+    }
+  ]
+}
