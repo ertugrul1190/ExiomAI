@@ -15,7 +15,7 @@ step 8), then re-ask the three repro questions live.
 | --- | --- | --- |
 | "whats the coin price" | $0.0196 from a web search's stale CoinGecko copy | the live NonKYC price from the tracker API, no search, no Explorer footer |
 | "what does nonkyc and coinpaprika say" | "I can guide you to the exact pages" | each tracker's own live figures, side by side |
-| "can i stake 60k coins" | "Short answer: not by itself", Explorer footer, plain-text sources | "Yes, as a contributor to a pool node": options, steps, risks, linked sources (with `gpt-5-mini`, §2.8) |
+| "can i stake 60k coins" | "Short answer: not by itself", Explorer footer, plain-text sources | "Yes, as a contributor to a pool node": options, steps, risks, linked sources. Reliably so with `gpt-5-mini` (§2.8), not yet on the default nano |
 
 
 ## 2. What changed
@@ -198,14 +198,30 @@ knowledge text, market text.
   in §2.2 and §2.9. The last three mini runs (JSON, stream,
   JSON after the review fixes) passed 8/8. Nano still opens "can I…?" answers with "Short
   answer: no", and invented the atomic-unit stake above.
-- **Recommendation: set `EXIOM_ANSWER_MODEL=gpt-5-mini`.** At
-  about 10 answers a day it costs roughly $0.006 an answer,
-  around $2 a month. But the daily caps count tokens, not
-  dollars: the 20M-token global cap is worth about 5× more
-  money with mini. Lower `EXIOM_GLOBAL_TOKENS_PER_DAY` with
-  it if the worst case must stay where it is. This is the
-  client's budget decision, so it is a setting, not the
-  default.
+- **Decision (6 Nov 2026): answers stay on gpt-5-nano.** The
+  client pays the OpenAI bill, so switching models is their
+  call. `EXIOM_ANSWER_MODEL` is set nowhere (`.env`,
+  wrangler). Setting `EXIOM_ANSWER_MODEL=gpt-5-mini` switches
+  answers over with no code change.
+- **Measured cost** on the 59 questions of
+  `evals/questions.txt`, from the app's cost meter:
+
+  | | gpt-5-nano | gpt-5-mini |
+  | --- | --- | --- |
+  | Tokens (router + answer) | $0.023 | $0.120 |
+  | Web searches ($0.01 each) | $0.10 (10) | $0.14 (14) |
+  | Per answer, all in | ≈ $0.0021 | ≈ $0.0044 |
+
+  - 50 / 100 / 200 answers a day cost $0.11 / $0.21 / $0.42
+    on nano, and $0.22 / $0.44 / $0.88 on mini.
+  - At 50–100 answers a day, that is about $5 a month on nano
+    and about $10 on mini.
+  - Worst case at the daily caps: the 20M-token cap is about
+    $0.75 on nano and $3.60 on mini, plus up to $5 for the
+    500-search cap. That makes about $5.75 a day on nano and
+    $8.60 on mini.
+  - The eval set has more price and market questions than
+    real traffic probably does, so it overstates searches.
 
 ### 2.9 Answer eval set
 
