@@ -1,12 +1,13 @@
 # EXIOM AI — Answer Quality and Image Upload
 
 What was built on 6 November 2026, following
-`Answer Quality and Image Upload - Plan.md`. This record
-covers Parts 1 and 2 (answer quality). Part 3 (image upload)
-is not built yet and will be added here when it is.
+`Answer Quality and Image Upload - Plan.md`. §1–5 cover
+Parts 1 and 2 (answer quality); §6 covers Part 3 (image
+upload).
 
 Not deployed yet: deploy with `cloudflare/deploy.sh` (plan
-step 8), then re-ask the three repro questions live.
+step 8), then re-ask the three repro questions live and send
+one image from a phone.
 
 
 ## 1. The three repros, after
@@ -312,3 +313,146 @@ Kept as they are, on purpose:
 | `ai_provider.py`, `usage_control.py`, `.env.example` | `EXIOM_ANSWER_MODEL`, gpt-5-mini rates |
 | `knowledge/instructions.md` | CAN I …? QUESTIONS, ANSWER LENGTH |
 | `live_eval.py`, `evals/answer_checks.json` | `--checks`, grounding count |
+
+
+## 6. Image upload (plan Part 3)
+
+PNG, JPEG or WebP, up to 3 per message, **5 per visitor IP
+per UTC day** (`EXIOM_CLIENT_IMAGES_PER_DAY`). An image is
+used for that one answer and never stored, logged or cached.
+Follow-ups carry `[image]` in its place.
+
+### 6.1 Backend
+
+- **Allowance** (`usage_control.py`): `claim_images(client,
+  count)` → `(allowed, left)`. All or nothing: 3 with 2 left
+  takes none. It is claimed after the usage check passes and
+  before any AI call, like a web search, so a failed call
+  still counts. A request the usage check refuses uses no
+  images. The limit shows in `snapshot()`.
+- **Workers**: a `claim_images` op on the hub
+  (`usage_hub.py`). `RemoteUsageController.claim_images`
+  returns `(False, None)` when the hub can't be reached. The
+  app then refuses with the ordinary capacity message, not
+  "you've used today's 5".
+- **Validation** (`app.read_images`, inside
+  `read_ask_request`, before anything else sees the request):
+  - a list of at most 3 strings;
+  - each `data:image/(png|jpeg|webp);base64,…`, strictly
+    decoded;
+  - at most 1.5 MiB decoded, checked on the string length
+    before decoding;
+  - the first bytes must match the declared type.
+
+  The 400 error types are `invalid_image`, `too_many_images`
+  and `image_too_large`. An empty question with images
+  becomes "What's in this image?". A pasted recovery phrase
+  is still refused when images come with it.
+- **Body limit**: only `/ask` and `/ask/stream` take
+  `MAX_ASK_REQUEST_BYTES`, set in `guard_request` before
+  anything reads the body. That is 256 KB plus three
+  largest-size images as base64, about 6.5 MB. The plan's
+  "about 5 MB" would turn three valid 1.5 MB images into a
+  413. `guard_request` now also refuses any declared
+  `Content-Length` over the route's limit up front. Before
+  this, a route that never reads its body (`GET
+  /api/network-stats`) accepted 1 MB.
+- **Pipeline**: a question with images skips:
+  - the fast path ("hi" with an image is a real question);
+  - the router (it can't see the image): the route is fixed
+    to `scope: mixed`, `intent: general`;
+  - both caches.
+
+  It then runs the normal EXPLORER → WEB_SEARCH steps, so
+  all of Part 2 applies, and the images go with every step.
+  The grounding check is skipped for these answers, because
+  numbers read off an image aren't in any text context.
+- **Over the limit**: 429 with `error_type: "image_limit"`,
+  `images_left`, and `Retry-After` set to midnight UTC. The
+  text isn't answered. The message:
+  - with none left: "You've used today's 5 image uploads 🙏
+    They reset at midnight UTC. You can still ask in text.";
+  - with too few left: "You have N image uploads left today
+    🙏 Please attach fewer, or ask in text."
+- **`images_left`** is in the `done` / `whole` metadata of
+  image answers, and only theirs.
+- **Provider** (`ai_provider.user_turn`): with images, the
+  user turn is `input_text` followed by `input_image` parts
+  with `detail: "auto"`. `generate`, `stream_generate` and
+  the off-topic pair take `images=None`. Image tokens come
+  back in `usage`, so metering and the token caps count them.
+
+### 6.2 Frontend
+
+See Task 16, §16.17.
+
+### 6.3 Verified
+
+- `pytest`: 916 passed, with `EXIOM_USAGE_TOKEN=` empty (see
+  §3).
+- **End to end against the real Flask app**, with a stub
+  provider so the client's key wasn't spent:
+  - two images, then two more, then one: `images_left` was
+    3, then 1, then 0;
+  - two more after that: 429 "You have 1 image upload
+    left…";
+  - with none left: 429 "You've used today's 5…";
+  - `GET /api/network-stats` with a 1 MB body: 413;
+  - the server log contains no image data.
+- Not yet tried against the real model: the first live check
+  is part of the deploy step above.
+
+### 6.4 Code review
+
+A two-axis review (standards, spec) ran after the build. It
+found every 3.1–3.4 item present. The fixes:
+
+- **Chip order**: resized images were added as each one
+  finished, so the order could change. They now keep the
+  order they were picked in.
+- **Hub outage**: it read "you've used today's 5". It now
+  gets the capacity message (`(False, None)`, §6.1).
+- **Image refusal**: the question was lost on an image
+  refusal, although the message says "you can still ask in
+  text". It now goes back in the box.
+- **Tidy-ups**:
+  - `image_error(answer, error_type)` now takes its
+    arguments in payload order.
+  - The "too large" refusal is built once.
+  - Docstring on `is_image_of_type`.
+
+Kept as they are, on purpose:
+
+- **`IMAGES_PER_DAY` in `app.py`** reads the same variable as
+  the hub, only for the message wording. The Worker and its
+  Durable Object share one set of vars.
+- **No global image ceiling**: the global daily token cap
+  already bounds spend.
+- **The left-count shows only while images are attached**
+  ("under the chips"), so the composer gets no permanent
+  extra line.
+- **The plan's "claiming 3 when 4 are left fails"** is
+  impossible as written. The test claims 3 with 2 left.
+
+### 6.5 Known limits (plan §3.5)
+
+- **Per-IP counters live in the Durable Object's memory**:
+  if the object is evicted, today's counts reset.
+- **One shared IP shares 5**: an office, or a carrier's NAT.
+- **No recovery-phrase detection inside an image**: the
+  small print warns instead.
+- **Each extra answer step re-sends the images**: a search
+  after an Explorer `[[LOOKUP]]` pays their tokens twice.
+  The token caps count both.
+
+### 6.6 Files
+
+| File | Change |
+| --- | --- |
+| `usage_control.py` | `client_images_per_day`, `claim_images`, `images_today`, snapshot limit |
+| `usage_hub.py`, `remote_usage.py` | `claim_images` op; refuses with no count when the hub is unreachable |
+| `ai_provider.py` | `user_turn`; `images=None` on the four answer calls |
+| `app.py` | `read_images`, the ask-only body limit, the declared-length check, `image_limit_payload`, image route through the pipeline |
+| `templates/index.html`, `static/style.css` | attach button, chips, resize, paste and drop, thumbnails, left-count, small-print line (Task 16, §16.17) |
+| `.env.example` | `EXIOM_CLIENT_IMAGES_PER_DAY` |
+| tests | `test_usage_control`, `test_usage_hub`, `test_ai_provider`, `test_ask_endpoint`, `test_security` |

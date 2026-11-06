@@ -129,6 +129,7 @@ def test_an_unreachable_object_fails_towards_spending_less():
     assert decision.reason.startswith("global")
 
     assert remote.usage_controller.claim_web_search("a") is False
+    assert remote.usage_controller.claim_images("a", 1) == (False, None)
 
     # Free routes and bookkeeping never break a response.
     assert remote.flood_guard.allow("a") == (True, 0)
@@ -141,6 +142,16 @@ def test_an_unreachable_object_fails_towards_spending_less():
     )["input_tokens"] == 5
     assert remote.usage_ledger.daily() == []
     assert remote.usage_ledger.state == "unavailable"
+
+
+def test_images_are_claimed_through_the_one_object(hub, monkeypatch):
+    first = RemoteUsage(json_transport(hub))
+    second = RemoteUsage(json_transport(hub))
+
+    assert first.usage_controller.claim_images("a", 3) == (True, 2)
+    assert second.usage_controller.claim_images("a", 3) == (False, 2)
+    assert second.usage_controller.claim_images("a", 2) == (True, 0)
+    assert first.usage_controller.claim_images("b", 1) == (True, 4)
 
 
 def test_unknown_operations_are_refused(hub):

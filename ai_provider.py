@@ -154,6 +154,28 @@ def answer_output_ceiling(web_search):
     )
 
 
+def user_turn(question, images=None):
+    """
+    The question as the user turn, with any images (data URLs,
+    validated in app.py) after the text. Images are sent for
+    this one call only and never kept.
+    """
+
+    if not images:
+        return {"role": "user", "content": question}
+
+    return {
+        "role": "user",
+        "content": [
+            {"type": "input_text", "text": question},
+            *(
+                {"type": "input_image", "image_url": url, "detail": "auto"}
+                for url in images
+            ),
+        ],
+    }
+
+
 def count_web_searches(response):
     """
     The web_search_call items in a response's output.
@@ -801,7 +823,8 @@ class AIProvider:
         system_prompt,
         conversation,
         question,
-        web_search=False
+        web_search=False,
+        images=None
     ):
 
         messages = [
@@ -810,10 +833,7 @@ class AIProvider:
                 "content": system_prompt
             },
             *conversation,
-            {
-                "role": "user",
-                "content": question
-            }
+            user_turn(question, images)
         ]
 
         response = self._create_response(
@@ -840,7 +860,8 @@ class AIProvider:
     def generate_off_topic(
         self,
         conversation,
-        question
+        question,
+        images=None
     ):
 
         messages = [
@@ -854,10 +875,7 @@ class AIProvider:
                 max_chars_per_message=400,
                 total_char_budget=800
             ),
-            {
-                "role": "user",
-                "content": question
-            }
+            user_turn(question, images)
         ]
 
         response = self._create_response(
@@ -982,7 +1000,8 @@ class AIProvider:
         system_prompt,
         conversation,
         question,
-        web_search=False
+        web_search=False,
+        images=None
     ):
 
         """
@@ -995,10 +1014,7 @@ class AIProvider:
                 "content": system_prompt
             },
             *conversation,
-            {
-                "role": "user",
-                "content": question
-            }
+            user_turn(question, images)
         ]
 
         return self._stream_response(
@@ -1017,7 +1033,8 @@ class AIProvider:
     def stream_generate_off_topic(
         self,
         conversation,
-        question
+        question,
+        images=None
     ):
 
         """
@@ -1035,10 +1052,7 @@ class AIProvider:
                 max_chars_per_message=400,
                 total_char_budget=800
             ),
-            {
-                "role": "user",
-                "content": question
-            }
+            user_turn(question, images)
         ]
 
         return self._stream_response(

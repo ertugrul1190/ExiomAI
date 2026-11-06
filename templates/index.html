@@ -371,6 +371,15 @@
 
         <div class="composer">
 
+            <!-- Images to send with the next question (Part 3
+                 of the Image Upload plan): resized here, used
+                 for one answer, never stored. -->
+
+            <div class="attachments" id="attachments" hidden>
+                <div class="attach-chips" id="attachChips"></div>
+                <p class="attach-note" id="attachNote" aria-live="polite"></p>
+            </div>
+
             <textarea
                 id="question"
                 rows="1"
@@ -380,6 +389,28 @@
                 aria-describedby="privacyNote"
                 enterkeyhint="send"
             ></textarea>
+
+            <input
+                id="attachInput"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                multiple
+                hidden
+            >
+
+            <button
+                id="attachButton"
+                class="attach-button"
+                type="button"
+                aria-label="Attach images"
+                title="Attach images (PNG, JPEG, WebP)"
+            >
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <rect x="3" y="4" width="14" height="12" rx="2.5"/>
+                    <circle cx="7.5" cy="8.5" r="1.4"/>
+                    <path d="M3.5 14l4-4 3 3 2-2 4 4"/>
+                </svg>
+            </button>
 
             <button
                 id="sendButton"
@@ -404,12 +435,13 @@
         </p>
 
         <p id="privacyNote" class="privacy-note">
-            Questions are sent to an AI service to write the
-            answer; for prices and similar it may search the
-            web. Your chat lives only in this tab and is gone
-            when you close it. Never share a recovery phrase,
-            private key or personal details. Answers can be wrong
-            and are not financial advice.
+            Questions and images are sent to an AI service to
+            write the answer; for prices and similar it may
+            search the web. Your chat lives only in this tab and
+            is gone when you close it. Never share a recovery
+            phrase, private key or personal details. Never upload
+            a screenshot of a recovery phrase or private key.
+            Answers can be wrong and are not financial advice.
         </p>
 
     </footer>
@@ -435,6 +467,12 @@ const app = document.getElementById("app");
 const questionInput = document.getElementById("question");
 const answerBox = document.getElementById("answer");
 const sendButton = document.getElementById("sendButton");
+const attachButton = document.getElementById("attachButton");
+const attachInput = document.getElementById("attachInput");
+const attachTray = document.getElementById("attachments");
+const attachChips = document.getElementById("attachChips");
+const attachNote = document.getElementById("attachNote");
+const composer = document.querySelector(".composer");
 const welcome = document.getElementById("welcome");
 
 let conversation = [];
@@ -599,6 +637,227 @@ sendButton.addEventListener("click", function () {
 
 
 /* -------------------------------------------------------
+   IMAGES
+
+   PNG, JPEG or WebP; up to 3 per message (MAX_IMAGES in
+   app.py). Each is resized here before upload: longest side
+   1024 px, re-encoded as JPEG 0.85 on white (so transparency
+   doesn't turn black). Thumbnails are the same data: URLs,
+   which the CSP allows; blob: URLs it doesn't.
+------------------------------------------------------- */
+
+const MAX_IMAGES = 3;
+const IMAGE_SIDE = 1024;
+const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const IMAGE_ERRORS = ["image_limit", "invalid_image", "too_many_images", "image_too_large"];
+
+let attachments = [];
+let preparing = 0;
+
+/* From the server's images_left, once an image was sent. */
+let imagesLeft = null;
+let attachMessage = "";
+
+function decodeImage(file) {
+
+    if (window.createImageBitmap) {
+        return createImageBitmap(file).catch(() => decodeWithImg(file));
+    }
+
+    return decodeWithImg(file);
+
+}
+
+function decodeWithImg(file) {
+
+    return new Promise(function (resolve, reject) {
+
+        const reader = new FileReader();
+
+        reader.onerror = reject;
+        reader.onload = function () {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = reader.result;
+        };
+
+        reader.readAsDataURL(file);
+
+    });
+
+}
+
+async function shrinkImage(file) {
+
+    const source = await decodeImage(file);
+    const width = source.width;
+    const height = source.height;
+
+    if (!width || !height) {
+        throw new Error("empty image");
+    }
+
+    const scale = Math.min(1, IMAGE_SIDE / Math.max(width, height));
+    const canvas = document.createElement("canvas");
+
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+
+    if (source.close) {
+        source.close();
+    }
+
+    return canvas.toDataURL("image/jpeg", 0.85);
+
+}
+
+function renderAttachments() {
+
+    attachChips.innerHTML = attachments.map(function (url, index) {
+        return (
+            '<span class="attach-chip">' +
+            `<img src="${escapeHTML(url)}" alt="Image ${index + 1}">` +
+            `<button type="button" class="attach-remove" data-index="${index}" aria-label="Remove image ${index + 1}">✕</button>` +
+            "</span>"
+        );
+    }).join("");
+
+    let note = attachMessage;
+
+    if (!note && imagesLeft !== null && attachments.length) {
+        note = imagesLeft === 0
+            ? "No image uploads left today"
+            : `${imagesLeft} image upload${imagesLeft === 1 ? "" : "s"} left today`;
+    }
+
+    attachNote.textContent = note;
+    attachTray.hidden = !attachments.length && !note;
+
+    attachButton.disabled = requestInProgress || attachments.length >= MAX_IMAGES;
+    sendButton.disabled = requestInProgress || preparing > 0;
+
+}
+
+async function addImages(files) {
+
+    const wanted = Array.from(files || []).filter(
+        file => IMAGE_TYPES.includes(file.type)
+    );
+
+    if (!wanted.length) {
+        return;
+    }
+
+    attachMessage = "";
+
+    const room = MAX_IMAGES - attachments.length - preparing;
+
+    if (wanted.length > room) {
+        attachMessage = `Up to ${MAX_IMAGES} images per message.`;
+    }
+
+    const taken = wanted.slice(0, Math.max(0, room));
+
+    preparing += taken.length;
+    renderAttachments();
+
+    /* Resized in parallel, kept in the order they were picked. */
+
+    const shrunk = await Promise.all(taken.map(async function (file) {
+
+        try {
+            return await shrinkImage(file);
+        } catch (error) {
+            console.error("Image could not be read:", error);
+            attachMessage = "Couldn't read that image. Try a PNG, JPEG or WebP.";
+            return null;
+        } finally {
+            preparing -= 1;
+        }
+
+    }));
+
+    attachments = attachments.concat(shrunk.filter(Boolean));
+
+    renderAttachments();
+
+}
+
+attachButton.addEventListener("click", function () {
+    attachInput.click();
+});
+
+attachInput.addEventListener("change", function () {
+    addImages(attachInput.files);
+    attachInput.value = "";
+});
+
+attachChips.addEventListener("click", function (event) {
+
+    const remove = event.target.closest(".attach-remove");
+
+    if (!remove) {
+        return;
+    }
+
+    attachments.splice(Number(remove.dataset.index), 1);
+    attachMessage = "";
+    renderAttachments();
+
+    questionInput.focus({ preventScroll: true });
+
+});
+
+questionInput.addEventListener("paste", function (event) {
+    addImages(event.clipboardData && event.clipboardData.files);
+});
+
+function carriesFiles(event) {
+    return Boolean(
+        event.dataTransfer &&
+        Array.from(event.dataTransfer.types || []).includes("Files")
+    );
+}
+
+composer.addEventListener("dragover", function (event) {
+
+    if (!carriesFiles(event)) {
+        return;
+    }
+
+    event.preventDefault();
+    composer.classList.add("is-dropping");
+
+});
+
+composer.addEventListener("dragleave", function (event) {
+    if (!composer.contains(event.relatedTarget)) {
+        composer.classList.remove("is-dropping");
+    }
+});
+
+composer.addEventListener("drop", function (event) {
+
+    composer.classList.remove("is-dropping");
+
+    if (!carriesFiles(event)) {
+        return;
+    }
+
+    event.preventDefault();
+    addImages(event.dataTransfer.files);
+
+});
+
+
+/* -------------------------------------------------------
    START CONVERSATION
 ------------------------------------------------------- */
 
@@ -628,6 +887,7 @@ function serverError(data) {
     );
 
     error.errorType = data.error_type || "unknown";
+    error.imagesLeft = data.images_left;
 
     return error;
 
@@ -945,9 +1205,18 @@ async function askQuestion() {
 
     const question = questionInput.value.trim();
 
-    if (question === "" || requestInProgress) {
+    if (
+        (question === "" && !attachments.length) ||
+        requestInProgress ||
+        preparing > 0
+    ) {
         return;
     }
+
+    const images = attachments;
+
+    attachments = [];
+    attachMessage = "";
 
     startConversation();
 
@@ -960,14 +1229,23 @@ async function askQuestion() {
 
     sendButton.disabled = true;
     questionInput.disabled = true;
+    renderAttachments();
 
 
     questionInput.value = "";
     fitComposer();
 
+    const thumbs = images.length
+        ? `<span class="bubble-images${question ? " has-text" : ""}">` +
+          images.map((url, index) =>
+              `<img src="${escapeHTML(url)}" alt="Image ${index + 1}">`
+          ).join("") +
+          "</span>"
+        : "";
+
     addMessage(
         "user",
-        `<span class="sr-only">You:</span><div class="bubble">${escapeHTML(question)}</div>`
+        `<span class="sr-only">You:</span><div class="bubble">${thumbs}${escapeHTML(question)}</div>`
     );
 
     const aiMessage = addMessage(
@@ -991,13 +1269,27 @@ async function askQuestion() {
         conversation: conversation.slice(-8)
     };
 
+    if (images.length) {
+        body.images = images;
+    }
+
     try {
 
         const data = await askStreaming(body, aiMessage);
 
         const answer = String(data.answer || "I couldn't generate a response.");
 
-        conversation.push({ role: "user", content: question });
+        if (typeof data.images_left === "number") {
+            imagesLeft = data.images_left;
+        }
+
+        /* Images are sent once: a follow-up carries "[image]"
+           in their place. */
+
+        conversation.push({
+            role: "user",
+            content: images.map(() => "[image]").concat(question || []).join(" ")
+        });
         conversation.push({ role: "assistant", content: answer });
 
         if (conversation.length > 20) {
@@ -1009,6 +1301,18 @@ async function askQuestion() {
     } catch (error) {
 
         console.error("ExiomAI request failed:", error);
+
+        if (typeof error.imagesLeft === "number") {
+            imagesLeft = error.imagesLeft;
+        }
+
+        /* "You can still ask in text": the question waits in
+           the box, so it needn't be typed again. */
+
+        if (IMAGE_ERRORS.includes(error.errorType) && !questionInput.value) {
+            questionInput.value = question;
+            fitComposer();
+        }
 
         let message =
             error.message ||
@@ -1037,8 +1341,8 @@ async function askQuestion() {
             chamber.think(false);
         }
 
-        sendButton.disabled = false;
         questionInput.disabled = false;
+        renderAttachments();
 
         /* Back to the input for the next question, but only
            for a mouse: on a phone focus pops the keyboard up

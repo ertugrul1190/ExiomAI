@@ -809,3 +809,58 @@ def test_every_answer_model_has_its_price():
     import usage_control
 
     assert "gpt-5-mini" in usage_control.MODEL_RATES
+
+
+# ---------------------------------------------------------
+# IMAGES
+# ---------------------------------------------------------
+
+IMAGE = "data:image/png;base64,iVBORw0KGgo="
+
+
+def image_turn(question, *images):
+    return {
+        "role": "user",
+        "content": [
+            {"type": "input_text", "text": question},
+            *(
+                {"type": "input_image", "image_url": url, "detail": "auto"}
+                for url in images
+            ),
+        ],
+    }
+
+
+def test_images_go_in_the_user_turn(monkeypatch):
+    provider = build_provider(
+        [FakeResponse("a"), FakeResponse("b")], monkeypatch
+    )
+
+    provider.generate("system", [], "what is this?", images=[IMAGE, IMAGE])
+    provider.generate_off_topic([], "and this?", images=[IMAGE])
+
+    first, second = provider.client.responses.requests
+
+    assert first["input"][-1] == image_turn("what is this?", IMAGE, IMAGE)
+    assert second["input"][-1] == image_turn("and this?", IMAGE)
+
+
+def test_streamed_images_go_in_the_user_turn(monkeypatch):
+    provider = build_provider([], monkeypatch)
+    attach_stream(provider, [FakeStream(["a"]), FakeStream(["b"])])
+
+    list(provider.stream_generate("system", [], "q", images=[IMAGE]))
+    list(provider.stream_generate_off_topic([], "q", images=[IMAGE]))
+
+    for request in provider.client.responses.requests:
+        assert request["input"][-1] == image_turn("q", IMAGE)
+
+
+def test_without_images_the_user_turn_stays_plain_text(monkeypatch):
+    provider = build_provider([FakeResponse("a")], monkeypatch)
+
+    provider.generate("system", [], "q", images=[])
+
+    assert provider.client.responses.requests[0]["input"][-1] == {
+        "role": "user", "content": "q"
+    }

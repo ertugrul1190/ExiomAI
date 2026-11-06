@@ -1,6 +1,8 @@
 import os
 import json
 import time
+import base64
+import binascii
 import hashlib
 import itertools
 import re
@@ -77,6 +79,7 @@ from cache import (
 from usage_control import (
     CostMeter,
     UsageController,
+    UsageDecision,
 )
 
 from usage_ledger import UsageLedger
@@ -196,6 +199,30 @@ MAX_REQUEST_BYTES = env_int("EXIOM_MAX_REQUEST_BYTES", 256 * 1024)
 
 app.config["MAX_CONTENT_LENGTH"] = MAX_REQUEST_BYTES
 
+# Images ("Answer Quality and Image Upload - Plan.md", Part
+# 3): up to MAX_IMAGES per question, each at most
+# MAX_IMAGE_BYTES once decoded. The page resizes them to
+# 150-400 KB first. Only the two answering routes take the
+# larger body: room for the largest images as base64 (4/3 of
+# their size) on top of the ordinary limit. Every other route
+# keeps MAX_REQUEST_BYTES.
+MAX_IMAGES = 3
+MAX_IMAGE_BYTES = 1536 * 1024
+
+MAX_IMAGE_DATA_URL_CHARS = (
+    len("data:image/jpeg;base64,") + (MAX_IMAGE_BYTES + 2) // 3 * 4
+)
+
+MAX_ASK_REQUEST_BYTES = (
+    MAX_REQUEST_BYTES + MAX_IMAGES * MAX_IMAGE_DATA_URL_CHARS
+)
+
+ASK_PATHS = {"/ask", "/ask/stream"}
+
+# The same setting the usage hub reads (usage_control.py), for
+# the refusal's wording.
+IMAGES_PER_DAY = env_int("EXIOM_CLIENT_IMAGES_PER_DAY", 5)
+
 flood_guard = security.FloodGuard(
     requests_per_minute=env_int(
         "EXIOM_FLOOD_REQUESTS_PER_MINUTE",
@@ -216,6 +243,15 @@ NO_STORE_PATHS = {"/ask", "/ask/stream", "/api/usage", "/usage"}
 def guard_request():
 
     g.csp_nonce = security.new_nonce()
+
+    # Before anything reads the body. A declared length over
+    # the limit is refused here, even on a route that never
+    # reads its body; one without a length is cut off on read.
+    if request.path in ASK_PATHS:
+        request.max_content_length = MAX_ASK_REQUEST_BYTES
+
+    if (request.content_length or 0) > request.max_content_length:
+        raise RequestEntityTooLarge()
 
     if request.endpoint == "static":
         return None
@@ -1495,15 +1531,108 @@ RELEVANT VERIFIED KNOWLEDGE:
 # AI CHAT
 # ---------------------------------------------------------
 
+IMAGE_DATA_URL = re.compile(
+    r"data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/]*={0,2})"
+)
+
+
+def is_image_of_type(kind, raw):
+
+    """
+    Whether the bytes start the way `kind` must: a label alone
+    proves nothing.
+    """
+
+    if kind == "png":
+        return raw.startswith(b"\x89PNG\r\n\x1a\n")
+
+    if kind == "jpeg":
+        return raw.startswith(b"\xff\xd8\xff")
+
+    return raw[:4] == b"RIFF" and raw[8:12] == b"WEBP"
+
+
+def image_error(answer, error_type):
+    return {"answer": answer, "error_type": error_type}, 400, {}
+
+
+def read_images(value):
+
+    """
+    Validate a request's images: data URLs of PNG, JPEG or
+    WebP, decoded and checked by their first bytes.
+
+    Returns (images, error). The images are used for one
+    answer and never stored, logged or cached.
+    """
+
+    if value is None:
+        return [], None
+
+    unreadable = image_error(
+        "I can only read PNG, JPEG or WebP images. "
+        "Please try a different one.",
+        "invalid_image"
+    )
+
+    too_large = image_error(
+        "That image is too large. Please use one under 1.5 MB.",
+        "image_too_large"
+    )
+
+    if not isinstance(value, list):
+        return None, unreadable
+
+    if len(value) > MAX_IMAGES:
+        return None, image_error(
+            f"Please attach up to {MAX_IMAGES} images per message.",
+            "too_many_images"
+        )
+
+    images = []
+
+    for url in value:
+
+        if not isinstance(url, str):
+            return None, unreadable
+
+        # Before any decoding work.
+        if len(url) > MAX_IMAGE_DATA_URL_CHARS:
+            return None, too_large
+
+        match = IMAGE_DATA_URL.fullmatch(url)
+
+        if not match:
+            return None, unreadable
+
+        kind, encoded = match.groups()
+
+        try:
+            raw = base64.b64decode(encoded, validate=True)
+
+        except (binascii.Error, ValueError):
+            return None, unreadable
+
+        if len(raw) > MAX_IMAGE_BYTES:
+            return None, too_large
+
+        if not is_image_of_type(kind, raw):
+            return None, unreadable
+
+        images.append(url)
+
+    return images, None
+
+
 def read_ask_request(data):
 
     """
     Validate an incoming chat request.
 
-    Returns (question, conversation, error) where error is
-    None or an (payload, status, headers) triple. Every
-    rejection here happens before a stream could be opened,
-    so both transports refuse identically.
+    Returns (question, conversation, images, error) where
+    error is None or an (payload, status, headers) triple.
+    Every rejection here happens before a stream could be
+    opened, so both transports refuse identically.
     """
 
     # Anything but a JSON object -- a list, a bare string, a
@@ -1515,18 +1644,26 @@ def read_ask_request(data):
 
     if not isinstance(question, str):
 
-        return None, None, ({
+        return None, None, None, ({
             "answer": "I couldn't read that request.",
             "error_type": "invalid_request"
         }, 400, {})
+
+    images, error = read_images(data.get("images"))
+
+    if error:
+        return None, None, None, error
 
     question = security.strip_control_characters(
         question
     ).strip()
 
+    if not question and images:
+        question = "What's in this image?"
+
     if not question:
 
-        return None, None, ({
+        return None, None, None, ({
             "answer": "Please enter a question.",
             "error_type": "empty_question"
         }, 400, {})
@@ -1535,7 +1672,7 @@ def read_ask_request(data):
     # key must never reach the AI provider, a cache or a log.
     if privacy.contains_wallet_secret(question):
 
-        return None, None, ({
+        return None, None, None, ({
             "answer":
                 "That looks like a wallet recovery phrase or "
                 "private key, so I didn't send or keep it \U0001F512 "
@@ -1548,7 +1685,7 @@ def read_ask_request(data):
 
     if len(question) > 1000:
 
-        return None, None, ({
+        return None, None, None, ({
             "answer":
                 "Please keep your question under 1,000 characters.",
             "error_type": "question_too_long"
@@ -1558,7 +1695,7 @@ def read_ask_request(data):
         data.get("conversation", [])
     )
 
-    return question, conversation, None
+    return question, conversation, images, None
 
 
 def read_json_body():
@@ -1578,6 +1715,34 @@ def read_json_body():
 
     except RecursionError:
         return None
+
+
+def image_limit_payload(left):
+
+    """
+    Refuse a question whose images are over today's allowance.
+    The text isn't answered either: the user didn't ask for a
+    text-only answer.
+    """
+
+    if left:
+        message = (
+            f"You have {left} image upload{'s' if left != 1 else ''} "
+            "left today \U0001F64F Please attach fewer, or ask in text."
+        )
+
+    else:
+        message = (
+            f"You've used today's {IMAGES_PER_DAY} image uploads "
+            "\U0001F64F They reset at midnight UTC. "
+            "You can still ask in text."
+        )
+
+    return {
+        "answer": message,
+        "error_type": "image_limit",
+        "images_left": left
+    }, 429, {"Retry-After": str(86400 - int(time.time()) % 86400)}
 
 
 def too_many_concurrent_payload():
@@ -1836,7 +2001,8 @@ def answer_pipeline(
     question,
     conversation,
     client_id,
-    streaming=False
+    streaming=False,
+    images=None
 ):
 
     """
@@ -1857,7 +2023,13 @@ def answer_pipeline(
     Explorer-derived answer is yielded whole: those cost
     nothing and are already instant, so chunking them would
     add latency and buy nothing.
+
+    images: validated data URLs (read_images). A question with
+    images skips the fast path, the router and both caches,
+    and its images go with every answer step.
     """
+
+    images = images or []
 
     normalized_question = fast_path.normalize_question(
         question
@@ -1899,7 +2071,7 @@ def answer_pipeline(
     # semantic AI router exactly as before.
     # -----------------------------------------------------
 
-    fast_result = None if lookup_ids else fast_path.classify(
+    fast_result = None if lookup_ids or images else fast_path.classify(
         question,
         fact_registry
     )
@@ -1962,6 +2134,27 @@ def answer_pipeline(
 
         return
 
+    images_left = None
+
+    if images:
+
+        allowed, images_left = usage_controller.claim_images(
+            client_id,
+            len(images)
+        )
+
+        if not allowed:
+
+            # No count means the usage hub couldn't be asked.
+            yield "error", (
+                budget_exceeded_payload(UsageDecision(
+                    False, "global_usage_unavailable", 60
+                ))
+                if images_left is None
+                else image_limit_payload(images_left)
+            )
+            return
+
 
     lookup_facts = {}
 
@@ -1995,10 +2188,16 @@ def answer_pipeline(
             normalized_question,
             fact_registry.keys()
         )
-        if stateless else None
+        if stateless and not images else None
     )
 
-    route = router_cache.get(route_key) if route_key else None
+    # The router can't see an image, and a vague "what's
+    # this?" must never be sent off-topic.
+    route = (
+        {"scope": "mixed", "intent": "general", "facts": []}
+        if images
+        else router_cache.get(route_key) if route_key else None
+    )
 
     if route is None:
 
@@ -2209,6 +2408,9 @@ def answer_pipeline(
 
     meta = {"route": intent, "scope": scope}
 
+    if images:
+        meta["images_left"] = images_left
+
 
     # -----------------------------------------------------
     # LIVE MARKET DATA
@@ -2280,7 +2482,12 @@ def answer_pipeline(
                 # ("couldn't find it") must not outlive that.
                 explorer_state=f"{explorer_state}/{can_look_further}"
             )
-            if stateless and step == first_step and step < WEB_SEARCH
+            if (
+                stateless
+                and not images
+                and step == first_step
+                and step < WEB_SEARCH
+            )
             else None
         )
 
@@ -2375,9 +2582,9 @@ def answer_pipeline(
         # real search ran; otherwise NOT_FOUND_ANSWER says so.
         divert_deflection = can_look_further or not web_search
 
-        # A search's pages are never seen here, so a searched
-        # answer can't be checked.
-        grounding_context = None if web_search else grounding_inputs(
+        # A search's pages and an image's contents are never
+        # seen here, so those answers can't be checked.
+        grounding_context = None if web_search or images else grounding_inputs(
             system_prompt, question, conversation
         )
 
@@ -2388,7 +2595,8 @@ def answer_pipeline(
                     system_prompt=system_prompt,
                     conversation=conversation,
                     question=question,
-                    web_search=web_search
+                    web_search=web_search,
+                    images=images
                 ),
                 client_id,
                 meta,
@@ -2411,7 +2619,8 @@ def answer_pipeline(
                 system_prompt=system_prompt,
                 conversation=conversation,
                 question=question,
-                web_search=web_search
+                web_search=web_search,
+                images=images
             )
 
         except Exception as error:
@@ -2483,7 +2692,7 @@ def ask():
     The whole answer in one JSON response.
     """
 
-    question, conversation, error = read_ask_request(
+    question, conversation, images, error = read_ask_request(
         read_json_body()
     )
 
@@ -2496,13 +2705,13 @@ def ask():
         return json_error(*too_many_concurrent_payload())
 
     try:
-        return answer_whole(question, conversation, client_id)
+        return answer_whole(question, conversation, client_id, images)
 
     finally:
         answer_slots.release(client_id)
 
 
-def answer_whole(question, conversation, client_id):
+def answer_whole(question, conversation, client_id, images=None):
 
     parts = []
     meta = {}
@@ -2511,7 +2720,8 @@ def answer_whole(question, conversation, client_id):
         question,
         conversation,
         client_id,
-        streaming=False
+        streaming=False,
+        images=images
     ):
 
         if kind == "whole":
@@ -2569,7 +2779,7 @@ def ask_stream():
     to stream.
     """
 
-    question, conversation, error = read_ask_request(
+    question, conversation, images, error = read_ask_request(
         read_json_body()
     )
 
@@ -2589,7 +2799,8 @@ def ask_stream():
         question,
         conversation,
         client_id,
-        streaming=True
+        streaming=True,
+        images=images
     )
 
     # Pull the first event while an ordinary response can

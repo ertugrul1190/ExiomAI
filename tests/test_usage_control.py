@@ -259,3 +259,62 @@ def test_web_search_limits_are_reported():
     assert limits["limits"]["client_web_searches_per_day"] == 3
     assert limits["limits"]["global_web_searches_per_day"] == 7
     assert limits["global_web_searches_today"] == 0
+
+
+# ---------------------------------------------------------
+# IMAGE ALLOWANCE
+# ---------------------------------------------------------
+
+def image_controller(clock):
+    return usage_control.UsageController(
+        client_images_per_day=5,
+        now=lambda: clock["now"]
+    )
+
+
+def test_images_are_capped_per_client():
+    controller = image_controller({"now": 1_000_000})
+
+    assert [controller.claim_images("a", 1) for _ in range(6)] == [
+        (True, 4), (True, 3), (True, 2), (True, 1), (True, 0), (False, 0)
+    ]
+
+    # Another client keeps its own allowance.
+    assert controller.claim_images("b", 1) == (True, 4)
+
+
+def test_an_image_claim_beyond_the_allowance_takes_nothing():
+    controller = image_controller({"now": 1_000_000})
+
+    assert controller.claim_images("a", 1) == (True, 4)
+    assert controller.claim_images("a", 1) == (True, 3)
+    assert controller.claim_images("a", 1) == (True, 2)
+    assert controller.claim_images("a", 3) == (False, 2)
+    assert controller.claim_images("a", 2) == (True, 0)
+
+
+def test_image_allowance_resets_each_day():
+    clock = {"now": 1_000_000}
+    controller = image_controller(clock)
+
+    assert controller.claim_images("a", 5) == (True, 0)
+    assert controller.claim_images("a", 1) == (False, 0)
+
+    clock["now"] += 86400
+
+    assert controller.claim_images("a", 1) == (True, 4)
+
+
+def test_image_limit_is_reported():
+    limits = usage_control.UsageController(client_images_per_day=3).snapshot()
+
+    assert limits["limits"]["client_images_per_day"] == 3
+
+
+def test_image_limit_reads_the_environment(monkeypatch):
+    monkeypatch.setenv("EXIOM_CLIENT_IMAGES_PER_DAY", "2")
+
+    controller = usage_control.UsageController(now=lambda: 1_000_000)
+
+    assert controller.client_images_per_day == 2
+    assert controller.claim_images("a", 3) == (False, 2)

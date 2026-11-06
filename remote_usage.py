@@ -88,6 +88,13 @@ class RemoteUsageController(_Remote):
     def claim_web_search(self, client_id):
         return bool(self._ask(False, "claim_web_search", client=client_id))
 
+    def claim_images(self, client_id, count):
+        # (False, None): refused, and no count to report.
+        allowed, left = self._ask(
+            [False, None], "claim_images", client=client_id, count=count
+        )
+        return bool(allowed), left
+
     def snapshot(self):
         return self._ask({}, "control_snapshot")
 

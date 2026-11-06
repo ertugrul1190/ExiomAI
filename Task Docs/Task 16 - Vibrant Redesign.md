@@ -832,3 +832,64 @@ at every size, and the brain clears it on phones. The arrow still dives, and the
 mark. Of 530 tests, 528 pass. The two that fail are the
 usage-token tests, which fail only because of a local `.env`
 token (17.7).
+
+
+## 16.17 Images in the chat bar
+
+Part 3 of `Answer Quality and Image Upload - Plan.md`. The
+server side is in `Answer Quality and Image Upload.md` §6.
+
+**Attach.** An image button sits left of Ask: 40px, and 44px
+on phones (a thumb-sized target). It opens a hidden
+`<input type="file" accept="image/png,image/jpeg,image/webp"
+multiple>`. Pasting into the textarea and dropping onto the
+chat bar also work; while files are dragged over the bar, its
+gradient edge lights up (`.is-dropping`). Any other type (a
+GIF, say) is ignored.
+
+**Resized before upload.** Longest side 1024px, re-encoded as
+JPEG 0.85. Everything is drawn on white first, so a
+transparent PNG doesn't turn black. Decoding uses
+`createImageBitmap`, with an `<img>` from a `data:` URL as the
+fallback. The CSP allows `data:` images but not `blob:`
+(`security.py`). Measured: a 3000×2000 PNG went up as 19 KB,
+and a 1200×1600 WebP as 28 KB.
+
+**Chips.** The images wait as 56px chips in a row above the
+textarea, inside the chat bar. Each chip has a ✕ to remove it.
+The row scrolls sideways when it's full (phones). At most 3:
+extra images are dropped with "Up to 3 images per message."
+The attach button greys out at 3, and Ask greys out while an
+image is still being resized.
+
+**Left today.** After the first image is sent, the line under
+the chips reads "N image uploads left today", from the
+server's `images_left`. It shows only while images are
+attached, so the bar has no permanent extra line.
+
+**Sent.** The user bubble shows the images as 88px thumbnails
+(72px on phones), above the text if there is any. Sending
+images with no text is allowed. History keeps `[image]` in
+each image's place, so a follow-up never re-sends them. When
+the server refuses an image (over today's limit, or a bad
+file), the refusal shows as the answer and the typed question
+goes back in the box. The images have to be attached again.
+
+**Small print.** It now starts "Questions and images are
+sent to an AI service…" and gains one line: "Never upload a
+screenshot of a recovery phrase or private key."
+
+**Verified.** Headless Chrome over CDP at 1440×900 and 390×844
+(touch), against the real Flask app with a stub provider:
+- **Composer**: three dropped images became chips in the
+  order picked. The GIF was ignored.
+- **Sending**:
+  - three images with a question;
+  - one image with no text, which became "What's in this
+    image?";
+  - two more, refused with "You have 1 image upload left
+    today", and the question went back in the box.
+- **Bubbles and history**: the bubbles showed 3, 1 and 2
+  thumbnails. History read `[image] [image] [image] what
+  does this show?`.
+- **Layout**: no sideways scroll at either size.

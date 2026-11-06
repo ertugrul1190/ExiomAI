@@ -2,6 +2,8 @@ import re
 
 import pytest
 
+from werkzeug.exceptions import RequestEntityTooLarge
+
 import app as application
 import security
 import usage_control
@@ -182,17 +184,6 @@ def test_control_characters_are_removed_from_history(client, provider):
     ]
 
 
-def test_an_oversized_body_is_refused_as_json(client, provider):
-    response = client.post(
-        "/ask",
-        json={"question": "x" * (application.MAX_REQUEST_BYTES + 1)}
-    )
-
-    assert response.status_code == 413
-    assert response.get_json()["error_type"] == "request_too_large"
-    assert provider.calls == 0
-
-
 def test_a_full_conversation_fits_the_body_limit():
     """
     The page sends at most 8 turns; even at 4 bytes per
@@ -200,6 +191,73 @@ def test_a_full_conversation_fits_the_body_limit():
     """
 
     assert application.MAX_REQUEST_BYTES >= 8 * 6000 * 4
+
+
+@pytest.mark.parametrize("path, takes_a_megabyte", [
+    ("/ask", True),
+    ("/ask/stream", True),
+    ("/api/network-stats", False),
+    ("/api/usage", False),
+    ("/", False),
+])
+def test_only_the_answering_routes_take_image_sized_bodies(
+    path, takes_a_megabyte
+):
+    megabyte = b"x" * (1024 * 1024)
+
+    with application.app.test_request_context(
+        path, method="POST", data=megabyte
+    ):
+        if takes_a_megabyte:
+            application.guard_request()
+            assert application.request.get_data() == megabyte
+
+        else:
+            with pytest.raises(RequestEntityTooLarge):
+                application.guard_request()
+                application.request.get_data()
+
+
+def test_a_megabyte_body_is_refused_on_a_route_that_never_reads_it(
+    client, provider
+):
+    response = client.get("/api/network-stats", data=b"x" * (1024 * 1024))
+
+    assert response.status_code == 413
+    assert response.get_json()["error_type"] == "request_too_large"
+
+
+def test_the_ask_body_limit_fits_the_largest_allowed_images():
+    largest = application.MAX_IMAGES * application.MAX_IMAGE_DATA_URL_CHARS
+
+    assert application.MAX_ASK_REQUEST_BYTES >= (
+        largest + application.MAX_REQUEST_BYTES
+    )
+    assert application.MAX_ASK_REQUEST_BYTES < 8 * 1024 * 1024
+
+
+def test_three_large_images_are_not_refused_as_too_large(client, provider):
+    import test_ask_endpoint as endpoint
+
+    image = endpoint.data_url(
+        "png",
+        b"\x89PNG\r\n\x1a\n" + b"\0" * (application.MAX_IMAGE_BYTES - 8)
+    )
+
+    response = endpoint.ask(client, "what are these?", images=[image] * 3)
+
+    assert response.status_code == 200
+
+
+def test_an_ask_body_over_the_image_limit_is_refused_as_json(client, provider):
+    response = client.post(
+        "/ask",
+        json={"question": "x" * (application.MAX_ASK_REQUEST_BYTES + 1)}
+    )
+
+    assert response.status_code == 413
+    assert response.get_json()["error_type"] == "request_too_large"
+    assert provider.calls == 0
 
 
 def test_an_unexpected_error_is_json_without_details(

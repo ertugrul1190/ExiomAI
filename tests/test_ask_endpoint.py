@@ -108,6 +108,7 @@ class FakeProvider:
     def __init__(self):
         self.route_calls = []
         self.generate_calls = []
+        self.images = []
         self.off_topic_calls = []
 
         self.route_result = {
@@ -155,7 +156,8 @@ class FakeProvider:
         return dict(self.route_result)
 
     def generate(self, system_prompt, conversation, question,
-                 web_search=False):
+                 web_search=False, images=None):
+        self.images.append(images)
         self.generate_calls.append(
             {
                 "system_prompt": system_prompt,
@@ -176,13 +178,14 @@ class FakeProvider:
 
         return {"answer": f"answer to {question}"}
 
-    def generate_off_topic(self, conversation, question):
+    def generate_off_topic(self, conversation, question, images=None):
         self.off_topic_calls.append(question)
 
         return {"answer": "banter"}
 
     def stream_generate(self, system_prompt, conversation, question,
-                        web_search=False):
+                        web_search=False, images=None):
+        self.images.append(images)
         self.generate_calls.append(
             {
                 "system_prompt": system_prompt,
@@ -212,7 +215,8 @@ class FakeProvider:
 
             yield chunk
 
-    def stream_generate_off_topic(self, conversation, question):
+    def stream_generate_off_topic(self, conversation, question,
+                                  images=None):
         self.off_topic_calls.append(question)
 
         for chunk in ["ban", "ter"]:
@@ -247,22 +251,24 @@ def client():
     return application.app.test_client()
 
 
-def ask(client, question, conversation=None):
+def ask(client, question, conversation=None, images=None):
     return client.post(
         "/ask",
         json={
             "question": question,
-            "conversation": conversation or []
+            "conversation": conversation or [],
+            **({"images": images} if images is not None else {})
         }
     )
 
 
-def ask_stream(client, question, conversation=None):
+def ask_stream(client, question, conversation=None, images=None):
     response = client.post(
         "/ask/stream",
         json={
             "question": question,
-            "conversation": conversation or []
+            "conversation": conversation or [],
+            **({"images": images} if images is not None else {})
         }
     )
 
@@ -1959,3 +1965,214 @@ def test_a_market_figure_that_matches_an_explorer_value_gets_no_footer(
     provider.answer_text = "NonKYC: $0.02215, volume about $1,024."
 
     assert "source" not in ask(client, "what does nonkyc say").json
+
+
+# ---------------------------------------------------------
+# IMAGE UPLOAD
+# ---------------------------------------------------------
+
+import base64
+
+
+def data_url(kind, raw):
+    return f"data:image/{kind};base64," + base64.b64encode(raw).decode()
+
+
+PNG = data_url("png", b"\x89PNG\r\n\x1a\n" + b"\0" * 64)
+JPEG = data_url("jpeg", b"\xff\xd8\xff\xe0" + b"\0" * 64)
+WEBP = data_url("webp", b"RIFF\0\0\0\0WEBPVP8 " + b"\0" * 64)
+
+
+@pytest.mark.parametrize("images, error_type", [
+    ("not a list", "invalid_image"),
+    ([42], "invalid_image"),
+    ([data_url("gif", b"GIF89a" + b"\0" * 64)], "invalid_image"),
+    (["data:image/png;base64,***not base64***"], "invalid_image"),
+    (["data:image/png;base64,iVBORw0KGgo"], "invalid_image"),
+    ([data_url("png", b"\xff\xd8\xff\xe0" + b"\0" * 64)], "invalid_image"),
+    ([data_url("png", b"<svg onload=alert(1)>")], "invalid_image"),
+    ([PNG, JPEG, WEBP, PNG], "too_many_images"),
+    ([data_url("png", b"\x89PNG\r\n\x1a\n" + b"\0" * 1_572_864)],
+     "image_too_large"),
+])
+def test_bad_images_are_refused_before_any_cost(
+    client, provider, images, error_type
+):
+    for send in (ask, ask_stream):
+        response = send(client, "what is this?", images=images)
+
+        assert response.status_code == 400
+        assert response.get_json()["error_type"] == error_type
+
+    assert provider.calls == 0
+    assert application.usage_controller.claim_images("127.0.0.1", 5)[0]
+
+
+def test_png_jpeg_and_webp_reach_the_provider(client, provider):
+    response = ask(client, "what is this?", images=[PNG, JPEG, WEBP])
+
+    assert response.status_code == 200
+    assert provider.images == [[PNG, JPEG, WEBP]]
+
+
+def test_an_image_up_to_the_size_limit_is_accepted(client, provider):
+    image = data_url(
+        "jpeg", b"\xff\xd8\xff\xe0" + b"\0" * (1_572_864 - 4)
+    )
+
+    response = ask(client, "what is this?", images=[image])
+
+    assert response.status_code == 200
+    assert provider.images == [[image]]
+
+
+def test_an_image_question_skips_the_fast_path_router_and_caches(
+    client, provider
+):
+    for _ in range(2):
+        response = ask(client, "hi", images=[PNG])
+        assert response.status_code == 200
+
+    assert provider.route_calls == []
+    assert len(provider.generate_calls) == 2
+    assert provider.images == [[PNG], [PNG]]
+    assert application.answer_cache.stats()["entries"] == 0
+    assert application.router_cache.stats()["entries"] == 0
+
+    # The image never reaches a cache: the next text question
+    # is routed and answered afresh.
+    ask(client, "hi there, what is xeqm?")
+    assert provider.route_calls == ["hi there, what is xeqm?"]
+    assert provider.images[-1] is None or provider.images[-1] == []
+
+
+def test_an_image_question_gets_live_data_and_a_search_step(
+    client, provider
+):
+    provider.answers = ["[[LOOKUP]]", "it is a wallet screen"]
+
+    response = ask(client, "what is this?", images=[PNG])
+
+    assert response.get_json()["answer"].startswith("it is a wallet screen")
+    assert "123,456" in provider.generate_calls[0]["system_prompt"]
+    assert provider.generate_calls[1]["web_search"]
+    assert provider.images == [[PNG], [PNG]]
+
+
+def test_an_empty_question_with_an_image_asks_what_it_shows(
+    client, provider
+):
+    ask(client, "   ", images=[PNG])
+
+    assert provider.generate_calls[0]["question"] == "What's in this image?"
+
+
+def test_an_empty_question_without_images_is_still_refused(client, provider):
+    response = ask(client, "", images=[])
+
+    assert response.get_json()["error_type"] == "empty_question"
+
+
+def test_images_left_is_reported(client, provider):
+    first = ask(client, "what is this?", images=[PNG, JPEG])
+    second = frames(ask_stream(client, "and this?", images=[WEBP]))
+
+    assert first.get_json()["images_left"] == 3
+    assert second[-1]["type"] == "done"
+    assert second[-1]["images_left"] == 2
+
+    # A text question says nothing about images.
+    assert "images_left" not in ask(client, "what is xeqm?").get_json()
+
+
+def test_over_the_image_limit_nothing_is_answered(client, provider):
+    assert ask(client, "a", images=[PNG, PNG, PNG]).status_code == 200
+    assert ask(client, "b", images=[PNG, PNG]).status_code == 200
+
+    calls = provider.calls
+
+    for send in (ask, ask_stream):
+        response = send(client, "what is this?", images=[PNG])
+        body = response.get_json()
+
+        assert response.status_code == 429
+        assert body["error_type"] == "image_limit"
+        assert body["images_left"] == 0
+        assert "5 image uploads" in body["answer"]
+        assert "midnight UTC" in body["answer"]
+        assert 0 < int(response.headers["Retry-After"]) <= 86400
+
+    assert provider.calls == calls
+
+    # Text questions still work.
+    assert ask(client, "what is xeqm?").status_code == 200
+
+
+def test_more_images_than_are_left_says_how_many_are(client, provider):
+    ask(client, "a", images=[PNG, PNG, PNG])
+
+    response = ask(client, "b", images=[PNG, PNG, PNG])
+
+    assert response.status_code == 429
+    assert response.get_json()["images_left"] == 2
+    assert "2 image uploads left" in response.get_json()["answer"]
+
+    assert ask(client, "c", images=[PNG, PNG]).get_json()["images_left"] == 0
+
+
+def test_a_refused_request_uses_no_image_allowance(
+    client, provider, monkeypatch
+):
+    monkeypatch.setattr(
+        application,
+        "usage_controller",
+        usage_control.UsageController(requests_per_minute=1)
+    )
+
+    assert ask(client, "a", images=[PNG]).status_code == 200
+
+    refused = ask(client, "b", images=[PNG])
+
+    assert refused.get_json()["error_type"] == "usage_limit"
+    assert application.usage_controller.claim_images(
+        "127.0.0.1", 1
+    ) == (True, 3)
+
+
+def test_a_failed_image_answer_still_counts(client, provider):
+    provider.generate_error = RuntimeError("provider down")
+
+    ask(client, "what is this?", images=[PNG])
+
+    assert application.usage_controller.claim_images(
+        "127.0.0.1", 1
+    ) == (True, 3)
+
+
+def test_a_pasted_secret_is_still_refused_with_an_image(client, provider):
+    response = ask(
+        client,
+        "abandon ability able about above absent absorb abstract "
+        "absurd abuse access accident",
+        images=[PNG]
+    )
+
+    assert response.get_json()["error_type"] == "sensitive_content"
+    assert provider.calls == 0
+
+
+def test_an_unreachable_usage_hub_refuses_images_as_capacity(
+    client, provider, monkeypatch
+):
+    monkeypatch.setattr(
+        application.usage_controller,
+        "claim_images",
+        lambda client_id, count: (False, None)
+    )
+
+    response = ask(client, "what is this?", images=[PNG])
+
+    assert response.status_code == 429
+    assert response.get_json()["error_type"] == "usage_limit"
+    assert "capacity" in response.get_json()["answer"]
+    assert provider.calls == 0

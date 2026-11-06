@@ -194,6 +194,7 @@ class UsageHub:
         "check",
         "record_tokens",
         "claim_web_search",
+        "claim_images",
         "control_snapshot",
         "record_usage",
         "record_free_response",
@@ -316,6 +317,10 @@ class UsageHub:
 
     def claim_web_search(self, client):
         return self.usage_controller.claim_web_search(client)
+
+    def claim_images(self, client, count):
+        # (allowed, left) crosses the hub's JSON as a list.
+        return list(self.usage_controller.claim_images(client, count))
 
     def control_snapshot(self):
         return self.usage_controller.snapshot()

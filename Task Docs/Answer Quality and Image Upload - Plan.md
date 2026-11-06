@@ -1,6 +1,6 @@
 # Answer Quality and Image Upload — Implementation Plan
 
-Status: Parts 1–2 **built** 2026-11-06, see `Answer Quality and Image Upload.md`; Part 3 not built yet.
+Status: Parts 1–3 **built** 2026-11-06, see `Answer Quality and Image Upload.md` (Part 3: §6).
 
 Two pieces of work, in this order:
 

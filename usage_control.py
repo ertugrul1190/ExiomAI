@@ -379,6 +379,7 @@ class UsageController:
         global_tokens_per_day=None,
         client_web_searches_per_day=None,
         global_web_searches_per_day=None,
+        client_images_per_day=None,
         max_clients=None,
         now=None
     ):
@@ -423,6 +424,14 @@ class UsageController:
             else _env_int("EXIOM_GLOBAL_WEB_SEARCHES_PER_DAY", 500)
         )
 
+        # An image costs its tokens on every step it is sent
+        # to, so uploads have their own daily allowance.
+        self.client_images_per_day = (
+            client_images_per_day
+            if client_images_per_day is not None
+            else _env_int("EXIOM_CLIENT_IMAGES_PER_DAY", 5)
+        )
+
         # Past this, the least recently active clients are
         # forgotten. That hands them a fresh allowance, so the
         # global token ceiling stays the real spend bound.
@@ -456,7 +465,8 @@ class UsageController:
                 "recent_requests": [],
                 "requests_today": 0,
                 "tokens_today": 0,
-                "web_searches_today": 0
+                "web_searches_today": 0,
+                "images_today": 0
             }
 
         self._touch(client_id, state)
@@ -647,6 +657,36 @@ class UsageController:
             return True
 
 
+    def claim_images(self, client_id, count):
+        """
+        Take `count` images from the client's daily allowance.
+
+        All or nothing: a claim beyond what is left takes none.
+        Claimed before the call, like a web search, so a failed
+        call still counts. Returns (allowed, images left).
+        """
+
+        client_id = client_id or "unknown"
+
+        now = self._now()
+
+        with self._lock:
+
+            state = self._client_state(client_id, now)
+
+            left = max(
+                0,
+                self.client_images_per_day - state["images_today"]
+            )
+
+            if count > left:
+                return False, left
+
+            state["images_today"] += count
+
+            return True, left - count
+
+
     def snapshot(self):
 
         with self._lock:
@@ -663,6 +703,7 @@ class UsageController:
                     "client_web_searches_per_day":
                         self.client_web_searches_per_day,
                     "global_web_searches_per_day":
-                        self.global_web_searches_per_day
+                        self.global_web_searches_per_day,
+                    "client_images_per_day": self.client_images_per_day
                 }
             }
