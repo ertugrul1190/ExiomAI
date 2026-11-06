@@ -10,7 +10,7 @@ Source: [Service Nodes (SN)](https://xeqmlabs.gitbook.io/docs/documentation/whit
 
 The stake is a flat 200,000 XEQM per node, the same across all hard forks.
 - Solo node: the operator stakes all 200,000 XEQM.
-- Pool (open / shared) node: the operator stakes at least 100,000 XEQM (50%); up to 10 contributors fill the remaining 100,000. Maximum 11 stakers including the operator.
+- Pool (open / shared) node: the operator stakes at least 100,000 XEQM (50%); up to 10 contributors (never 11) fill the remaining 100,000, so a node has at most 11 stakers counting the operator.
 - Minimum community contribution: 10,000 XEQM per contributor slot (100,000 is the operator's minimum, never a contributor's). That is a minimum, not a fixed amount: a contributor can stake more while the node has room.
 - Operator fee (operator cut): 0% to 10% of the node's rewards (not of the stake), so contributors keep at least 90% of their proportional share. The 10% cap plus the 50% operator stake stop the "100% fee" capture attack seen on some networks.
 
@@ -20,11 +20,17 @@ Sources: [Service Nodes (SN)](https://xeqmlabs.gitbook.io/docs/documentation/whi
 
 With less than 200,000 XEQM you can contribute to another operator's open node (minimum 10,000 XEQM per contributor) and earn rewards in proportion to your stake, minus the operator's cut (stake 10% of the node, earn roughly 10% of the post-fee reward). Contributors pay no hosting costs.
 
-How, per the operator guide: find open nodes on the Explorer (explorer.xeqmlabs.com) or with the daemon's get_service_nodes RPC (nodes whose total_contributed is below staking_requirement), then in the XEQM CLI wallet run `stake <service_node_pubkey> <amount>` (e.g. `stake <pubkey> 50000`) or `stake <service_node_pubkey> 50%` (50% of the remaining stake), and confirm. The GUI wallet also supports service node staking.
+How, per the operator guide: find open nodes on the Explorer (explorer.xeqmlabs.com) or with the daemon's get_service_nodes RPC (nodes whose total_contributed is below staking_requirement), then in the XEQM CLI wallet run `stake <service_node_pubkey> <amount>` (e.g. `stake <pubkey> 50000`) or `stake <service_node_pubkey> 50%` (the percent is of what the node still needs, never of your own amount: `50%` stakes half the remaining stake), and confirm. The GUI wallet also supports service node staking.
 
 Risks: rewards depend on the operator's uptime (a decommissioned node earns nothing); the stake stays locked while the node runs; you cannot withdraw part of a contribution on demand, and an unstake takes 14 days (rewards keep coming during those 14 days). Choose operators with solid uptime history on the Explorer.
 
 Source: [SN Operator Guide](https://xeqmlabs.gitbook.io/docs/documentation/sn-operator-guide)
+
+## How much a contributor earns
+
+One node earns the network's 11,880 XEQM a day divided by the active node count: about 12.6 XEQM a day at 943 nodes (Sep 27, 2026). 11,880 is the whole network's daily total, never one node's or one contributor's. A contributor gets their part of the node's 200,000 XEQM stake times that, minus the operator's cut: 50,000 XEQM (25%) in a node with a 10% fee earns about 2.8 XEQM a day at 943 nodes. For today's figure, use the Explorer's daily reward per node.
+
+Sources: [Service Nodes (SN)](https://xeqmlabs.gitbook.io/docs/documentation/whitepaper/service-nodes-sn), [EXIOM Tokenomics Whitepaper](https://github.com/XEQMLabs/whitepaper)
 
 ## When a node starts earning
 

@@ -2,7 +2,7 @@
 
 ## Latest core release and upgrade deadline
 
-The latest XEQM Core release is v1.1.2 "Ragnarok" (Oct 12, 2026). It is mandatory before HF22 revision 1 (Pulse-recovery) activates at mainnet block 236,920 (~Oct 18, 2026 19:00 UTC). Nodes on v1.1.0 go straight to v1.1.2; nodes on v1.1.1 must update again (both behave the same until that block). v1.1.2 fixes the reward of signed fallback blocks: they carried only transaction fees without the service node reward, so other nodes would have rejected them and the chain would have stalled at the first failover. GUI wallet v2.3.3 bundles it. Docker: `ghcr.io/xeqmlabs/xeqm-node:v1.1.2` (also `latest`). Newer releases may exist: the release page has the current one.
+The latest XEQM Core release is v1.1.2 "Ragnarok" (Oct 12, 2026). It is mandatory before HF22 revision 1 (Pulse-recovery) activates at mainnet block 236,920 (~Oct 18, 2026 19:00 UTC). Nodes on v1.1.0 go straight to v1.1.2; nodes on v1.1.1 must update again (both behave the same until that block). v1.1.2 fixes the reward of signed fallback blocks: under v1.1.1 they were missing the service node reward (only transaction fees), so other nodes would have rejected them and the chain would have stalled at the first failover. GUI wallet v2.3.3 bundles it. Docker: `ghcr.io/xeqmlabs/xeqm-node:v1.1.2` (also `latest`). Newer releases may exist: the release page has the current one.
 
 Release history: v1.0.5 (Jun 2), v1.0.6 (Jun 15), v1.0.7 (Jul 7, HF21), v1.1.0 (Sep 23, HF22), v1.1.1 (Oct 8, Pulse-recovery), v1.1.2 (Oct 12).
 
@@ -19,7 +19,7 @@ Source: [XEQM Core Releases](https://github.com/XEQMLabs/xeqm-core/releases)
 LIVE since mainnet block 219,120 (~Oct 5, 2026), with mandatory v1.1.0. Consensus changes:
 - One validator seat per operator: Pulse, obligations, checkpoint and blink quorums count distinct operator wallets; a duplicate seat is refilled with a node from a different operator, so quorum sizes stay 10/20/10. Pulse skips a block when fewer than 12 distinct operators are available. Block rewards are unaffected (wait-time ordering).
 - Forced deregistration lock raised from 7 to 14 days, matching voluntary unlock.
-- Authorized fallback blocks: if two Pulse rounds fail (60 s), the chain accepts a block only from one of three authorized fallback miners on independent hosts (mined with proof-of-work, which took minutes).
+- Authorized fallback blocks: if two Pulse rounds fail (60 s), the chain accepts a block only from one of three authorized fallback miners on independent hosts (mined with proof-of-work, which took minutes). HF22 itself kept these 2 rounds and mined fallback blocks: the 4 rounds and instantly signed fallback blocks came later, with revision 1 (Pulse-recovery, below).
 - Uptime proofs require v1.1.0.
 Known limit: an operator using several wallet addresses still gets several seats; HF23 closes this. v1.1.0 also stopped wallets fetching rings from untrusted daemons and made `use_ssl` wallets connect over HTTPS. Validated on testnet: nine stall/recovery cycles, 100% recovery.
 

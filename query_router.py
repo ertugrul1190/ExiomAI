@@ -30,7 +30,8 @@ MARKET_PATTERN = re.compile(
     r"|(trading|24h|24 hour|daily)\s+volume"
     r"|" + WORTH +
     r"|how much is (xeqm|exiom|it|one)"
-    r"|where (can|do|should|to) (i |we |you )?(buy|trade|get|purchase)"
+    r"|where (can|do|should|to) (i |we |you )?(buy|trade|purchase)"
+    r"|where (can|do|should|to) (i |we |you )?get (xeqm|exiom|coins?|tokens?|some)\b"
     r"|exchanges?|listed|listings?"
     r"|(latest|newest|current) ((xeqm|exiom) )?(core |software )?releases?"
     r"|news|announcements?"
@@ -63,7 +64,8 @@ PRICE_PATTERN = re.compile(
 # releases, news.
 BEYOND_PRICE_PATTERN = re.compile(
     r"\b("
-    r"where (can|do|should|to) (i |we |you )?(buy|trade|get|purchase)"
+    r"where (can|do|should|to) (i |we |you )?(buy|trade|purchase)"
+    r"|where (can|do|should|to) (i |we |you )?get (xeqm|exiom|coins?|tokens?|some)\b"
     r"|exchanges?|listed|listings?"
     r"|releases?|news|announcements?"
     r"|all[- ]time|ath|history|historical|predictions?|forecasts?"
@@ -74,6 +76,22 @@ BEYOND_PRICE_PATTERN = re.compile(
 
 def asks_for_price(question):
     return bool(PRICE_PATTERN.search(question or ""))
+
+
+# A price prediction or target. Never searched: the answer
+# may not repeat one anyway (WEB_SEARCH_RULES 6), and a
+# search for one only ever finds an exchange's forecast tool
+# (it quoted MEXC's "2027 target" in the 6 Nov review).
+PREDICTION_PATTERN = re.compile(
+    r"\b(predictions?|predict|forecasts?|price targets?"
+    r"|(will|could|can) (xeqm|exiom|it|the (coin|price)) "
+    r"(go up|go down|rise|fall|moon|pump|reach|hit))\b",
+    re.IGNORECASE
+)
+
+
+def asks_for_prediction(question):
+    return bool(PREDICTION_PATTERN.search(question or ""))
 
 
 def asks_beyond_price(question):
@@ -182,7 +200,8 @@ EXIOM_TOPIC = re.compile(
     r"|decommission\w*|deregist\w*|recommission\w*"
     r"|registration command|operator (fee|cut)"
     r"|unstake|unstaking|unbond\w*|pool nodes?"
-    r"|(gui|cli) wallet|wallet rpc|oracle sidecar|lokinet|llarp)\b",
+    r"|(gui|cli) wallet|wallet rpc|oracle sidecar|lokinet|llarp"
+    r"|pecunia|appimage|(the|my) daemon)\b",
     re.IGNORECASE
 )
 
@@ -396,6 +415,10 @@ user can do with that amount)
 false
 "what does market cap mean?" → intent explanation, search
 false
+"I get GLIBC_2.x not found when starting the daemon",
+"the Linux AppImage gives a sandbox error", "how much does
+Pecunia charge?" → scope relevant (node, wallet and hosting
+troubleshooting the docs cover)
 
 
 ============================================================

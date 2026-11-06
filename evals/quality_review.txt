@@ -1,0 +1,108 @@
+# Answer-quality review set for live_eval.py (6 Nov 2026).
+# Graded by hand on four axes: overall quality, plain
+# language, descriptiveness, accuracy to knowledge/.
+#
+#   python live_eval.py evals/quality_review.txt --parallel 2
+#
+# Easy and common
+What is XEQM?
+What is EXIOM?
+Is XEQM a token on Ethereum?
+How do I get a wallet?
+How long is a block?
+Who builds EXIOM?
+Is XEQM a good investment?
+Where is the explorer?
+What's the official Telegram?
+Is XEQM private?
+# Paraphrase groups: each group should get the same facts
+How much do I need to run my own node?
+whats the stake for a solo service node
+How many XEQM does it take to set up a node by myself?
+Is there a max supply?
+is xeqm capped
+Will there ever be more than 276 million XEQM?
+How long does unstaking take?
+if i unstake when do i get my coins back
+How often do I get paid staking rewards?
+when do node rewards hit my wallet
+# Can I ...?
+can i stake 15k
+I have 250,000 XEQM, can I run two nodes?
+Can I run a node on my home internet?
+Can I run several nodes on one server?
+Can I take back half my contribution from a pool node?
+Can I stake from an exchange?
+# Niche: service nodes
+What happens if my node misses Pulse votes?
+How many decommission credits does a new node start with?
+What's the maximum decommission credit a node can build up?
+How many nodes can be decommissioned in a single block?
+What is the grace period after a hard fork?
+Why does my node show active true but payable false?
+How many contributors can a pool node have?
+What's the maximum operator fee?
+Is there slashing on EXIOM?
+What does earned_downtime_blocks mean?
+# Niche: operator guide
+What does port 9233 do?
+How do I run more than one node on the same machine, which ports?
+How do I convert 200,000 XEQM to atomic units for the registration command?
+My registration command says No operator contribution given
+How long is a registration command valid?
+How many confirmations before received XEQM unlocks?
+How do I back up a running node's database?
+I get GLIBC_2.x not found when starting the daemon
+How do I change the log level without restarting?
+Where can I get a bootstrap snapshot to sync faster?
+# Niche: tokenomics, network, forks
+What is the governance emission per block?
+What percentage of emissions goes to security and audits?
+How much does Pecunia charge for managed hosting?
+What is the Nakamoto coefficient of EXIOM?
+What is the 30% cap?
+What was the minimum payout before HF21?
+What block did HF21 activate at?
+What did v1.1.1 fix about memory?
+What does the zero-reward modifier do?
+What happens if Pulse fails two rounds?
+What is LLARP?
+How many members are on the oracle committee and what's the signing threshold?
+What chain is the EXIOM Oracle deployed on?
+What header does the EXIOM API key go in?
+What does the kyc-gate sample do?
+What was the total XEQM minted at the swap?
+When did the XEQ swap window open and close?
+Why can't XEQM burn coins?
+What is EXIOMvault?
+What is the SEC Regulation Crypto Assets proposal and does it approve XEQM?
+# Older pages vs current
+Do I need to stake 10,000 XEQM to get a Production API tier?
+The docs say deregistration locks for 7 days, is that right?
+I read rewards are paid every 3.5 days
+Is the API revenue split 35/35/30?
+How do I set up a node with xeq-wallet-cli on port 18091?
+Is Lokinet live?
+# Live data
+How many active nodes are there?
+whats the coin price
+What's the block height right now?
+How much XEQM is staked right now?
+What is the APY of a solo node today?
+How much does one node earn per day right now?
+# Not in the docs
+What is the ring size of XEQM transactions?
+How do I install the oracle sidecar?
+What's the XEQM price prediction for 2027?
+Is XEQM on Kraken?
+# Mac and wallet fixes
+The XEQM GUI on my Mac says the app is damaged
+Where are the GUI wallet files stored on disk?
+The Linux AppImage gives a sandbox error
+# Follow-ups
+What is a pool node? || how much does a contributor earn?
+What changed in HF22? || and what about the revision?
+What does a decommissioned node mean? || how is that different from deregistered?
+# Off-topic and identity
+What is Bitcoin?
+Who made you?

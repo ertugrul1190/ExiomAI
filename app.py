@@ -7,7 +7,6 @@ import hashlib
 import itertools
 import re
 
-from functools import partial
 from urllib.parse import urlsplit
 
 from flask import (
@@ -104,12 +103,19 @@ load_dotenv()
 # KNOWLEDGE SYSTEM
 # ---------------------------------------------------------
 
+# Next to this file, never the working directory: a Worker
+# whose working directory differed loaded no knowledge at all
+# and answered "which coin do you mean?" (7 Nov 2026).
+KNOWLEDGE_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "knowledge"
+)
+
 teaching_instructions = load_markdown_file(
-    "knowledge/instructions.md"
+    os.path.join(KNOWLEDGE_DIR, "instructions.md")
 )
 
 knowledge_documents = load_knowledge_directory(
-    "knowledge"
+    KNOWLEDGE_DIR
 )
 
 knowledge_sections = build_knowledge_sections(
@@ -117,8 +123,18 @@ knowledge_sections = build_knowledge_sections(
 )
 
 knowledge_changelog = load_markdown_file(
-    "knowledge/changelog.md"
+    os.path.join(KNOWLEDGE_DIR, "changelog.md")
 )
+
+# A missing file loads as "", so say so loudly in the logs.
+if not (teaching_instructions and knowledge_sections and knowledge_changelog):
+    print(
+        "EXIOM knowledge missing:",
+        f"instructions={bool(teaching_instructions)}",
+        f"sections={len(knowledge_sections)}",
+        f"changelog={bool(knowledge_changelog)}",
+        f"dir={KNOWLEDGE_DIR}"
+    )
 
 
 # Lowercased official page title -> URL, for turning a source
@@ -146,7 +162,7 @@ def load_source_titles():
 
     try:
         registered = json.loads(
-            load_markdown_file("knowledge/sources.json") or "{}"
+            load_markdown_file(os.path.join(KNOWLEDGE_DIR, "sources.json")) or "{}"
         ).get("sources", [])
 
     except ValueError:
@@ -1095,6 +1111,10 @@ When you use Explorer values, end with this exact line:
 
 Source: [Official EXIOM Explorer](https://explorer.xeqmlabs.com/)
 
+Only then: an answer that states no EXPLORER DATA value (a
+concept, a how-to, a wallet fix, a fork's rules) never gets
+this line.
+
 Cite each web page you use as [site name](the page's full
 URL). A source is always a Markdown link, never plain text.
 Link only URLs you were given; never make one up.
@@ -1408,6 +1428,9 @@ def knowledge_links(knowledge, answer, explorer_text=None):
     return links[:2]
 
 
+BARE_URL = re.compile(r"(?<!\]\()(?<![\w/])(https?://[^\s<)\]]+)")
+
+
 def source_additions(answer, evidence, web_sources):
     """
     Make sure an answer's sources are links, and only the
@@ -1430,7 +1453,13 @@ def source_additions(answer, evidence, web_sources):
         if urlsplit(url).hostname and not re.search(r"[\s()\[\]]", url)
     ]
 
-    cited = re.findall(r"\]\((https?://[^)\s]+)", answer)
+    # A bare URL cites too: the page links it, and appending a
+    # "Sources:" line under a plain-text source list repeated
+    # every source (6 Nov review).
+    cited = re.findall(r"\]\((https?://[^)\s]+)", answer) + [
+        url.rstrip(".,;:")
+        for url in BARE_URL.findall(answer)
+    ]
 
     # The Explorer's own link doesn't cite the web pages used.
     if links and not any("explorer.xeqmlabs.com" not in url for url in cited):
@@ -2272,14 +2301,21 @@ def answer_pipeline(
     # call.
     asks_meaning = query_router.asks_what_it_means(question)
 
+    # A prediction is never repeated, so never searched for:
+    # the answer comes from the knowledge (no financial
+    # advice, no promised price).
+    asks_prediction = query_router.asks_for_prediction(question)
+
     wants_price = (
         scope != "unrelated"
         and not asks_meaning
+        and not asks_prediction
         and query_router.asks_for_price(question)
     )
 
     wants_search = wants_price or (
         scope != "unrelated"
+        and not asks_prediction
         and (
             route.get("search") is True
             or (
@@ -2791,9 +2827,17 @@ def ask_stream():
     if not answer_slots.acquire(client_id):
         return json_error(*too_many_concurrent_payload())
 
-    # The slot is held until the server closes the response,
-    # which WSGI guarantees even when the client disconnects.
-    release = partial(answer_slots.release, client_id)
+    # The slot is held until the stream ends or the server
+    # closes the response, whichever comes first, and freed
+    # once. Workers' adapter never calls close(): every
+    # streamed answer kept its slot for the whole lease, and a
+    # fifth question in five minutes was refused (7 Nov 2026).
+    released = []
+
+    def release():
+        if not released:
+            released.append(True)
+            answer_slots.release(client_id)
 
     events = answer_pipeline(
         question,
@@ -2823,6 +2867,14 @@ def ask_stream():
         return json_error(*first[1])
 
     def body():
+
+        try:
+            yield from frames()
+
+        finally:
+            release()
+
+    def frames():
 
         for kind, value in itertools.chain([first], events):
 

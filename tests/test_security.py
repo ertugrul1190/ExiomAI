@@ -595,6 +595,38 @@ def test_an_open_stream_holds_its_slot_until_closed(
     assert ask(client, "what are nodes").status_code == 200
 
 
+def test_a_finished_stream_frees_its_slot_without_close(
+    client, provider, monkeypatch
+):
+    # Workers' adapter never closes the response: every
+    # streamed answer kept its slot for the whole lease, and a
+    # fifth question in five minutes was refused (7 Nov 2026).
+    slots = security.AnswerSlots(per_client=1)
+    monkeypatch.setattr(application, "answer_slots", slots)
+
+    stream = client.post(
+        "/ask/stream",
+        json={"question": "what is staking"},
+        buffered=False
+    )
+
+    releases = []
+    release = slots.release
+    monkeypatch.setattr(
+        slots, "release", lambda client: (releases.append(client), release(client))
+    )
+
+    for _chunk in stream.response:
+        pass
+
+    assert slots.in_use() == 0
+
+    # A close() afterwards must not free another answer's slot.
+    stream.close()
+
+    assert len(releases) == 1
+
+
 def test_a_refused_stream_frees_its_slot(client, provider, monkeypatch):
     slots = security.AnswerSlots(per_client=1)
     monkeypatch.setattr(application, "answer_slots", slots)

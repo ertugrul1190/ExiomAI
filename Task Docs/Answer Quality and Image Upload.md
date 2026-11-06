@@ -456,3 +456,112 @@ Kept as they are, on purpose:
 | `templates/index.html`, `static/style.css` | attach button, chips, resize, paste and drop, thumbnails, left-count, small-print line (Task 16, §16.17) |
 | `.env.example` | `EXIOM_CLIENT_IMAGES_PER_DAY` |
 | tests | `test_usage_control`, `test_usage_hub`, `test_ai_provider`, `test_ask_endpoint`, `test_security` |
+
+
+## 7. Quality review, 6–7 November 2026
+
+90 lines (93 questions with follow-ups) in
+`evals/quality_review.txt`, asked on the real default model
+(gpt-5-nano) with `live_eval.py --parallel 2`, then graded
+by hand against `knowledge/`. The set covers easy and common
+questions, groups of paraphrases that should get the same
+facts, "can I…?", niche facts from every knowledge file,
+older pages vs current, live values, things no source has,
+wallet fixes, follow-ups and off-topic.
+
+### 7.1 Scores before the fixes (1–5)
+
+| Group | Qs | Quality | Simple terms | Descriptive | Accurate to docs |
+| --- | --- | --- | --- | --- | --- |
+| Easy and common | 10 | 3.5 | 3 | 4 | 4 |
+| Paraphrase groups | 10 | 4 | 4 | 4 | 4.5 |
+| Can I …? | 6 | 3 | 3.5 | 4 | 3 |
+| Niche: service nodes | 10 | 4.5 | 4 | 4 | 4.5 |
+| Niche: operator guide | 10 | 3.5 | 3.5 | 4 | 3.5 |
+| Niche: tokenomics, forks, platform | 20 | 4 | 3.5 | 4 | 4 |
+| Older pages vs current | 6 | 5 | 4 | 4 | 5 |
+| Live values | 6 | 4.5 | 4.5 | 3.5 | 4.5 |
+| Not in the docs | 4 | 2.5 | 4 | 3.5 | 2 |
+| Wallet fixes | 3 | 3.5 | 4 | 4 | 3.5 |
+| Follow-ups | 6 | 3.5 | 4 | 4 | 3 |
+| Off-topic, identity | 2 | 5 | 5 | n/a | 5 |
+
+- 76 of 93 answers were right and complete. 17 had a
+  material problem.
+- Every paraphrase group gave the same facts (stake,
+  supply cap, unstaking, payout rhythm).
+- All six "older page" questions were corrected to the
+  current figure.
+
+### 7.2 What was wrong, and the fix
+
+| Found | Fix |
+| --- | --- |
+| GLIBC daemon error, Linux AppImage sandbox error and Pecunia hosting all routed off-topic | `EXIOM_TOPIC` knows `pecunia`, `appimage`, "the/my daemon"; router worked example for troubleshooting |
+| "2027 price prediction" searched and quoted MEXC's forecast (breaks rule 6) | `query_router.asks_for_prediction()`: never a price lookup or a search |
+| "Where can I get a bootstrap snapshot" searched (the buy pattern took "get") and invented download steps | "where can I get" is a market question only with xeqm/exiom/coin/token/some |
+| Contributor earnings: 2,673 XEQM a day (the network's 11,880 used as one node's) | New section "How much a contributor earns" in `service_nodes.md`, with the per-node figure and a worked share |
+| "11 contributors" (the Explorer label said "contributors, operator included") | Label is now "Maximum stakers per node, counting the operator"; knowledge says 10 contributors, never 11 |
+| "Several nodes on one server": said HF22 makes them invalid | `operator_guide.md`: a documented setup; HF22 limits quorum seats, not rewards |
+| HF22 answers gave it revision 1's 4 rounds and signed fallback blocks | `hard_forks.md`: HF22 itself kept 2 rounds and mined fallback blocks |
+| Ring size: an open search returned Monero's 16 as XEQM's | `core.md`: the docs don't state it; never give Monero's figures |
+| "Is XEQM private?" never retrieved "Privacy technology" | Retrieval synonym: privacy, privately → privat |
+| `stake <pubkey> 15%` invented from the `50%` example | The percent is of what the node still needs, never the user's amount |
+| A plain-text source list got a second, linked "Sources:" line | `source_additions` counts a bare URL as a citation (the page already links them) |
+| "Source: Official EXIOM Explorer" under answers using no Explorer value | Prompt: only when the answer states an EXPLORER DATA value |
+| 250k "two nodes?" missed two pool nodes as operator | CAN I section: combine routes (100,000 per pool node, the rest as contributions) |
+
+### 7.3 After the fixes
+
+The 27 affected questions were asked again on gpt-5-nano.
+
+Fixed:
+- GLIBC, AppImage and Pecunia (each answered from the docs);
+- prediction (no search, no forecast);
+- bootstrap (no search);
+- ring size;
+- contributor earnings (14.14 a day × share × (1 − fee));
+- contributor count;
+- "can I stake 15k" (no invented percent);
+- zero-reward grace period;
+- "Is XEQM private?" (ring signatures, stealth addresses,
+  confidential amounts);
+- duplicate source lists.
+
+Still nano's limits, which mini passed in §2.8:
+- HF22 answers still blend in revision 1;
+- "250k, two nodes?" still misses the two-pool-node route;
+- the Explorer source line still appears under some
+  concept answers, less often;
+- "several nodes on one server" now says yes but still
+  suggests separate wallets.
+
+The live values were right. One run's "staked right now" used
+the dated 188.6M because the Explorer feeds were briefly
+unreadable (logged); on the re-run it gave the live 172M.
+
+`pytest`: 932 passed (`EXIOM_USAGE_TOKEN=` empty). New tests:
+- the troubleshooting topic terms;
+- "where can I get" only for the coin;
+- prediction wording;
+- a prediction never searches;
+- a plain-text source list gets no second Sources line.
+
+### 7.4 Deploy fixes, 7 November 2026
+
+Live on version `ba736fa9`, answers on gpt-5-nano.
+
+- **Knowledge loaded from app.py's own folder**
+  (`app.KNOWLEDGE_DIR`), never the working directory. Some
+  live answers had no knowledge at all: "can i stake 60k
+  coins" got "which coin do you mean?" on both nano and mini.
+  The app now logs `EXIOM knowledge missing: …` if any of it
+  fails to load.
+- **A streamed answer frees its slot when it ends**, once.
+  The Workers adapter never calls `close()`, so every
+  streamed answer held its slot for the 5-minute lease. A
+  5th question within 5 minutes was refused with "You
+  already have a few answers on the way".
+- Verified live: 7 questions in a row all answered and
+  grounded, with no "knowledge missing" or timeout lines in
+  the Worker log. `pytest`: 934 passed.

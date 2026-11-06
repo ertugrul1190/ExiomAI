@@ -220,6 +220,10 @@ def test_other_questions_are_not(question):
     "what is the oracle sidecar",
     "is lokinet live",
     "how do I stake into a pool node",
+    # 6 Nov review: all three went off-topic.
+    "I get GLIBC_2.x not found when starting the daemon",
+    "The Linux AppImage gives a sandbox error",
+    "How much does Pecunia charge for managed hosting?",
 ])
 def test_operator_terms_count_as_exiom_topics(question):
     assert query_router.names_exiom_topic(question)
@@ -360,3 +364,34 @@ def test_deflections_are_recognised(answer):
 ])
 def test_real_answers_are_not_deflections(answer):
     assert not query_router.is_deflection(answer)
+
+
+# 6 Nov review: "where can I get" searched for a bootstrap
+# snapshot, and a price prediction was searched for and quoted.
+@pytest.mark.parametrize("question, market", [
+    ("where can i get xeqm", True),
+    ("where can I buy XEQM?", True),
+    ("Where can I get a bootstrap snapshot to sync faster?", False),
+    ("where can I get a wallet", False),
+])
+def test_where_to_get_is_market_only_for_the_coin(question, market):
+    assert query_router.asks_for_current_market_info(question) is market
+
+
+@pytest.mark.parametrize("question", [
+    "What's the XEQM price prediction for 2027?",
+    "will xeqm go up",
+    "price forecast for exiom",
+    "can the coin reach $1",
+])
+def test_predictions_are_recognised(question):
+    assert query_router.asks_for_prediction(question)
+
+
+@pytest.mark.parametrize("question", [
+    "whats the coin price",
+    "is xeqm up today",
+    "will my node earn rewards",
+])
+def test_other_questions_are_not_predictions(question):
+    assert not query_router.asks_for_prediction(question)

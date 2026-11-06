@@ -24,7 +24,7 @@ Sources: [EXIOM Tokenomics Whitepaper](https://github.com/XEQMLabs/whitepaper), 
 - 9232/TCP quorumnet (SN-to-SN messaging for Pulse, votes, timestamp tests): public, must be reachable by other service nodes.
 - 9233 public OMQ: optional, public if enabled.
 - 9234 wallet RPC: local only.
-Open inbound 9230/TCP and 9232/TCP in the machine's firewall and the router/cloud firewall. To run several nodes on one host, give each daemon its own quorumnet port (9232, 9242, 9252...). Community public nodes serve wallet RPC over HTTPS on 443 instead (see Community public nodes).
+Open inbound 9230/TCP and 9232/TCP in the machine's firewall and the router/cloud firewall. To run several nodes on one host, give each daemon its own quorumnet port (9232, 9242, 9252...). Several nodes on one host is a documented setup: each needs its own full stake and keeps earning block rewards. Since HF22 one operator's nodes share one quorum seat per round (a quorum-seat limit, not a ban, and rewards are unaffected); spreading large fleets across machines makes failed Pulse rounds less likely. Community public nodes serve wallet RPC over HTTPS on 443 instead (see Community public nodes).
 
 Sources: [SN Operator Guide](https://xeqmlabs.gitbook.io/docs/documentation/sn-operator-guide), [XEQM Core](https://github.com/XEQMLabs/xeqm-core)
 

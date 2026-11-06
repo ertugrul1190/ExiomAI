@@ -1172,6 +1172,16 @@ def test_a_concept_question_about_price_does_not_search(client, provider):
     assert provider.generate_calls[0]["web_search"] is False
 
 
+def test_a_price_prediction_never_searches(client, provider):
+    # Even with the router asking for one: a search found and
+    # quoted an exchange's "2027 target" (6 Nov review).
+    provider.route_result = dict(SEARCH_ROUTE)
+
+    ask(client, "What's the XEQM price prediction for 2027?")
+
+    assert provider.generate_calls[0]["web_search"] is False
+
+
 def test_an_unrelated_price_question_does_not_search(client, provider):
     provider.route_result = {
         "scope": "unrelated", "intent": "general", "facts": [],
@@ -1916,6 +1926,23 @@ def test_a_figure_from_the_knowledge_gets_that_sections_source(
     assert "](https://xeqmlabs.gitbook.io/docs/documentation/" in text
 
 
+def test_a_plain_text_source_list_gets_no_second_sources_line(
+    client, provider
+):
+    # 6 Nov review: a bare-URL source list was repeated as a
+    # linked "Sources:" line under it.
+    provider.route_result = dict(CONCEPT_ROUTE)
+    provider.answer_text = (
+        "You can join a pool node with 10,000 XEQM.\n\nSources:\n"
+        "- Service Nodes (SN): "
+        "https://xeqmlabs.gitbook.io/docs/documentation/whitepaper/service-nodes-sn"
+    )
+
+    text = ask(client, "minimum to join a pool").json["answer"]
+
+    assert text == provider.answer_text
+
+
 def test_a_concept_explanation_gets_no_added_source(client, provider):
     provider.route_result = dict(CONCEPT_ROUTE)
     provider.answer_text = "Staking means locking coins to help run the network."
@@ -2176,3 +2203,27 @@ def test_an_unreachable_usage_hub_refuses_images_as_capacity(
     assert response.get_json()["error_type"] == "usage_limit"
     assert "capacity" in response.get_json()["answer"]
     assert provider.calls == 0
+
+
+def test_knowledge_loads_whatever_the_working_directory(tmp_path):
+    # A Worker started outside the bundle folder loaded no
+    # knowledge and answered "which coin do you mean?"
+    # (7 Nov 2026). The paths come from app.py's own folder.
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(application.__file__).resolve().parent
+    result = subprocess.run(
+        [sys.executable, "-c",
+         "import app; print(len(app.teaching_instructions) > 0,"
+         " len(app.knowledge_sections) > 0,"
+         " len(app.knowledge_changelog) > 0)"],
+        cwd=tmp_path,
+        env={**os.environ, "PYTHONPATH": str(root),
+             "OPENAI_API_KEY": "sk-test", "EXIOM_USAGE_DB": "off"},
+        capture_output=True, text=True, timeout=120
+    )
+
+    assert result.stdout.strip().splitlines()[-1] == "True True True", result.stderr

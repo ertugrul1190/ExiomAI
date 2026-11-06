@@ -321,6 +321,11 @@ Only routes, numbers and steps the supplied knowledge gives.
 Never suggest the user could become something their amount
 doesn't reach.
 
+Combine routes when the amount allows: each pool node needs
+only 100,000 XEQM from its operator, so twice that runs two
+pool nodes, and what is left after a node can go into another
+operator's node as a contribution.
+
 
 ## BAD
 

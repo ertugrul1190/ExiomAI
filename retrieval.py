@@ -45,6 +45,9 @@ def stem(word):
 SYNONYMS = {
     "coin": "xeqm",
     "token": "xeqm",
+    # "Is XEQM private?" missed "Privacy technology".
+    "privacy": "privat",
+    "privately": "privat",
 }
 
 

@@ -706,7 +706,13 @@ class LiveData:
             },
 
             "max_contributors": {
-                "label": "Maximum contributors per node (operator included)",
+                # "Contributors (operator included)" was read as
+                # 11 contributors; the docs say 10 plus the
+                # operator.
+                "label": (
+                    "Maximum stakers per node, counting the operator "
+                    "(contributors are one fewer)"
+                ),
                 "meaning": (
                     "most wallets, operator included, that can "
                     "stake into one EXIOM service node"
