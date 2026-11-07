@@ -893,3 +893,44 @@ screenshot of a recovery phrase or private key."
   thumbnails. History read `[image] [image] [image] what
   does this show?`.
 - **Layout**: no sideways scroll at either size.
+
+## 16.18 Copy buttons on messages
+
+**The button.** Every finished message has a copy icon under
+it: left-aligned under an answer, right-aligned under the
+user's bubble. It's a quiet 32px muted icon (40px on phones),
+and it brightens on hover or focus. After a copy it turns into
+an ice tick for 1.6s. Copying another message resets the
+previous tick. Answers still typing, errors shown in place of
+an answer, and image-only bubbles have no button, because
+there's nothing finished to copy. An answer whose stream broke
+partway keeps its button, and copies what's on screen,
+including the error line.
+
+**What it copies.** The question exactly as typed. The answer
+as the raw Markdown the model wrote, not the rendered text, so
+`**bold**`, lists and `[site](url)` links survive a paste into
+Discord or Telegram. The text is kept in a `WeakMap` keyed by
+the message element, so it never goes through the DOM.
+
+**Where the clipboard is refused.** That happens on plain HTTP,
+or when the page isn't focused. The message is selected
+instead, and the button reads "Selected, now copy it", the
+same fallback the address cards use. What gets selected is the
+rendered text, so this path loses the Markdown. A screen reader hears
+"Copied" (or that line) from a `role="status"` region next to
+the log.
+
+**One listener.** A single delegated click handler on the log
+(`#answer`) handles every button. The icons are two new
+symbols, `i-copy` and `i-check`, in the sprite.
+
+**Verified.** Headless Chrome over CDP at 1440×900 and 390×844
+(touch), against the real Flask app with a stub provider:
+- **Clipboard**: a two-line question was read back exactly,
+  and the answer came back as raw Markdown.
+- **Tick**: it moved to the last button clicked, and both the
+  tick and the status cleared after the timeout.
+- **Refused clipboard**: the answer body was selected and the
+  label read "Selected, now copy it".
+- **Layout**: no sideways scroll at either size.

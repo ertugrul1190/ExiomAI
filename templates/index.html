@@ -64,6 +64,15 @@
     <symbol id="i-exchange" viewBox="0 0 24 24">
         <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 8h14l-3.5-3.5M20 16H6l3.5 3.5"/>
     </symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="11" height="11" rx="2.5"/>
+            <path d="M15 9V6.5A2.5 2.5 0 0 0 12.5 4h-6A2.5 2.5 0 0 0 4 6.5v6A2.5 2.5 0 0 0 6.5 15H9"/>
+        </g>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m5 12.5 4.5 4.5L19 7.5"/>
+    </symbol>
     <symbol id="i-out" viewBox="0 0 24 24">
         <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8 16 16 8M9.5 8H16v6.5"/>
     </symbol>
@@ -366,6 +375,9 @@
 
     </main>
 
+    <!-- Announces "Copied" for the copy buttons (16.18). -->
+    <span id="copyStatus" class="sr-only" role="status" aria-live="polite"></span>
+
 
     <footer class="dock" data-arrive>
 
@@ -474,6 +486,7 @@ const attachChips = document.getElementById("attachChips");
 const attachNote = document.getElementById("attachNote");
 const composer = document.querySelector(".composer");
 const welcome = document.getElementById("welcome");
+const copyStatus = document.getElementById("copyStatus");
 
 let conversation = [];
 let requestInProgress = false;
@@ -1112,6 +1125,22 @@ const AI_HEAD =
     "</div>";
 
 
+/* Copy (16.18): each finished message gets a copy button.
+   The text it copies is kept beside the message: the
+   question as typed, the answer as raw Markdown, so links
+   and lists survive a paste into Discord or Telegram. */
+
+const COPY_HTML =
+    '<div class="msg-actions">' +
+    '<button class="copy-button" type="button" aria-label="Copy" title="Copy">' +
+    '<svg class="copy-icon" aria-hidden="true"><use href="#i-copy"/></svg>' +
+    '<svg class="copied-icon" aria-hidden="true"><use href="#i-check"/></svg>' +
+    "</button>" +
+    "</div>";
+
+const copyTexts = new WeakMap();
+
+
 function addMessage(kind, html) {
 
     const message = document.createElement("article");
@@ -1172,7 +1201,10 @@ function renderAnswer(aiMessage, data, answer) {
     aiMessage.innerHTML =
         AI_HEAD.replace("</div>", liveHTML + "</div>") +
         `<div class="msg-body">${formatAnswer(answer)}</div>` +
-        sourceHTML;
+        sourceHTML +
+        COPY_HTML;
+
+    copyTexts.set(aiMessage, answer);
 
     aiMessage.setAttribute("aria-busy", "false");
 
@@ -1243,10 +1275,15 @@ async function askQuestion() {
           "</span>"
         : "";
 
-    addMessage(
+    const userMessage = addMessage(
         "user",
-        `<span class="sr-only">You:</span><div class="bubble">${thumbs}${escapeHTML(question)}</div>`
+        `<span class="sr-only">You:</span><div class="bubble">${thumbs}${escapeHTML(question)}</div>` +
+        (question ? COPY_HTML : "")
     );
+
+    if (question) {
+        copyTexts.set(userMessage, question);
+    }
 
     const aiMessage = addMessage(
         "ai",
@@ -1475,6 +1512,76 @@ function formatAnswer(text) {
     return output;
 
 }
+
+
+/* -------------------------------------------------------
+   COPY (16.18)
+
+   One listener for every copy button in the log. Where the
+   page may not use the clipboard (plain HTTP), the message
+   is selected to copy by hand, as the address cards do.
+------------------------------------------------------- */
+
+let copyTimer = 0;
+
+function labelCopy(button, text) {
+    button.setAttribute("aria-label", text);
+    button.title = text;
+}
+
+function resetCopy(button) {
+    button.classList.remove("is-copied");
+    labelCopy(button, "Copy");
+}
+
+/* Only the latest copy shows its tick. */
+
+function reportCopy(button, text) {
+
+    answerBox.querySelectorAll(".copy-button.is-copied").forEach(resetCopy);
+
+    button.classList.add("is-copied");
+    labelCopy(button, text);
+    copyStatus.textContent = text;
+
+    clearTimeout(copyTimer);
+    copyTimer = setTimeout(() => {
+        resetCopy(button);
+        copyStatus.textContent = "";
+    }, 1600);
+
+}
+
+function selectToCopy(button, message) {
+    const range = document.createRange();
+    range.selectNodeContents(message.querySelector(".msg-body, .bubble"));
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    reportCopy(button, "Selected, now copy it");
+}
+
+answerBox.addEventListener("click", function (event) {
+
+    const button = event.target.closest(".copy-button");
+
+    if (!button) {
+        return;
+    }
+
+    const message = button.closest(".msg");
+    const text = copyTexts.get(message);
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(
+            () => reportCopy(button, "Copied"),
+            () => selectToCopy(button, message)
+        );
+    } else {
+        selectToCopy(button, message);
+    }
+
+});
 
 
 /* -------------------------------------------------------
