@@ -87,7 +87,7 @@ def test_creator_questions_use_the_documented_answer(question):
 
     assert result["route"] == "creator"
     assert "Xrypto" in result["answer"]
-    assert "youtube.com/@xrypto_cryptozone" in result["answer"]
+    assert "youtube.com/@xryptochannel" in result["answer"]
     assert "XEQM Labs" in result["answer"]
 
 

@@ -53,7 +53,7 @@ def _words(normalized):
 # CANNED RESPONSES
 # ---------------------------------------------------------
 
-CREATOR_URL = "https://youtube.com/@xrypto_cryptozone"
+CREATOR_URL = "https://youtube.com/@xryptochannel"
 
 
 IDENTITY_ANSWER = (
